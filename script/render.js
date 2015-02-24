@@ -119,7 +119,8 @@ function ExpressionGroup(json) {
 					if (group.indexOf("_") != -1) {
 						elem.addClass("highlighted");
 					}
-					elem.innerHTML = group.replace("_", "");
+					elem.innerHTML = truncate_number(
+						+group.replace("_", ""));
 				} else {
 					elem.addClass("operation");
 					elem.setAttribute("data-operation",
@@ -495,8 +496,9 @@ function describe_operation(operation) {
 		default:
 			break;
 	}
-	return start + " " + operation.n1 + " " + middle +
-		" " + operation.n2 + end;
+	return start + " " +
+		truncate_number(operation.n1) + " " + middle +
+		" " + truncate_number(operation.n2) + end;
 }
 
 function ordinal_of(n) {
@@ -524,4 +526,12 @@ function first_difference(str1, str2) {
 	}
 
 	return y;
+}
+
+function truncate_number(n) {
+	if (/\.\d{5,}$/.test(n.toString())) {
+		return n.toFixed(4);
+	} else {
+		return n.toString();
+	}
 }

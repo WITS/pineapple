@@ -143,6 +143,7 @@
 }
 
 .module-step > .content > .render::before {
+	padding-right: 6px;
 	opacity: 0.1;
 	vertical-align: middle;
 	content: "=";
