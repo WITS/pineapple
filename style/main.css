@@ -161,7 +161,18 @@ input[type='text']:focus {
 
 .render .operation[data-operation='-']:first-child {
 	padding-right: 0px;
-} 
+}
+
+#output:empty ~ #footer {
+	font-size: 1.2em;
+	opacity: 0;
+}
+
+#footer {
+	padding: 12px;
+	font-size: 1.6em;
+	color: rgba(0, 0, 0, 0.85);
+}
 
 @media (max-width: 640px) {
 
@@ -210,6 +221,10 @@ input[type='text']:focus {
 
 #nav input[type='text']:focus + button {
 	bottom: 32px;
+}
+
+#footer {
+	text-align: center;
 }
 
 }
