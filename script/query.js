@@ -1,15 +1,24 @@
 function handle_query(f, e) {
 	e.preventDefault();
 
-	var text = f.text.value;
+	var text = f.text.value.trim();
+
+	// Clear output
+	var output = document.getElementById("output");
+	output.empty();
+
+	// Return to the homepage?
+	if (!text.length) {
+		// document.body.addClass("homepage");
+		return;
+	} else {
+		// document.body.removeClass("homepage");
+	}
 
 	// Pre-Processing
 	text = text.replace(/\u00D7/g, "*");
 	text = text.replace(/\u00F7/g, "/");
 	text = text.replace(/\u00B2/g, "^2");
-
-	var output = document.getElementById("output");
-	output.empty();
 
 	// Pre-Module
 	modules.splice(0);
@@ -42,3 +51,11 @@ function handle_query(f, e) {
 		children: solution.element()
 	})).element());
 }
+
+// Homepage Styling
+window.addEventListener("load", function() {
+	if (IS_MOBILE) {
+		document.body.addClass("mobile");	
+	}
+	// document.body.addClass("homepage");
+});

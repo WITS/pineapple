@@ -27,7 +27,7 @@ Element.prototype.removeClass = function(className) {
 
 	this.className = this.className.replace(
 		new RegExp("\\b" + className + "\\b", "g"),
-			"").trim();
+			"").trim().replace(/\s{2,}/g, " ");
 }
 
 Element.prototype.toggleClass = function(className) {
