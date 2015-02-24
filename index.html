@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>pineapple.help</title>
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+	<link rel='stylesheet' type='text/css' href='style/main.css' />
+	<link rel='stylesheet' type='text/css' href='style/module.css' />
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+	<link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,500,700,300' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Roboto:400,500,700,300' rel='stylesheet' type='text/css'>
+	<script type='text/javascript' src='script/query.js'></script>
+	<script type='text/javascript' src='script/module.js'></script>
+	<script type='text/javascript' src='script/render.js'></script>
+	<script type='text/javascript' src='script/utils.js'></script>
+</head>
+<body>
+<div id='page-wrapper'>
+<div id='nav'>
+	<div id='logo'>pineapple.help</div>
+	<form name='input_form' onsubmit='handle_query(this, event)'>
+		<input name='text' id='input' type='text' placeholder='equation or expression' value='-(2 + 9/3) ^ (1 * 2 ^ (1 ^ 2))' autocomplete='off' />
+		<button>
+			<i class='fa fa-tint'></i>
+		</button>
+	</form>
+</div>
+<div id='output'></div>
+</div>
+</body>
+</html>

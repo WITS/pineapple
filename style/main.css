@@ -1,0 +1,215 @@
+html {
+	font-family: "Roboto Slab", Times New Roman,
+		serif;
+	font-size: 10px;
+}
+
+body {
+	background-color: whitesmoke;
+	color: rgba(0, 0, 0, 0.90);
+}
+
+#page-wrapper {
+	position: relative;
+	width: 80%;
+	margin: 0px auto;
+	padding-top: 96px;
+	-webkit-transition: width 0.5s,
+		padding-top 0.5s;
+}
+
+#nav {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 64px;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	padding: 36px 12px 12px;
+}
+
+#nav * {
+	vertical-align: middle;
+}
+
+#logo {
+	flex: 0 0 auto;
+	display: inline-block;
+	font-size: 3.2em;
+	font-weight: 600;
+	margin-right: 12px;
+	padding-bottom: 6px;
+}
+
+#nav form {
+	flex: 1 1 auto;
+	display: inline-block;
+	display: inline-flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+}
+
+input[type='text'] {
+	flex: 1 1 auto;
+	font-family: "Roboto", Arial, sans-serif;
+	font-size: 2.0em;
+	background-color: inherit;
+	padding: 0px 6px 3px;
+	max-height: 28px;
+	border: none;
+	border-bottom: 1px solid lightgray;
+	box-shadow: inset 0px 0px 0px 0px
+		rgb(203, 80, 39);
+	outline: none;
+}
+
+input[type='text']:focus {
+	border-bottom: 1px solid rgb(203, 80, 39);
+	box-shadow: inset 0px -1px 0px 0px
+		rgb(203, 80, 39);
+}
+
+#nav button {
+	flex: 0 0 auto;
+	margin-left: 12px;
+	border: none;
+	border-radius: 50%;
+	width: 3.6em;
+	height: 3.6em;
+	line-height: 2.4em;
+	background-color: rgb(203, 80, 39);
+	outline: none;
+	color: white;
+	box-shadow: 0px 4px 4px 0px
+		rgba(0, 0, 0, 0.2),
+		0px 0px 6px 0px rgba(0, 0, 0, 0.2);
+	bottom: 0px;
+	z-index: 30;
+	-webkit-transition: box-shadow 0.2s;
+}
+
+#nav button:active {
+	box-shadow: 0px 8px 8px 0px
+		rgba(0, 0, 0, 0.2),
+		0px 0px 6px 0px rgba(0, 0, 0, 0.2);
+}
+
+#nav button i {
+	font-size: 1.4em;
+}
+
+.equation.render {
+	font-size: 3.2em;
+}
+
+.solution.render {
+	font-size: 3.2em;
+	font-weight: 400;
+}
+
+.render .expression-group,
+.render .operation,
+.render .number {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.render * .parentheses::before,
+.render .number.negative:not(.base)::before {
+	content: "(";
+}
+
+.render * .parentheses::after,
+.render .number.negative:not(.base)::after {
+	content: ")";
+}
+
+.render .highlighted {
+	background-color: rgb(252, 234, 168);
+}
+
+.render .operation {
+	padding: 0em 0.15em;
+	font-weight: 300;
+}
+
+.render .exponent {
+	vertical-align: super;
+	font-size: 0.7em;
+}
+
+.render .fraction > * {
+	display: block;
+	font-size: 0.8em;
+	text-align: center;
+}
+
+.render .fraction > .numerator {
+	border-bottom: 1px solid black;
+}
+
+.card:not(.white) .equation.render
+	.fraction > .numerator {
+	border-bottom-color: rgba(255, 255, 255, 0.9);
+}
+
+.render .operation[data-operation='-']:first-child {
+	padding-right: 0px;
+} 
+
+@media (max-width: 640px) {
+
+#page-wrapper {
+	width: 100%;
+	padding-top: 168px;
+}
+
+#nav {
+	flex-direction: column;
+	align-items: initial;
+	width: 100%;
+	height: 96px;
+	padding-top: 12px;
+}
+
+#nav #logo {
+	margin-right: 0px;
+	margin-bottom: 6px;
+	text-align: center;
+}
+
+#nav > form {
+	display: flex;
+	padding-top: 12px;
+}
+
+#nav input[type='text'] {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	display: block;
+	width: 100%;
+	font-weight: 300;
+	max-height: none;
+	padding-left: 12px;
+	padding-right: 12px;
+	text-align: center;
+}
+
+#nav button {
+	position: absolute;
+	right: 10px;
+	bottom: -64px;
+	-webkit-transition: bottom 0.4s;
+}
+
+#nav input[type='text']:focus + button {
+	bottom: 32px;
+}
+
+}
