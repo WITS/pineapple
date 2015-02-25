@@ -3,6 +3,7 @@ function EquationRender(json) {
 	this.group = new ExpressionGroup({
 		text: this.text
 	});
+	this.group.simplify();
 	if (this.group.module.steps.length) {
 		this.group.module.joined = "both";
 		modules.push(this.group.module);
@@ -54,6 +55,7 @@ function ExpressionGroup(json) {
 	} else {
 		this.visualOnly = false;
 	}
+	this.value = 0;
 	this.elements = [];
 	this.elementObj = null;
 
@@ -80,9 +82,9 @@ function ExpressionGroup(json) {
 			return_val[1] = return_val[0] +
 				operation.value.toString().length - 1;
 
-			console.log([old_full_text,
-				new_full_text, return_val[0],
-				return_val[1]]);
+			// console.log([old_full_text,
+			// 	new_full_text, return_val[0],
+			// 	return_val[1]]);
 		}
 
 		this.modified_text = new_full_text;
@@ -102,7 +104,7 @@ function ExpressionGroup(json) {
 				++ x) {
 				var group = this.groups[x];
 				if (this.visualOnly) {
-					console.log(group);
+					// console.log(group);
 				}
 				var elem = document.createElement("span");
 				if (!(typeof group === 'string')) {
@@ -201,8 +203,20 @@ function ExpressionGroup(json) {
 	// Parentheses / Groups
 	var p_start = 0;
 	var p_level = 0;
+	var algebra_group = false;
+
+	var prev_character = "";
+	var character = "";
+	var next_character = this.text[0];
 	for (var x = 0, y = this.text.length; x < y; ++ x) {
-		var character = this.text[x];
+		prev_character = character;
+		character = next_character;
+		if (x + 1 < y) {
+			next_character = this.text[x + 1];
+		} else {
+			next_character = "";
+		}
+
 		if (character == "(") {
 			++ p_level;
 			if (p_level == 1) {
@@ -216,6 +230,7 @@ function ExpressionGroup(json) {
 						// 	group_text);
 					}
 					this.groups.push(group_text);
+					algebra_group = false;
 				}
 				p_start = x + 1;
 			}
@@ -245,21 +260,19 @@ function ExpressionGroup(json) {
 			continue;
 		}
 
-		if (/[+\-*\/^]/.test(character)) {
-			if (x) {
-				var prev_character = this.text[x - 1];
-			} else {
-				var prev_character = "";
-			}
-			if (x < this.text.length - 1) {
-				var next_character = this.text[x + 1];
-			} else {
-				var next_character = "";
-			}
+		if (/[a-z]/i.test(character)) {
+			algebra_group = true;
+		}
 
+		if (/[+\-*\/^]/.test(character)) {
 			if (character == "-" && 
 				/^\(?$/.test(prev_character) &&
 				/^\d$/.test(next_character)) {
+				continue;
+			}
+			if (character == "^" && algebra_group &&
+				!(/[a-z(]/i.test(next_character) ||
+					/[0-9.]/.test(prev_character))) {
 				continue;
 			}
 			var group_text =
@@ -272,6 +285,7 @@ function ExpressionGroup(json) {
 					// 	group_text);
 				}
 				this.groups.push(group_text);
+				algebra_group = false;
 			}
 			if (x >= this.highlight[0] &&
 					x <= this.highlight[1]) {
@@ -301,66 +315,116 @@ function ExpressionGroup(json) {
 		return this;
 	}
 
-	// Operation Groups
-	var o_groups = [];
+	this.simplify = function() {
+		// Operation Groups
+		var o_groups = [];
 
-	for (var x = 0, y = this.groups.length; x < y;
-		++ x) {
-		var group = this.groups[x];
-		if (typeof group === 'string') {
-			if (new RegExp("^" + FLOAT_NUM_REGEX +
-				"\\_?$").test(group)) {
-				o_groups.push(+group.replace("_", ""));
-			} else {
-				o_groups.push(group.replace("_", ""));
-			}
-		} else {
-			o_groups.push(group.value);
-		}
-	}
-
-	var operations = ["\\^", "*/", "+\\-"];
-	var o;
-	for (var i = 0; i < 3; ++ i) {
-		o = operations[i];
-
-		for (var x = 0, y = o_groups.length; x < y;
+		for (var x = 0, y = this.groups.length; x < y;
 			++ x) {
-			var group = o_groups[x];
+			var group = this.groups[x];
 			if (typeof group === 'string') {
-				if (new RegExp("^[" + o + "]$").test(
-					group)) {
-					var operation = new OperationGroup({
-						group: this,
-						top_group: this.top_parent,
-						n1: o_groups[x - 1],
-						n2: o_groups[x + 1],
-						operation: group,
-						text: this.modified_text
-					});
-					// this.modified_text = operation.new_text;
-					var new_val = operation.value;
+				if (new RegExp("^" + FLOAT_NUM_REGEX +
+					"\\_?$").test(group)) {
+					o_groups.push(+group.replace("_", ""));
+				} else {
+					o_groups.push(group.replace("_", ""));
+				}
+			} else {
+				group.simplify();
+				o_groups.push(group.value);
+			}
+		}
 
-					if (x) {
-						o_groups[x - 1] = new_val;
-						o_groups.splice(x, 2);
-						-- x;
-						y -= 2;
-					} else {
-						o_groups[0] = new_val;
-						o_groups.splice(x + 1, 1);
-						-- y;
+		var operations = ["\\^", "*/", "+\\-"];
+		var o;
+		for (var i = 0; i < 3; ++ i) {
+			o = operations[i];
+
+			for (var x = 0, y = o_groups.length; x < y;
+				++ x) {
+				var group = o_groups[x];
+				if (typeof group === 'string') {
+					if (new RegExp("^[" + o + "]$").test(
+						group)) {
+						var operation = new OperationGroup({
+							group: this,
+							top_group: this.top_parent,
+							n1: o_groups[x - 1],
+							n2: o_groups[x + 1],
+							operation: group,
+							text: this.modified_text
+						});
+
+						var new_val = operation.value;
+
+						if (x) {
+							o_groups[x - 1] = new_val;
+							o_groups.splice(x, 2);
+							-- x;
+							y -= 2;
+						} else {
+							o_groups[0] = new_val;
+							o_groups.splice(x + 1, 1);
+							-- y;
+						}
 					}
 				}
 			}
 		}
-	}
 
-	this.value = +o_groups[0];
-	if (this.parent != null) {
-		this.parent.modified_text =
-			this.parent.modified_text.replace(
-			"(" + this.text + ")", this.value);
+		this.value = +o_groups[0];
+		if (this.parent != null) {
+			this.parent.modified_text =
+				this.parent.modified_text.replace(
+				"(" + this.text + ")", this.value);
+		}
+	}
+}
+
+function AlgebraGroup(json) {
+	this.text = json.text || "0";
+	this.coefficient = json.coefficient || 1;
+	// Stores variables in the group and
+	// their degree (e.g. x^2 would be {x:2})
+	this.variable = json.variable || {};
+	this.hasVar = function(name) {
+		return (this.variable[name] != null);
+	}
+	this.getVar = function(name) {
+		return this.variable[name];
+	}
+	this.removeVar = function(name) {
+		delete this.variable[name];
+	}
+	this.setVar = function(name, degree) {
+		this.variable[name] = degree;
+		return degree;
+	}
+	this.incrementVar = function(name, degree) {
+		if (!this.hasVar(name)) {
+			return this.setVar(name, degree);
+		} else {
+			return (this.variables[name] += degree);
+		}
+	}
+	this.updateFromText = function(text) {
+		var variables;
+		this.coefficient = new RegExp("^-?" +
+			FLOAT_NUM_REGEX).exec(text);
+		if (this.coefficient != null) {
+			this.coefficient = +this.coefficient[0];
+		} else {
+			this.coefficient = 1;
+		}
+		variables = text.match(new RegExp(
+			"[a-z](?:\\^" + FLOAT_NUM_REGEX + ")?",
+			"gi"));
+		var i = variables.length;
+		while (i --) {
+			this.incrementVar(variables[i][0],
+				+variables.substr(1));
+		}
+		this.text = text;
 	}
 }
 
@@ -403,7 +467,7 @@ function OperationGroup(json) {
 		default: break;
 	}
 	if (json.n1 == null && json.operation == "-") {
-		console.log("-(" + this.n2 + ")=" + this.value);
+		// console.log("-(" + this.n2 + ")=" + this.value);
 		return;
 	}
 	// var instruction = "(" + this.n1 + ") " +
