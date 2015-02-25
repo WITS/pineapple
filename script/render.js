@@ -325,14 +325,29 @@ function ExpressionGroup(json) {
 			if (typeof group === 'string') {
 				if (new RegExp("^" + FLOAT_NUM_REGEX +
 					"\\_?$").test(group)) {
+					// Constant
 					o_groups.push(+group.replace("_", ""));
+				} else if (/[a-z]/i.test(group)) {
+					// AlgebraGroup
+					this.groups[x] = new AlgebraGroup();
+					this.groups[x].updateFromText(group);
+					o_groups.push(this.groups[x]);
 				} else {
+					// Operator
 					o_groups.push(group.replace("_", ""));
 				}
-			} else {
+			} else if (group instanceof ExpressionGroup) {
+				// ExpressionGroup
 				group.simplify();
 				o_groups.push(group.value);
+			} else {
+				// AlgebraGroup
+				o_groups.push(group);
 			}
+		}
+
+		if (this.parent == null) {
+			console.log(o_groups);
 		}
 
 		var operations = ["\\^", "*/", "+\\-"];
@@ -382,11 +397,13 @@ function ExpressionGroup(json) {
 }
 
 function AlgebraGroup(json) {
+	var json = json || {};
 	this.text = json.text || "0";
 	this.coefficient = json.coefficient || 1;
 	// Stores variables in the group and
 	// their degree (e.g. x^2 would be {x:2})
 	this.variable = json.variable || {};
+	this.elementObj = null;
 	this.hasVar = function(name) {
 		return (this.variable[name] != null);
 	}
@@ -419,12 +436,66 @@ function AlgebraGroup(json) {
 		variables = text.match(new RegExp(
 			"[a-z](?:\\^" + FLOAT_NUM_REGEX + ")?",
 			"gi"));
+		variables.reverse();
 		var i = variables.length;
 		while (i --) {
+			if (variables[i].length == 1) {
+				variables[i] += "^1";
+			}
 			this.incrementVar(variables[i][0],
-				+variables.substr(1));
+				+variables[i].substr(2));
 		}
 		this.text = text;
+	}
+	this.element = function() {
+		if (this.elementObj == null) {
+			var elem = document.createElement("div");
+			elem.addClass("algebra-group");
+
+			if (this.coefficient != 1) {
+				var coefficient = document.createElement(
+					"span");
+				coefficient.addClass("number");
+				coefficient.innerHTML =
+					truncate_number(this.coefficient);
+				elem.appendChild(coefficient);
+			}
+
+			// Variable / Exponent elements
+			for (var name in this.variable) {
+				var exponent = this.variable[name];
+				var wrapper = elem;
+
+				if (exponent != 1) {
+					wrapper = document.createElement("span");
+					wrapper.addClass("operator");
+					wrapper.addClass("exponent-wrapper");
+					wrapper.setAttribute("data-operation",
+						"^");
+					elem.appendChild(wrapper);
+				}
+
+				var v_elem = document.createElement("div");
+				v_elem.addClass("number");
+				v_elem.addClass("variable");
+				v_elem.innerHTML = name;
+				wrapper.appendChild(v_elem);
+
+				if (exponent != 1) {
+					v_elem.addClass("base");
+					var e_elem = document.createElement(
+						"div");
+					e_elem.addClass("number");
+					e_elem.addClass("exponent");
+					e_elem.innerHTML = exponent;
+					wrapper.appendChild(e_elem);
+				}
+			}
+
+
+			this.elementObj = elem;
+		}
+		return this.elementObj
 	}
 }
 
