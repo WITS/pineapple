@@ -23,6 +23,7 @@ body {
 }
 
 #nav {
+	display: inline-block;
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -123,6 +124,7 @@ body.homepage #nav {
 
 .equation.render {
 	font-size: 3.2em;
+	font-weight: 300;
 }
 
 .solution.render {
@@ -131,6 +133,9 @@ body.homepage #nav {
 }
 
 .render .expression-group,
+.render .multiply-group,
+.render .fraction-group,
+.render .exponent-group,
 .render .algebra-group,
 .render .operation,
 .render .number {
@@ -152,9 +157,10 @@ body.homepage #nav {
 	background-color: rgb(252, 234, 168);
 }
 
-.render .operation {
+.render .operation:not(
+	.exponent-wrapper):not(
+	.fraction-wrapper) {
 	padding: 0em 0.15em;
-	font-weight: 300;
 }
 
 .render .exponent {
