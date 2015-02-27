@@ -140,15 +140,15 @@ body.homepage #nav {
 .render .operation,
 .render .number {
 	display: inline-block;
-	vertical-align: middle;
+	/*vertical-align: middle;*/
 }
 
-.render * .parentheses::before,
+.render * .parentheses:not(.exponent)::before,
 .render .number.negative:not(.base)::before {
 	content: "(";
 }
 
-.render * .parentheses::after,
+.render * .parentheses:not(.exponent)::after,
 .render .number.negative:not(.base)::after {
 	content: ")";
 }
@@ -159,13 +159,17 @@ body.homepage #nav {
 
 .render .operation:not(
 	.exponent-wrapper):not(
-	.fraction-wrapper) {
+	.fraction) {
 	padding: 0em 0.15em;
 }
 
 .render .exponent {
 	vertical-align: super;
 	font-size: 0.7em;
+}
+
+.render .fraction {
+	vertical-align: middle;
 }
 
 .render .fraction > * {
@@ -176,6 +180,7 @@ body.homepage #nav {
 
 .render .fraction > .numerator {
 	border-bottom: 1px solid black;
+	vertical-align: bottom;
 }
 
 .card:not(.white) .equation.render

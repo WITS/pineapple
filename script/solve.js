@@ -3,6 +3,7 @@ function EquationRender(json) {
 	this.group = new ExpressionGroup({
 		text: this.text
 	});
+	console.log(this.group);
 	this.group.simplify();
 	// if (this.group.module.steps.length) {
 	// 	this.group.module.joined = "both";
@@ -14,8 +15,6 @@ function EquationRender(json) {
 			var elem = document.createElement("div");
 			elem.addClass("render");
 			elem.addClass("equation");
-
-			console.log(this.group);
 			
 			elem.appendChild(this.group.element());
 
@@ -30,8 +29,8 @@ function ExpressionGroup(json) {
 	this.text = json.text || "";
 	// Pre-processing for expression
 	this.text = this.text.replace(/\s/g, "");
-	this.text = this.text.replace(/\+{2,}/, "+");
-	this.text = this.text.replace(/(?!\+)-/, "+-");
+	this.text = this.text.replace(/\+{2,}/g, "+");
+	this.text = this.text.replace(/(?!\+)-/g, "+-");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -230,7 +229,7 @@ function MultiplyGroup(json) {
 	var p_level = 0;
 
 	var temp_text = this.text.replace(
-		new RegExp("(?!^)([^\\^\\*\\/\\+\\-\\(])(" +
+		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(])(" +
 			FLOAT_NUM_REGEX + ")", "gi"), "$1*$2");
 	temp_text = temp_text.replace(new RegExp(
 		"([a-z]\\^)(\\(|" + FLOAT_NUM_REGEX + "[a-z])",
@@ -327,6 +326,7 @@ function MultiplyGroup(json) {
 		// AlgebraGroup it should be ignored
 		if (!(new RegExp("(?:^\\^|[^a-zA-Z]\\^||\\^$)",
 			"g").test(group))) {
+			console.log("Apparently not: " + group);
 			continue;
 		}
 
@@ -491,7 +491,7 @@ function FractionGroup(json) {
 
 	// Numerator
 	if (typeof this.numerator === 'string') {
-		if (/a-z]/i.test(this.numerator)) {
+		if (/[a-z]/i.test(this.numerator)) {
 			// AlgebraGroup
 			this.numerator = new AlgebraGroup({
 				text: this.numerator,
@@ -508,7 +508,7 @@ function FractionGroup(json) {
 
 	// Denominator
 	if (typeof this.denominator === 'string') {
-		if (/a-z]/i.test(this.denominator)) {
+		if (/[a-z]/i.test(this.denominator)) {
 			// AlgebraGroup
 			this.denominator = new AlgebraGroup({
 				text: this.denominator,
@@ -571,7 +571,7 @@ function ExponentGroup(json) {
 
 	// Base
 	if (typeof this.base === 'string') {
-		if (/a-z]/i.test(this.numerator)) {
+		if (/[a-z]/i.test(this.base)) {
 			// AlgebraGroup
 			this.base = new AlgebraGroup({
 				text: this.base,
@@ -587,7 +587,7 @@ function ExponentGroup(json) {
 	}
 	// Denominator
 	if (typeof this.exponent === 'string') {
-		if (/a-z]/i.test(this.exponent)) {
+		if (/[a-z]/i.test(this.exponent)) {
 			// AlgebraGroup
 			this.exponent = new AlgebraGroup({
 				text: this.exponent,
@@ -649,6 +649,10 @@ function AlgebraGroup(json) {
 		variables = text.match(new RegExp(
 			"[a-z](?:\\^" + FLOAT_NUM_REGEX + ")?",
 			"gi"));
+		if (variables == null) {
+			console.error("No variables!");
+			return;
+		}
 		variables.reverse();
 		var i = variables.length;
 		while (i --) {
@@ -664,17 +668,19 @@ function AlgebraGroup(json) {
 		var elem = document.createElement("div");
 		elem.addClass("algebra-group");
 
-		var coefficient = fraction_element(
+		if (this.coefficient[0] != 1 ||
+			this.coefficient[1] != 1) {
+			var coefficient = fraction_element(
 				this.coefficient[0],
 				this.coefficient[1]);
-		if (coefficient != null) {
 			elem.appendChild(coefficient);
 		}
 
 		// Variable / Exponent elements
 		for (var name in this.variable) {
 			var exponent = this.variable[name];
-			elem.appendChild(name, exponent);
+			elem.appendChild(exponent_element(
+				name, exponent, true));
 		}
 
 		return elem;
@@ -883,7 +889,7 @@ function truncate_number(n) {
 function exponent_element(b, e, simple) {
 	// b = base
 	// e = exponent
-	// when simple is true if b or e is 1,
+	// when simple is true if e is 1,
 	// the element doesn't display the
 	// exponent
 
@@ -893,7 +899,7 @@ function exponent_element(b, e, simple) {
 
 	var wrapper = null;
 
-	if (!simple || (b != 1 || e != 1)) {
+	if (!simple || e != 1) {
 		wrapper = document.createElement("span");
 		wrapper.addClass("operation");
 		wrapper.addClass("exponent-wrapper");
