@@ -46,10 +46,17 @@ Module.prototype = new Card();
 function Module(json) {
 	var json = json || {};
 	var _element = this.element;
+	this.type = json.type || "";
 	this.title = json.title || null;
 	this.joined = json.joined || "none";
 	this.color = json.color || "white";
 	this.steps = json.steps || [];
+	this.push = function(step) {
+		if (!(step instanceof ModuleStep)) {
+			step = new ModuleStep(step);
+		}
+		this.steps.push(step);
+	}
 	this.element = function() {
 		if (this.elementObj == null) {
 			var elem = document.createElement("div");
@@ -128,14 +135,34 @@ function ModuleStep(json) {
 			var render = document.createElement("div");
 			render.addClass("render");
 			// console.log(this.visual.highlight);
-			render.appendChild(this.visual.element());
+			render.appendChild(this.visual);
 			content.appendChild(render);
 		}
 		return this.elementObj;
 	}
 }
 
-function separate_cards(card1, card2) {
-	// card1 is the top card
-	// card2 is the bottom card
+function push_module_step(json) {
+	// New module?
+	if (modules.length) {
+		var current_module =
+			modules[modules.length - 1];
+	} else {
+		var current_module = {};
+	}
+	if (current_module.type != json.type) {
+		switch (json.type) {
+			case "simplify":
+				var title = "Simplify"; break;
+			default:
+				var title = "Title"; break;
+		}
+		current_module = new Module({
+			type: json.type,
+			title: title,
+			joined: "both"
+		});
+		modules.push(current_module);
+	}
+	current_module.push(json);
 }
