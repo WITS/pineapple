@@ -151,8 +151,7 @@ body.homepage #nav {
 	content: ")";
 }
 
-.render .negative:first-child::before/*,
-.render *:not(.operation[data-operation="-"]) + .negative::before*/ {
+.render .negative:first-child::before {
 	content: "-";
 }
 
@@ -169,13 +168,13 @@ body.homepage #nav {
 .render .parentheses > .fraction:first-child,
 .render .parentheses > *:first-child >
 	.fraction:first-child {
-	padding-left: 0.10em;
+	margin-left: 0.10em;
 }
 
 .render .parentheses > .fraction:last-child,
 .render .parentheses > *:last-child >
 	.fraction:last-child {
-	padding-right: 0.10em;
+	margin-right: 0.10em;
 }
 
 .render .exponent {

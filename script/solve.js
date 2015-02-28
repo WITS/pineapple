@@ -45,6 +45,7 @@ function ExpressionGroup(json) {
 			x < y; ++ x) {
 			var group = this.groups[x];
 			group.simplify();
+			group.valueOf().parent = group.parent;
 			group = this.groups[x] = group.valueOf();
 			if (group instanceof Fraction) {
 				constants.push(x);
@@ -56,8 +57,18 @@ function ExpressionGroup(json) {
 			var x = constants.length;
 			while (-- x) {
 				var n2 = this.groups[constants[x]];
+				// ModuleStep (Add/Subtract)
 				n2.highlighted = true;
-				// TODO: ModuleStep (Multiply)
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: (n2.toNumber() >= 0 ?
+							"+" : "-"),
+						n1: n1,
+						n2: n2
+					}),
+					visual: this.top_parent.element()
+				});
 				n2.highlighted = false;
 				n1.add(n2);
 				// console.log(n1.toString());
@@ -90,11 +101,20 @@ function ExpressionGroup(json) {
 		if (this.groups.length > 1) {
 			wrapper.addClass("parentheses");
 		}
+		if (this.highlighted) {
+			wrapper.addClass("highlighted");
+		}
 
+		var prev_group = null;
+		var group = {
+			highlighted: false
+		};
 		// Loop through groups and create elements
 		for (var x = 0, y = this.groups.length; x < y;
 			++ x) {
-			var group_elem = this.groups[x].element();
+			prev_group = group;
+			group = this.groups[x];
+			var group_elem = group.element();
 
 			// Operation Elements
 			if (x) {
@@ -106,7 +126,17 @@ function ExpressionGroup(json) {
 				o_elem.setAttribute("data-operation",
 					o_type);
 				o_elem.innerHTML = o_type;
+				if (prev_group.highlighted &&
+					group.highlighted) {
+					o_elem.addClass("highlighted");
+				}
 				wrapper.appendChild(o_elem);
+			} else if (group_elem.hasClass("negative")) {
+				if (group.groups != null) {
+					group_elem.children[0].addClass(
+						"negative");
+					group_elem.removeClass("negative");
+				}
 			}
 
 			wrapper.appendChild(group_elem);
@@ -186,6 +216,7 @@ function MultiplyGroup(json) {
 			x < y; ++ x) {
 			var group = this.groups[x];
 			group.simplify();
+			group.valueOf().parent = group.parent;
 			group = this.groups[x] = group.valueOf();
 			if (group instanceof Fraction) {
 				constants.push(x);
@@ -197,8 +228,17 @@ function MultiplyGroup(json) {
 			var x = constants.length;
 			while (-- x) {
 				var n2 = this.groups[constants[x]];
+				// ModuleStep (Multiply)
 				n2.highlighted = true;
-				// TODO: ModuleStep (Multiply)
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "*",
+						n1: n1,
+						n2: n2
+					}),
+					visual: this.top_parent.element()
+				});
 				n2.highlighted = false;
 				n1.multiply(n2);
 				// console.log(n1.toString());
@@ -230,25 +270,46 @@ function MultiplyGroup(json) {
 	this.element = function() {
 		var wrapper = document.createElement("div");
 		wrapper.addClass("multiply-group");
+		if (this.highlighted) {
+			wrapper.addClass("highlighted");
+		}
 
 		// Loop through groups and create elements
+		var prev_group = null;
+		var prev_elem = null;
+		var group = {
+			highlighted: false
+		};
+		var group_elem = {
+			innerHTML: 0
+		};
 		for (var x = 0, y = this.groups.length; x < y;
 			++ x) {
-			var group_elem = this.groups[x].element();
+			prev_group = group;
+			group = this.groups[x];
+			prev_elem = group_elem;
+			group_elem = group.element();
 
 			// Operation Elements
-			if (x) {
+			if (x && prev_elem.innerHTML != "") {
 				var times = document.createElement(
 					"span");
 				times.addClass("operation");
 				times.setAttribute("data-operation",
 					"*");
 				times.innerHTML = "&times;";
+				if (prev_group.highlighted &&
+					group.highlighted) {
+					times.addClass("highlighted");
+				}
 				wrapper.appendChild(times);
-			} else { // Negative?
+			} else if (x == 0) { // Negative?
 				if (group_elem.hasClass("negative")) {
 					wrapper.addClass("negative");
 					group_elem.removeClass("negative");
+					if (group_elem.innerHTML == "1") {
+						group_elem.innerHTML = "";
+					}
 				}
 			}
 
@@ -491,10 +552,14 @@ function FractionGroup(json) {
 	this.value = null;
 	this.simplify = function() {
 		this.numerator.simplify();
+		this.numerator.valueOf().parent =
+			this.numerator.parent;
 		this.numerator =
 			this.numerator.valueOf();
 		var n_val = this.numerator;
 		this.denominator.simplify();
+		this.denominator.valueOf().parent =
+			this.denominator.parent;
 		this.denominator =
 			this.denominator.valueOf();
 		var d_val = this.denominator;
@@ -507,7 +572,7 @@ function FractionGroup(json) {
 					d_val.numerator,
 				parent: this.parent
 			});
-			this.value.simplify();
+			this.value.simplify(this);
 			// return true;
 		}
 		// return false;
@@ -521,7 +586,7 @@ function FractionGroup(json) {
 	}
 	this.element = function() {
 		return fraction_element(this.numerator,
-			this.denominator);
+			this.denominator, true, this.highlighted);
 	}
 
 	// Verify that numerator and denominator
@@ -575,16 +640,29 @@ function ExponentGroup(json) {
 	this.value = null;
 	this.simplify = function() {
 		this.base.simplify();
+		this.base.valueOf().parent =
+			this.base.parent;
 		this.base = this.base.valueOf();
 		var b_val = this.base;
 		this.exponent.simplify();
+		this.exponent.valueOf().parent =
+			this.exponent.parent;
 		this.exponent =
 			this.exponent.valueOf();
 		var e_val = this.exponent;
 		if (b_val instanceof Fraction &&
 			e_val instanceof Fraction) {
+			// ModuleStep (Exponent)
 			this.highlighted = true;
-			// TODO: ModuleStep (Exponent)
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "^",
+					n1: this.base,
+					n2: this.exponent
+				}),
+				visual: this.top_parent.element()
+			});
 			this.highlighted = false;
 			this.value = new Fraction({
 				numerator: Math.pow(b_val.toNumber(),
@@ -604,7 +682,7 @@ function ExponentGroup(json) {
 	}
 	this.element = function() {
 		return exponent_element(this.base,
-			this.exponent, false);
+			this.exponent, false, this.highlighted);
 	}
 
 	// Verify that base and exponent
@@ -767,6 +845,9 @@ function AlgebraGroup(json) {
 	this.element = function() {
 		var elem = document.createElement("div");
 		elem.addClass("algebra-group");
+		if (this.highlighted) {
+			elem.addClass("highlighted");
+		}
 
 		if (this.coefficient[0] != 1 ||
 			this.coefficient[1] != 1) {
@@ -864,33 +945,65 @@ function Fraction(json) {
 			parent: this.parent
 		});
 	}
-	this.simplify = function() {
+	this.simplify = function(visibleGroup) {
+		// visibleGroup is used to indicate
+		// that another group should be used for
+		// rendering (default = null)
+		var visibleGroup = visibleGroup || null;
 		var n = this.numerator;
 		var d = this.denominator;
 		if (n == 1 || d == 1) {
 			return false;
 		}
-		// if (n % d == 0) {
-		// 	// TODO ModuleStep (Divide)
-		// 	this.numerator /= d;
-		// 	this.denominator = 1;
-		// 	console.log("n/d: " + this.toString());
-		// 	return true;
-		// }
-		// if (d % n == 0) {
-		// 	// TODO ModuleStep (Divide)
-		// 	this.denominator /= n;
-		// 	this.numerator = 1;
-		// 	console.log("n/d: " + this.toString());
-		// 	return true;
-		// }
-		var n_factors = getFactors(n);
-		var d_factors = getFactors(d);
+		if (n % d == 0/* || d % n == 0*/) {
+			// ModuleStep (Divide)
+			if (visibleGroup != null) {
+				visibleGroup.highlighted = true;
+			} else {
+				this.highlighted = true;
+			}
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "/",
+					n1: this.numerator,
+					n2: this.denominator
+				}),
+				visual: this.top_parent.element()
+			});
+			this.highlighted = false;
+			if (n % d == 0) {
+				this.numerator /= d;
+				this.denominator = 1;
+			} else {
+				this.denominator /= n;
+				this.numerator = 1;
+			}
+			return true;
+		}
+		var n_factors = getFactors(n).slice(1);
+		var d_factors = getFactors(d).slice(1);
 		var i = n_factors.length;
 		while (i --) {
 			var x = n_factors[i];
 			if (d_factors.indexOf(x) != -1) { // GCF
-				// TODO ModuleStep (Simplify)
+				// ModuleStep (Simplify)
+				if (visibleGroup != null) {
+					visibleGroup.highlighted = true;
+				} else {
+					this.highlighted = true;
+				}
+				push_module_step({
+					type: "simplify",
+					title: "Divide " + truncate_number(this) +
+						" by " + truncate_number(
+							new Fraction({
+								numerator: x,
+								denominator: x
+							})),
+					visual: this.top_parent.element()
+				});
+				this.highlighted = false;
 				this.numerator /= x;
 				this.denominator /= x;
 				console.log("sx" + x + ": " +
@@ -916,81 +1029,8 @@ function Fraction(json) {
 	}
 	this.element = function() {
 		return fraction_element(this.numerator,
-			this.denominator);
+			this.denominator, true, this.highlighted);
 	}
-}
-
-function OperationGroup(json) {
-	this.n1 = json.n1 || 0;
-	this.n2 = json.n2 || 0;
-	this.n1 = +this.n1;
-	this.n2 = +this.n2;
-	this.group = json.group || null;
-	this.top_group = json.top_group || null;
-	this.operation = json.operation;
-	this.text = json.text || null;
-
-	this.toString = function() {
-		return this.n1 + this.operation + this.n2;
-	}
-
-	this.toRegExp = function() {
-		return new RegExp("\\(?" + this.n1 + "\\)?\\" +
-			this.operation + "\\(?" + this.n2 + "\\)?");
-	}
-
-	var mod_title = "";
-	switch(this.operation) {
-		case "^":
-			this.value = Math.pow(this.n1, this.n2);
-			break;
-		case "+":
-			this.value = this.n1 + this.n2;
-			break;
-		case "-":
-			this.value = this.n1 - this.n2;
-			break;
-		case "*":
-			this.value = this.n1 * this.n2;
-			break;
-		case "/":
-			this.value = this.n1 / this.n2;
-			break;
-		default: break;
-	}
-	if (json.n1 == null && json.operation == "-") {
-		// console.log("-(" + this.n2 + ")=" + this.value);
-		return;
-	}
-	// var instruction = "(" + this.n1 + ") " +
-	// 	this.operation + " (" + this.n2 + ") = " +
-	// 	this.value;
-	// instruction = instruction.replace(
-	// 	new RegExp("\\((" + FLOAT_NUM_REGEX + ")\\)",
-	// 		"g"), "$1");
-	// console.log(instruction);
-	this.new_text = this.text.replace(new RegExp(
-		"\\((" + FLOAT_NUM_REGEX + ")\\)", "g"),
-		"$1");
-	this.new_text = this.new_text.replace(this.n1 +
-		this.operation + this.n2, this.value);
-
-	var highlight =
-		this.group.updateText(this.text, this.new_text,
-			this);
-	// console.log(this.top_group.modified_text.substr(
-	// 	highlight[0], highlight[1] - highlight[0]));
-
-	// Module control
-	var mod = this.group.module;
-	mod.steps.push({
-		title: describe_operation(this),
-		visual: new ExpressionGroup({
-			text: this.top_group.modified_text,
-			highlight: highlight,
-			visualOnly: true
-		})
-	});
 }
 
 function SolutionRender(json) {
@@ -1014,28 +1054,30 @@ function SolutionRender(json) {
 	}
 }
 
-function describe_operation(operation) {
-	if (operation.operation == "^") {
+function describe_operation(json) {
+	console.log(json);
+	if (json.operation == "^") {
 		var o_string = null;
-		if (operation.n2 == 2) {
+		if (json.n2 == 2) {
 			o_string = "Square";
-		} else if (operation.n2 == 3) {
+		} else if (json.n2 == 3) {
 			o_string = "Cube";
-		} else if (operation.n2 == 0.5) {
+		} else if (json.n2 == 0.5) {
 			o_string = "Take the square root of";
 		}
 		if (o_string != null) {
-			return o_string + " " + operation.n1;
+			return o_string + " " + json.n1;
 		}
 	}
-	if (operation.operation == "-") {
-		return "Subtract " + operation.n2 + " from " +
-			operation.n1;
+	if (json.operation == "-") {
+		return "Subtract " + truncate_number(
+			json.n2) + " from " +
+			truncate_number(json.n1);
 	}
 	var start = "";
 	var middle = "";
 	var end = "";
-	switch (operation.operation) {
+	switch (json.operation) {
 		case "+":
 			start = "Add";
 			middle = "and";
@@ -1051,14 +1093,14 @@ function describe_operation(operation) {
 		case "^":
 			start = "Raise";
 			middle = "to the";
-			end = ordinal_of(operation.n2) + " power";
+			end = ordinal_of(json.n2) + " power";
 			break;
 		default:
 			break;
 	}
 	return start + " " +
-		truncate_number(operation.n1) + " " + middle +
-		" " + truncate_number(operation.n2) + end;
+		truncate_number(json.n1) + " " + middle +
+		" " + truncate_number(json.n2) + end;
 }
 
 function ordinal_of(n) {
@@ -1089,6 +1131,33 @@ function first_difference(str1, str2) {
 }
 
 function truncate_number(n) {
+	if (typeof n === 'object') {
+		var n_elem = n.element();
+		n_elem.removeClass("highlighted");
+		var subtracted = false;
+		var x = n;
+		while (x.parent != null) {
+			if (x.parent.groups == null) {
+				break;
+			}
+			if (x.parent.groups[0] == x) {
+				x = x.parent;
+				continue;
+			} else if (x.parent instanceof
+				ExpressionGroup) {
+				subtracted = true;
+			}
+			break;
+		}
+		if (n_elem.hasClass("negative") &&
+			!subtracted) {
+			n_elem.removeClass("negative");
+			n_elem.innerHTML = "-" +
+				n_elem.innerHTML;
+		}
+		return "<div class='render'>" +
+			n_elem.outerHTML + "</div>";
+	}
 	if (/\.\d{5,}$/.test(n.toString())) {
 		return n.toFixed(4);
 	} else {
@@ -1115,9 +1184,12 @@ function getFactors(x) {
 
 // Rendering Functions
 
-function exponent_element(b, e, simple) {
-	// b = base
-	// e = exponent
+function exponent_element(b, e, simple, marked) {
+	// b = base (Mixed)
+	// e = exponent (Mixed)
+	// simple (Boolean)
+	// marked = highlighted (Boolean)
+
 	// when simple is true if e is 1,
 	// the element doesn't display the
 	// exponent
@@ -1125,11 +1197,15 @@ function exponent_element(b, e, simple) {
 	if (simple == null) {
 		var simple = true;
 	}
+	var marked = marked || false;
 
 	var wrapper = null;
 
 	if (!simple || e != 1) {
 		wrapper = document.createElement("span");
+		if (marked) {
+			wrapper.addClass("highlighted");
+		}
 		wrapper.addClass("operation");
 		wrapper.addClass("exponent-wrapper");
 		if (b instanceof Fraction) {
@@ -1152,6 +1228,9 @@ function exponent_element(b, e, simple) {
 		}
 	} else {
 		var base = b.element();
+		if (b.groups != null) {
+			base.addClass("parentheses");
+		}
 		if (wrapper != null &&
 			base.hasClass("negative")) {
 			wrapper.addClass("negative");
@@ -1164,6 +1243,9 @@ function exponent_element(b, e, simple) {
 			if (b.toNumber() < 0) {
 				base.addClass("negative");
 			}
+		}
+		if (marked) {
+			base.addClass("highlighted");
 		}
 		return base;
 	}
@@ -1186,9 +1268,12 @@ function exponent_element(b, e, simple) {
 	return wrapper;
 }
 
-function fraction_element(n, d, simple) {
-	// n = numerator
-	// d = denominator
+function fraction_element(n, d, simple, marked) {
+	// n = numerator (Mixed)
+	// d = denominator (Mixed)
+	// simple (Boolean)
+	// marked = highlighted (Boolean)
+
 	// when simple is true if d is 1,
 	// the element doesn't display the
 	// denominator
@@ -1196,9 +1281,13 @@ function fraction_element(n, d, simple) {
 	if (simple == null) {
 		var simple = true;
 	}
+	var marked = marked || false;
 
 	var fraction = document.createElement(
 		"span");
+	if (marked) {
+		fraction.addClass("highlighted");
+	}
 
 	if (simple && d == 1) {
 		var numerator = fraction;
