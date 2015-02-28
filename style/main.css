@@ -18,7 +18,7 @@ body {
 	width: 80%;
 	margin: 0px auto;
 	padding-top: 96px;
-	-webkit-transition: top 2s,
+	-webkit-transition: left 0.5s, top 2s,
 		width 0.5s, padding-top 0.5s;
 }
 
@@ -143,14 +143,17 @@ body.homepage #nav {
 	/*vertical-align: middle;*/
 }
 
-.render * .parentheses:not(.exponent)::before,
-.render .number.negative:not(.base)::before {
+.render * .parentheses:not(.exponent)::before {
 	content: "(";
 }
 
-.render * .parentheses:not(.exponent)::after,
-.render .number.negative:not(.base)::after {
+.render * .parentheses:not(.exponent)::after {
 	content: ")";
+}
+
+.render .negative:first-child::before/*,
+.render *:not(.operation[data-operation="-"]) + .negative::before*/ {
+	content: "-";
 }
 
 .render .highlighted {
@@ -161,6 +164,18 @@ body.homepage #nav {
 	.exponent-wrapper):not(
 	.fraction) {
 	padding: 0em 0.15em;
+}
+
+.render .parentheses > .fraction:first-child,
+.render .parentheses > *:first-child >
+	.fraction:first-child {
+	padding-left: 0.10em;
+}
+
+.render .parentheses > .fraction:last-child,
+.render .parentheses > *:last-child >
+	.fraction:last-child {
+	padding-right: 0.10em;
 }
 
 .render .exponent {
@@ -183,12 +198,14 @@ body.homepage #nav {
 	vertical-align: bottom;
 }
 
-.card:not(.white) .equation.render
+.card:not(.white) .render
 	.fraction > .numerator {
-	border-bottom-color: rgba(255, 255, 255, 0.9);
+	border-bottom-color:
+		rgba(255, 255, 255, 0.9);
 }
 
-.render .operation[data-operation='-']:first-child {
+.render .operation[data-operation='-'
+		]:first-child {
 	padding-right: 0px;
 }
 

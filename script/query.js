@@ -42,7 +42,7 @@ function handle_query(f, e) {
 
 	// Solution
 	var solution = new SolutionRender({
-		value: equation.group.value
+		value: equation.group.valueOf()
 	});
 
 	output.appendChild((new Card({
