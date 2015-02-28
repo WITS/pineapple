@@ -1055,7 +1055,6 @@ function SolutionRender(json) {
 }
 
 function describe_operation(json) {
-	console.log(json);
 	if (json.operation == "^") {
 		var o_string = null;
 		if (json.n2 == 2) {

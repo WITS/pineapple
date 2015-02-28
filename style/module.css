@@ -143,13 +143,13 @@
 .module-step > .content > .render {
 	flex: 1 1 auto;
 	font-size: 1.5em;
+	font-weight: 300;
 	text-align: right;
 }
 
 .module-step > .content > .render::before {
 	padding-right: 6px;
 	opacity: 0.1;
-	vertical-align: middle;
 	content: "=";
 }
 
