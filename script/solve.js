@@ -778,6 +778,9 @@ function AlgebraGroup(json) {
 				elem.addClass("negative");
 				coefficient.removeClass("negative");
 			}
+			if (coefficient.innerHTML == "1") {
+				coefficient.innerHTML = "";
+			}
 		}
 
 		// Variable / Exponent elements
