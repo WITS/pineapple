@@ -1,10 +1,5 @@
 Element.prototype.hasClass = function(className) {
 
-	if (/[^a-zA-Z0-9-_]/.test(className)) {
-		console.warn("Invalid class name");
-		return false;
-	}
-
 	return (new RegExp("\\b" + className + "\\b"
 		).test(this.className));
 }
@@ -19,11 +14,6 @@ Element.prototype.addClass = function(className) {
 }
 
 Element.prototype.removeClass = function(className) {
-
-	if (/[^a-zA-Z0-9-_]/.test(className)) {
-		console.warn("Invalid class name");
-		return false;
-	}
 
 	this.className = this.className.replace(
 		new RegExp("\\b" + className + "\\b", "g"),

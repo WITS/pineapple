@@ -86,7 +86,7 @@ ExpressionGroup = function(json) {
 
 ExpressionGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
-	var constants = [];
+	var constants = new Array();
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
@@ -101,8 +101,10 @@ ExpressionGroup.prototype.simplify = function() {
 		var n1 = this.groups[constants[0]];
 		n1.highlighted = true;
 		var x = constants.length;
-		while (-- x) {
-			var n2 = this.groups[constants[x]];
+		var offset = 0;
+		while (constants.length > 1) {
+			constants[1] -= offset;
+			var n2 = this.groups[constants[1]];
 			// ModuleStep (Add/Subtract)
 			n2.highlighted = true;
 			push_module_step({
@@ -118,7 +120,9 @@ ExpressionGroup.prototype.simplify = function() {
 			n2.highlighted = false;
 			n1.add(n2);
 			// console.log(n1.toString());
-			this.groups.splice(constants[x], 1);
+			this.groups.splice(constants[1], 1);
+			constants.splice(1, 1);
+			++ offset;
 		}
 		n1.highlighted = false;
 		n1.simplify();
@@ -206,7 +210,7 @@ MultiplyGroup = function(json) {
 		this.top_parent = this.parent.top_parent;
 	}
 	// Child groups
-	this.groups = [];
+	this.groups = new Array();
 	this.subtraction = false;
 	// this.subtraction = (json.text[0] == '-');
 	this.value = null;
@@ -221,6 +225,8 @@ MultiplyGroup = function(json) {
 	temp_text = temp_text.replace(new RegExp(
 		"([a-z]\\^)(\\(|" + FLOAT_NUM_REGEX + "[a-z])",
 		"gi"), "*$1$2");
+	temp_text = temp_text.replace(new RegExp(
+		"-(" + FLOAT_NUM_REGEX + ")"), "-1*$1");
 
 	// var temp_text = this.text.replace(new RegExp("(" +
 	// 	FLOAT_NUM_REGEX + ")\\^", "g"), "($1)^");
@@ -433,7 +439,7 @@ MultiplyGroup = function(json) {
 
 MultiplyGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
-	var constants = [];
+	var constants = new Array();
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
@@ -447,24 +453,32 @@ MultiplyGroup.prototype.simplify = function() {
 	if (constants.length >= 2) {
 		var n1 = this.groups[constants[0]];
 		n1.highlighted = true;
-		var x = constants.length;
-		while (-- x) {
-			var n2 = this.groups[constants[x]];
+		var offset = 0;
+		while (constants.length > 1) {
+			constants[1] -= offset;
+			var n2 = this.groups[constants[1]];
 			// ModuleStep (Multiply)
-			n2.highlighted = true;
-			push_module_step({
-				type: "simplify",
-				title: describe_operation({
-					operation: "*",
-					n1: n1,
-					n2: n2
-				}),
-				visual: this.top_parent.element()
-			});
-			n2.highlighted = false;
+			if (!(n1.numerator == -1 &&
+				n1.denominator == 1 &&
+				constants[0] == 0 &&
+				constants[1] == 1)) {
+				n2.highlighted = true;
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "*",
+						n1: n1,
+						n2: n2
+					}),
+					visual: this.top_parent.element()
+				});
+				n2.highlighted = false;
+			}
 			n1.multiply(n2);
 			// console.log(n1.toString());
-			this.groups.splice(constants[x], 1);
+			this.groups.splice(constants[1], 1);
+			constants.splice(1, 1);
+			++ offset;
 		}
 		n1.highlighted = false;
 		n1.simplify();
@@ -1162,6 +1176,8 @@ function truncate_number(n) {
 			n_elem.removeClass("negative");
 			n_elem.innerHTML = "-" +
 				n_elem.innerHTML;
+		} else if (subtracted) {
+			n_elem.removeClass("negative");
 		}
 		return "<div class='render'>" +
 			n_elem.outerHTML + "</div>";
