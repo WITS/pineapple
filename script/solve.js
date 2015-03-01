@@ -127,8 +127,13 @@ function ExpressionGroup(json) {
 					o_type);
 				o_elem.innerHTML = o_type;
 				if (prev_group.highlighted &&
-					group.highlighted) {
-					o_elem.addClass("highlighted");
+					prev_group instanceof Fraction &&
+					group.highlighted &&
+					group instanceof Fraction) {
+					if (prev_group.denominator ==
+						group.denominator) {
+						o_elem.addClass("highlighted");
+					}
 				}
 				wrapper.appendChild(o_elem);
 			} else if (group_elem.hasClass("negative")) {
@@ -299,8 +304,13 @@ function MultiplyGroup(json) {
 					"*");
 				times.innerHTML = "&times;";
 				if (prev_group.highlighted &&
-					group.highlighted) {
-					times.addClass("highlighted");
+					prev_group instanceof Fraction &&
+					group.highlighted &&
+					group instanceof Fraction) {
+					if (prev_group.denominator ==
+						group.denominator) {
+						times.addClass("highlighted");
+					}
 				}
 				wrapper.appendChild(times);
 			} else if (x == 0) { // Negative?

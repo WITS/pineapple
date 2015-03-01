@@ -99,19 +99,19 @@
 	padding: 12px;
 	font-size: 2.0em;
 	max-height: 200px;
+	overflow: hidden;
 	opacity: 1;
 	-webkit-transition: padding 0.3s,
 		max-height 0.3s, opacity 0.5s;
 }
 
 .module:not(.expanded) > .module-step {
-	overflow: hidden;
 	padding: 0px 12px;
 	border-top: 0px;
 	max-height: 0px;
 	opacity: 0;
 	-webkit-transition: padding 0.3s,
-		max-height 0.3s, opacity 0.3s;
+		max-height 0.3s, opacity 0.2s;
 }
 
 .module-step::before {

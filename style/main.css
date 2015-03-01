@@ -143,16 +143,37 @@ body.homepage #nav {
 	/*vertical-align: middle;*/
 }
 
-.render * .parentheses:not(.exponent)::before {
+.render * .parentheses:not(.exponent)::before,
+.render .fraction.base::before {
 	content: "(";
 }
 
-.render * .parentheses:not(.exponent)::after {
+.render * .parentheses:not(.exponent)::after,
+.render .fraction.base::after {
 	content: ")";
 }
 
 .render .negative:first-child::before {
 	content: "-";
+}
+
+.render .fraction.base {
+	position: relative;
+	padding: 0em 0.5em;
+}
+
+.render .fraction.base::before,
+.render .fraction.base::after {
+	position: absolute;
+	top: calc(50% - 0.75em);
+}
+
+.render .fraction.base::before {
+	left: 0.05em;
+}
+
+.render .fraction.base::after {
+	right: 0.05em;
 }
 
 .render .highlighted {

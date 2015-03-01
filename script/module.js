@@ -96,6 +96,7 @@ function Module(json) {
 				elem.appendChild(title);
 			}
 
+			// Add steps
 			for (var x = 0, y = this.steps.length;
 				x < y; ++ x) {
 				var step = this.steps[x];
