@@ -23,7 +23,7 @@ ExpressionGroup = function(json) {
 	var json = json || {};
 	this.text = json.text || "";
 	// Pre-processing for expression
-	this.text = this.text.replace(/\s/g, "");
+	this.text = this.text.replace(/(?:\s|,)/g, "");
 	this.text = this.text.replace(/\+{2,}/g, "+");
 	this.text = this.text.replace(
 		/(^|[^\+\*\/\^\(])-/g, "$1+-");
@@ -983,7 +983,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 	if (n == 1 || d == 1) {
 		return false;
 	}
-	if (n % d == 0/* || d % n == 0*/) {
+	if (n % d == 0 || d % n == 0) {
 		// ModuleStep (Divide)
 		if (visibleGroup != null) {
 			visibleGroup.highlighted = true;
@@ -1184,10 +1184,20 @@ function truncate_number(n) {
 			n_elem.outerHTML + "</div>";
 	}
 	if (/\.\d{5,}$/.test(n.toString())) {
-		return n.toFixed(4);
+		var n_str = n.toFixed(4);
 	} else {
-		return n.toString();
+		var n_str = n.toString();
 	}
+
+	n_str = n_str.split(".");
+	var d_str = (n_str[1] == null ? "" :
+		"." + n_str[1]);
+	n_str = n_str[0];
+	n_str = n_str.split("").reverse().join("");
+	n_str = n_str.replace(/(\d{3}(?=\d))/g, "$1,");
+	n_str = n_str.split("").reverse().join("");
+
+	return n_str + d_str;
 }
 
 function getFactors(x) {

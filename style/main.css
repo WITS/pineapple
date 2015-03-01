@@ -160,6 +160,11 @@ body.homepage #nav {
 	content: "-";
 }
 
+.render .fraction > * > .expression-group::before,
+.render .fraction > * > .expression-group::after {
+	content: "";
+}
+
 .render .fraction.base {
 	position: relative;
 	padding: 0em 0.5em;
