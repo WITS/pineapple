@@ -89,6 +89,8 @@ input[type='text']:focus {
 	width: 3.6em;
 	height: 3.6em;
 	line-height: 2.4em;
+	text-shadow: 0px -1px 1px
+		rgba(0, 0, 0, 0.5);
 	background-color: rgb(203, 80, 39);
 	outline: none;
 	color: white;
@@ -153,7 +155,8 @@ body.homepage #nav {
 	content: ")";
 }
 
-.render .negative:first-child::before {
+.render .negative:first-child::before,
+.render .multiply-group > .negative::before {
 	content: "-";
 }
 

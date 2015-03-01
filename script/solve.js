@@ -25,7 +25,8 @@ ExpressionGroup = function(json) {
 	// Pre-processing for expression
 	this.text = this.text.replace(/\s/g, "");
 	this.text = this.text.replace(/\+{2,}/g, "+");
-	this.text = this.text.replace(/(?!\+)-/g, "+-");
+	this.text = this.text.replace(
+		/(^|[^\+\*\/\^\(])-/g, "$1+-");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -226,7 +227,7 @@ MultiplyGroup = function(json) {
 		"([a-z]\\^)(\\(|" + FLOAT_NUM_REGEX + "[a-z])",
 		"gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
-		"-(" + FLOAT_NUM_REGEX + ")"), "-1*$1");
+		"-(" + FLOAT_NUM_REGEX + ")\\^"), "-1*$1^");
 
 	// var temp_text = this.text.replace(new RegExp("(" +
 	// 	FLOAT_NUM_REGEX + ")\\^", "g"), "($1)^");
