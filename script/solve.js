@@ -1232,11 +1232,11 @@ function exponent_element(b, e, simple, marked) {
 		}
 		wrapper.addClass("operation");
 		wrapper.addClass("exponent-wrapper");
-		if (b instanceof Fraction) {
-			if (b.toNumber() < 0) {
-				wrapper.addClass("negative");
-			}
-		}
+		// if (b instanceof Fraction) {
+		// 	if (b.toNumber() < 0) {
+		// 		wrapper.addClass("negative");
+		// 	}
+		// }
 		wrapper.setAttribute("data-operation",
 			"^");
 	}
@@ -1248,18 +1248,23 @@ function exponent_element(b, e, simple, marked) {
 			base.addClass("variable");
 			base.innerHTML = b;	
 		} else {
-			base.innerHTML = Math.abs(+b);
+			base.innerHTML = b;
 		}
 	} else {
 		var base = b.element();
+		if (base.hasClass("negative")) {
+			base.innerHTML = "-" + base.innerHTML;
+			base.removeClass("negative");
+			base.addClass("parentheses");
+		}
 		if (b.groups != null) {
 			base.addClass("parentheses");
 		}
-		if (wrapper != null &&
-			base.hasClass("negative")) {
-			wrapper.addClass("negative");
-			base.removeClass("negative");
-		}
+		// if (wrapper != null &&
+		// 	base.hasClass("negative")) {
+		// 	wrapper.addClass("negative");
+		// 	base.removeClass("negative");
+		// }
 	}
 
 	if (wrapper == null) {
