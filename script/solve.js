@@ -1018,9 +1018,20 @@ Fraction.prototype.add = function(n) {
 				denominator: this_d
 			}));
 		}
-		// this.numerator += n.numerator * this_d;
-		// this.denominator *= n_d;
 		this.numerator += n.numerator;
+		var n_factors = getFactors(
+			this.numerator).slice(1);
+		var d_factors = getFactors(
+			this.denominator).slice(1);
+		var i = n_factors.length;
+		while (i --) {
+			var x = n_factors[i];
+			if (d_factors.indexOf(x) != -1) { // GCF
+				this.numerator /= x;
+				this.denominator /= x;
+				break;
+			}
+		}
 	}
 }
 Fraction.prototype.multiply = function(n) {
