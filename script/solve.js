@@ -151,6 +151,7 @@ ExpressionGroup.prototype.simplify = function() {
 			// console.log(n1.toString());
 			this.groups.splice(constants[1], 1);
 			constants.splice(1, 1);
+			n1.simplify();
 			++ offset;
 		}
 		n1.highlighted = false;
@@ -1032,6 +1033,11 @@ Fraction.prototype.add = function(n) {
 				break;
 			}
 		}
+		if (this.denominator < 0 &&
+			this.numerator > 0) {
+			this.numerator *= -1;
+			this.denominator *= -1;
+		}
 	}
 }
 Fraction.prototype.multiply = function(n) {
@@ -1063,10 +1069,38 @@ Fraction.prototype.simplify = function(visibleGroup) {
 	var visibleGroup = visibleGroup || null;
 	var n = this.numerator;
 	var d = this.denominator;
-	if (n == 1 || d == 1) {
+	var abs_n = Math.abs(n);
+	var abs_d = Math.abs(d);
+	if (this.numerator < 0 &&
+		this.denominator < 0) {
+		if (visibleGroup != null) {
+			visibleGroup.highlighted = true;
+		} else {
+			this.highlighted = true;
+		}
+		push_module_step({
+			type: "simplify",
+			title: "Divide " + truncate_number(this) +
+				" by " + truncate_number(
+					new Fraction({
+						numerator: -1,
+						denominator: -1
+					})),
+			visual: this.top_parent.element()
+		});
+		this.highlighted = false;
+		this.numerator *= -1;
+		this.denominator *= -1;
+	}
+	if (this.denominator < 0 &&
+		this.numerator > 0) {
+		this.numerator *= -1;
+		this.denominator *= -1; 
+	}
+	if (abs_n == 1 || abs_d == 1) {
 		return false;
 	}
-	if (n % d == 0 || d % n == 0) {
+	if (abs_n % abs_d == 0 || abs_d % abs_n == 0) {
 		// ModuleStep (Divide)
 		if (visibleGroup != null) {
 			visibleGroup.highlighted = true;
@@ -1092,8 +1126,8 @@ Fraction.prototype.simplify = function(visibleGroup) {
 		}
 		return true;
 	}
-	var n_factors = getFactors(n).slice(1);
-	var d_factors = getFactors(d).slice(1);
+	var n_factors = getFactors(abs_n).slice(1);
+	var d_factors = getFactors(abs_d).slice(1);
 	var i = n_factors.length;
 	while (i --) {
 		var x = n_factors[i];
@@ -1258,8 +1292,13 @@ function truncate_number(n) {
 		if (n_elem.hasClass("negative") &&
 			!subtracted) {
 			n_elem.removeClass("negative");
-			n_elem.innerHTML = "-" +
-				n_elem.innerHTML;
+			if (!n_elem.hasClass("fraction")) {
+				n_elem.innerHTML = "-" +
+					n_elem.innerHTML;
+			} else {
+				n_elem.children[0].innerHTML = "-" +
+					n_elem.children[0].innerHTML;
+			}
 		} else if (subtracted) {
 			n_elem.removeClass("negative");
 		}
@@ -1443,15 +1482,19 @@ function fraction_element(n, d, simple, marked) {
 		if (typeof d !== 'object') {
 			denominator.addClass("number");
 			denominator.innerHTML = truncate_number(
-				Math.abs(d));
+				d);
 		} else {
 			denominator.appendChild(d.element());
 		}
 		fraction.appendChild(denominator);
 	}
 
-	if (simple && d == 1 && n_negative) {
-		fraction.addClass("negative");
+	if (n_negative) {
+		if (simple && d == 1) {
+			fraction.addClass("negative");
+		} else if (typeof n !== 'object') {
+			fraction.addClass("negative");
+		}
 	}
 
 	return fraction;
