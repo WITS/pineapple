@@ -224,8 +224,7 @@ MultiplyGroup = function(json) {
 		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(])(" +
 			FLOAT_NUM_REGEX + ")", "gi"), "$1*$2");
 	temp_text = temp_text.replace(new RegExp(
-		"([a-z]\\^)(\\(|" + FLOAT_NUM_REGEX + "[a-z])",
-		"gi"), "*$1$2");
+		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + FLOAT_NUM_REGEX + ")\\^"), "-1*$1^");
 
@@ -749,7 +748,10 @@ ExponentGroup.prototype.element = function() {
 AlgebraGroup = function(json) {
 	var json = json || {};
 	this.text = json.text || "0";
-	this.coefficient = json.coefficient || [1, 1];
+	this.coefficient = json.coefficient || 
+		new Fraction({
+			parent: this
+		});
 	// Store the variables from text
 	// (before simplifying)
 	this.temp_variables = new Array();
@@ -794,12 +796,11 @@ AlgebraGroup.prototype.incrementVar = function(name, degree) {
 }
 AlgebraGroup.prototype.updateFromText = function(text) {
 	var variables;
-	this.coefficient = new RegExp("^-?" +
+	var coefficient = new RegExp("^-?" +
 		FLOAT_NUM_REGEX).exec(text);
-	if (this.coefficient != null) {
-		this.coefficient = [+this.coefficient[0], 1];
-	} else {
-		this.coefficient = [1, 1];
+	if (coefficient != null) {
+		this.coefficient.numerator =
+			+coefficient[0];
 	}
 	variables = text.match(new RegExp(
 		"[a-z](?:\\^" + FLOAT_NUM_REGEX + ")?",
@@ -829,11 +830,7 @@ AlgebraGroup.prototype.simplify = function() {
 		break;
 	}
 	if (constant) {
-		this.value = new Fraction({
-			numerator: this.coefficient[0],
-			denominator: this.coefficient[1],
-			parent: this.parent
-		});
+		this.value = this.coefficient;
 	}
 	// Join variables
 	if (!this.temp_variables.length) {
@@ -850,12 +847,21 @@ AlgebraGroup.prototype.simplify = function() {
 		var var_pos = var_letters.indexOf(
 			temp_var[0]);
 		if (var_pos != -1) {
+			var other = this.temp_variables[var_pos];
 			this.highlighted_temp.push(var_pos);
 			this.highlighted_temp.push(x);
-			// TODO: ModuleStep (Variable Exp.)
+			// ModuleStep (Variable Exp.)
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "+",
+					n1: +other.substr(1),
+					n2: +temp_var.substr(1)
+				}),
+				visual: this.top_parent.element()
+			});
 			this.highlighted_temp.splice(0);
 			// Combine data
-			var other = this.temp_variables[var_pos];
 			var new_exp = (+other.substr(1)) +
 				(+temp_var.substr(1));
 			this.temp_variables[var_pos] =
@@ -881,11 +887,10 @@ AlgebraGroup.prototype.element = function() {
 		elem.addClass("highlighted");
 	}
 
-	if (this.coefficient[0] != 1 ||
-		this.coefficient[1] != 1) {
-		var coefficient = fraction_element(
-			this.coefficient[0],
-			this.coefficient[1]);
+	var constant = this.coefficient;
+	if (constant.numerator != 1 ||
+		constant.denominator != 1) {
+		var coefficient = constant.element();
 		elem.appendChild(coefficient);
 		if (coefficient.hasClass("negative")) {
 			elem.addClass("negative");
@@ -914,7 +919,10 @@ AlgebraGroup.prototype.element = function() {
 				continue;
 			}
 			elem.appendChild(exponent_element(
-				temp_var[0], +temp_var.substr(1)));
+				temp_var[0], +temp_var.substr(1),
+				true,
+				this.highlighted_temp.indexOf(
+					x) != -1));
 		}
 	}
 
@@ -1259,7 +1267,7 @@ function exponent_element(b, e, simple, marked) {
 			base.addClass("variable");
 			base.innerHTML = b;	
 		} else {
-			base.innerHTML = b;
+			base.innerHTML = truncate_number(b);
 		}
 	} else {
 		var base = b.element();
@@ -1298,7 +1306,7 @@ function exponent_element(b, e, simple, marked) {
 		if (typeof e === 'string') {
 			exponent.addClass("variable");
 		}
-		exponent.innerHTML = e;
+		exponent.innerHTML = truncate_number(e);
 	} else {
 		var exponent = e.element();
 	}
