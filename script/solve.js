@@ -108,7 +108,9 @@ ExpressionGroup.prototype.simplify = function() {
 				push_module_step({
 					type: "simplify",
 					title: describe_operation({
-						operation: "+",
+						operation: 
+							(group.coefficient.toNumber()
+							>= 0 ? "+" : "-"),
 						n1: other,
 						n2: group
 					}),
