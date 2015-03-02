@@ -88,6 +88,7 @@ ExpressionGroup = function(json) {
 ExpressionGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var constants = new Array();
+	var algebra = new Object();
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
@@ -96,8 +97,33 @@ ExpressionGroup.prototype.simplify = function() {
 		group = this.groups[x] = group.valueOf();
 		if (group instanceof Fraction) {
 			constants.push(x);
+		} else if (group instanceof AlgebraGroup) {
+			var v_text = group.variableText();
+			if (algebra[v_text] == null) {
+				algebra[v_text] = group;
+			} else {
+				var other = algebra[v_text];
+				other.highlighted = true;
+				group.highlighted = true;
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "+",
+						n1: other,
+						n2: group
+					}),
+					visual: this.top_parent.element()
+				});
+				other.highlighted = false;
+				group.highlighted = false;
+				other.add(group);
+				this.groups.splice(x, 1);
+				-- x;
+				-- y;
+			}
 		}
 	}
+	algebra = null;
 	if (constants.length >= 2) {
 		var n1 = this.groups[constants[0]];
 		n1.highlighted = true;
@@ -448,6 +474,8 @@ MultiplyGroup.prototype.simplify = function() {
 		group = this.groups[x] = group.valueOf();
 		if (group instanceof Fraction) {
 			constants.push(x);
+		} else if (group instanceof AlgebraGroup) {
+			constants.push(x);
 		}
 	}
 	if (constants.length >= 2) {
@@ -475,14 +503,15 @@ MultiplyGroup.prototype.simplify = function() {
 				n2.highlighted = false;
 			}
 			n1.multiply(n2);
-			// console.log(n1.toString());
+			n1 = this.groups[constants[0]] =
+				n1.valueOf();
 			this.groups.splice(constants[1], 1);
 			constants.splice(1, 1);
 			++ offset;
 		}
 		n1.highlighted = false;
 		n1.simplify();
-		this.groups[constants[0]] = n1.valueOf();
+		// n1 = this.groups[constants[0]];
 		// return true;
 	}
 	// Single group?
@@ -548,7 +577,8 @@ MultiplyGroup.prototype.element = function() {
 			if (group_elem.hasClass("negative")) {
 				wrapper.addClass("negative");
 				group_elem.removeClass("negative");
-				if (group_elem.innerHTML == "1") {
+				if (group_elem.innerHTML == "1"
+					&& y > 1) {
 					group_elem.innerHTML = "";
 				}
 			}
@@ -794,6 +824,15 @@ AlgebraGroup.prototype.incrementVar = function(name, degree) {
 		return (this.variable[name] += degree);
 	}
 }
+AlgebraGroup.prototype.variableText = function() {
+	var variables = new Array();
+
+	for (var name in this.variable) {
+		variables.push(name + this.variable[name]);
+	}
+
+	return variables.join("");
+}
 AlgebraGroup.prototype.updateFromText = function(text) {
 	var variables;
 	var coefficient = new RegExp("^-?" +
@@ -822,6 +861,22 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 	}
 	this.text = text;
 }
+AlgebraGroup.prototype.multiply = function(n) {
+	// Multiply coefficients
+	if (n instanceof Fraction) {
+		this.coefficient.multiply(n);
+		return;
+	}
+	// Multiply everything
+	this.coefficient.multiply(n.coefficient);
+	for (var name in n.variable) {
+		this.incrementVar(name, n.variable[name]);
+	}
+}
+AlgebraGroup.prototype.add = function(n) {
+	// Add coefficients
+	this.coefficient.add(n.coefficient);	
+}
 AlgebraGroup.prototype.simplify = function() {
 	// Is it a constant?
 	var constant = true;
@@ -833,6 +888,9 @@ AlgebraGroup.prototype.simplify = function() {
 		this.value = this.coefficient;
 	}
 	// Join variables
+	if (this.temp_variables == null) {
+		return false;
+	}
 	if (!this.temp_variables.length) {
 		return false;
 	}
@@ -870,7 +928,7 @@ AlgebraGroup.prototype.simplify = function() {
 		}
 		var_letters.push(temp_var[0]);
 	}
-	delete this.temp_variables;
+	this.temp_variables = null;
 	// return true;
 }
 AlgebraGroup.prototype.valueOf = function() {
@@ -973,6 +1031,10 @@ Fraction.prototype.multiply = function(n) {
 		this.numerator *= n.numerator;
 		this.denominator *= n.denominator;
 	}
+	if (n instanceof AlgebraGroup) {
+		n.multiply(this);
+		this.value = n;
+	}
 }
 Fraction.prototype.reciprocal = function() {
 	return new Fraction({
@@ -1050,7 +1112,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 	return false;
 }
 Fraction.prototype.valueOf = function() {
-	return this;
+	return this.value;
 }
 Fraction.prototype.toNumber = function() {
 	return (this.numerator /
