@@ -136,13 +136,15 @@ ExpressionGroup.prototype.simplify = function() {
 			var n2 = this.groups[constants[1]];
 			// ModuleStep (Add/Subtract)
 			n2.highlighted = true;
+			var subtraction = (n1.toNumber() >= 0 &&
+				n2.toNumber() < 0);
 			push_module_step({
 				type: "simplify",
 				title: describe_operation({
-					operation: (n2.toNumber() >= 0 ?
-						"+" : "-"),
+					operation: subtraction ? "-" : "+",
 					n1: n1,
-					n2: n2
+					n2: n2,
+					abs: subtraction
 				}),
 				visual: this.top_parent.element()
 			});
@@ -1196,6 +1198,9 @@ SolutionRender.prototype.element = function() {
 }
 
 function describe_operation(json) {
+	if (json.abs == null) {
+		json.abs = true;
+	}
 	if (json.operation == "^") {
 		var o_string = null;
 		if (json.n2 == 2) {
@@ -1239,8 +1244,9 @@ function describe_operation(json) {
 			break;
 	}
 	return start + " " +
-		truncate_number(json.n1) + " " + middle +
-		" " + truncate_number(json.n2) + end;
+		truncate_number(json.n1, json.abs) +
+		" " + middle + " " +
+		truncate_number(json.n2, json.abs) + end;
 }
 
 function ordinal_of(n) {
@@ -1270,13 +1276,18 @@ function first_difference(str1, str2) {
 	return y;
 }
 
-function truncate_number(n) {
+function truncate_number(n, abs) {
+	// n = number (Mixed)
+	// abs = use absolute value (Boolean)
+	if (abs == null) {
+		var abs = true;
+	}
 	if (typeof n === 'object') {
 		var n_elem = n.element();
 		n_elem.removeClass("highlighted");
 		var subtracted = false;
 		var x = n;
-		while (x.parent != null) {
+		while (abs && x.parent != null) {
 			if (x.parent.groups == null) {
 				break;
 			}
@@ -1304,6 +1315,8 @@ function truncate_number(n) {
 		}
 		return "<div class='render'>" +
 			n_elem.outerHTML + "</div>";
+	} else if (abs) {
+		n = Math.abs(n);
 	}
 	if (/\.\d{5,}$/.test(n.toString())) {
 		var n_str = n.toFixed(4);
