@@ -67,6 +67,10 @@
 	background-color: rgb(203, 80, 39);
 }
 
+.card.suggestions {
+	padding: 0px 6px;
+}
+
 .module > .title,
 .suggestion {
 	display: block;
@@ -113,6 +117,7 @@
 	align-items: center;
 	position: relative;
 	border-top: 1px solid #E8E8E8;
+	margin: 0px 6px;
 	padding: 12px;
 	font-size: 2.0em;
 	max-height: 200px;

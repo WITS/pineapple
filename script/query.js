@@ -82,13 +82,15 @@ function handle_query(f, e) {
 		});
 	}
 
-	var sug_wrapper = document.createElement("ul");
-	sug_wrapper.addClass("suggestions");
-	sug_wrapper.addClass("card white no-padding");
-	sug_wrapper.setAttribute("data-label",
-		"Try " + (suggestions.length == 1 ? "this" :
-			"one of these"));
-	output.appendChild(sug_wrapper);
+	if (suggestions.length) {
+		var sug_wrapper = document.createElement("ul");
+		sug_wrapper.addClass("suggestions");
+		sug_wrapper.addClass("card white no-padding");
+		sug_wrapper.setAttribute("data-label",
+			"Try " + (suggestions.length == 1 ? "this" :
+				"one of these"));
+		output.appendChild(sug_wrapper);
+	}
 	for (var x = 0, y = suggestions.length;
 		x < y; ++ x) {
 		var suggestion = document.createElement("li");

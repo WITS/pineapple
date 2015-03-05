@@ -34,10 +34,17 @@ Equation.prototype.updateVarInfo = function(side) {
 		return;
 	}
 
-	var groups = new Array();
-	groups.push(this[side]);
 	var degree = 0;
 	var variables = new Array();
+
+	var groups = new Array();
+	if (this[side] != null) {
+		groups.push(this[side]);
+	} else {
+		this[side + "_degree"] = degree;
+		this[side + "_vars"] = variables;
+		return;
+	}
 
 	while (groups.length) {
 		var group = groups[0];

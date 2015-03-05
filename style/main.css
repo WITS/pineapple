@@ -9,6 +9,11 @@ body {
 	color: rgba(0, 0, 0, 0.90);
 }
 
+* {
+	-webkit-tap-highlight-color:
+		rgba(129, 179, 66, 0.1);
+}
+
 #page-wrapper {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
