@@ -145,6 +145,11 @@ body.homepage #nav {
 	/*vertical-align: middle;*/
 }
 
+.render .equals {
+	margin: 0em 0.3em;
+	opacity: 0.5;
+}
+
 .render * .parentheses:not(.exponent)::before,
 .render .fraction.base::before {
 	content: "(";
@@ -156,7 +161,8 @@ body.homepage #nav {
 }
 
 .render .negative:first-child::before,
-.render .multiply-group > .negative::before {
+.render .multiply-group > .negative::before,
+.render > .negative::before {
 	content: "-";
 }
 

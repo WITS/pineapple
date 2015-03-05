@@ -1,19 +1,87 @@
-EquationRender = function(json) {
+Equation = function(json) {
 	this.text = json.text || "0";
-	this.group = new ExpressionGroup({
-		text: this.text
-	});
+	var sides = this.text.split("=");
+	if (sides.length >= 2) {
+		this.left = new ExpressionGroup({
+			text: sides[0],
+			equation: this,
+			side: "left"
+		});
+		this.right = new ExpressionGroup({
+			text: sides[1],
+			equation: this,
+			side: "right"
+		});
+	} else {
+		this.left = null;
+		this.right = new ExpressionGroup({
+			text: this.text,
+			equation: this,
+			side: "right"
+		});
+	}
+	this.left_vars = new Array();
+	this.right_vars = new Array();
 }
 
-EquationRender.prototype.element = function() {
+Equation.prototype.left_degree = 0;
+Equation.prototype.right_degree = 0;
+
+Equation.prototype.updateVarInfo = function(side) {
+	if (side == null) {
+		this.updateVarInfo("left");
+		this.updateVarInfo("right");
+		return;
+	}
+
+	var groups = new Array();
+	groups.push(this[side]);
+	var degree = 0;
+	var variables = new Array();
+
+	while (groups.length) {
+		var group = groups[0];
+		if (group.groups != null) {
+			var i = group.groups.length;
+			while (i --) {
+				groups.push(group.groups[i]);
+			}
+		} else if (group.variable != null) {
+			for (var name in group.variable) {
+				degree = Math.max(degree,
+					group.variable[name]);
+				if (variables.indexOf(name) == -1) {
+					variables.push(name);
+				}
+			}
+		} else if (group.base != null) {
+			groups.push(group.base);
+			groups.push(group.exponent);
+		} else if (group instanceof FractionGroup) {
+			groups.push(group.numerator);
+			groups.push(group.denominator);
+		}
+		groups.splice(0, 1);
+	}
+
+	this[side + "_degree"] = degree;
+	this[side + "_vars"] = variables;
+}
+
+Equation.prototype.element = function() {
 	var elem = document.createElement("div");
 	elem.addClass("render");
 	elem.addClass("equation");
 
-	elem.appendChild(this.group.element());
-
-	this.group.simplify();
-	console.log(this.group);
+	if (this.left != null) {
+		elem.appendChild(this.left.element());
+		var equals = document.createElement(
+			"span");
+		equals.addClass("equals");
+		equals.innerHTML = "=";
+		elem.appendChild(equals);
+	}
+	elem.appendChild(this.right.element());
 
 	return elem;
 }
@@ -33,6 +101,10 @@ ExpressionGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
 	this.groups = new Array();
 	this.value = null;
 	
@@ -186,6 +258,9 @@ ExpressionGroup.prototype.element = function() {
 	if (this.highlighted) {
 		wrapper.addClass("highlighted");
 	}
+	if (this.side != null) {
+		wrapper.addClass(this.side + "-side");
+	}
 
 	var prev_group = null;
 	var group = {
@@ -241,6 +316,10 @@ MultiplyGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
 	// Child groups
 	this.groups = new Array();
 	this.subtraction = false;
@@ -605,6 +684,10 @@ FractionGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
 	this.value = null;
 
 	// Verify that numerator and denominator
@@ -694,6 +777,10 @@ ExponentGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
 	this.value = null;
 
 	// Verify that base and exponent
@@ -800,6 +887,10 @@ AlgebraGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
 	this.value = null;
 
 	if (json.text != null && (
@@ -1002,6 +1093,12 @@ Fraction = function(json) {
 	this.value = this;
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
+	}
+	this.equation = json.equation || null;
+	this.side = json.side || null;
+	if (this.top_parent != null) {
+		this.equation = this.top_parent.equation;
+		this.side = this.top_parent.side;
 	}
 }
 

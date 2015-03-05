@@ -67,6 +67,7 @@ Module.prototype.element = function() {
 		elem.addClass("card");
 		elem.addClass("no-padding");
 		elem.addClass("module");
+		elem.addClass(this.type + "-module");
 		elem.addEventListener("click",
 			function(event) {
 			if (!event.target.hasClass(
@@ -139,6 +140,13 @@ ModuleStep.prototype.element = function() {
 
 		var render = document.createElement("div");
 		render.addClass("render");
+		if (this.visual.hasClass("right-side")) {
+			render.addClass("equation");
+			render.addClass("right-side");
+		} else if (this.visual.hasClass("left-side")) {
+			render.addClass("equation");
+			render.addClass("left-side");
+		}
 		// console.log(this.visual.highlight);
 		render.appendChild(this.visual);
 		content.appendChild(render);

@@ -24,7 +24,7 @@ function handle_query(f, e) {
 	modules.splice(0);
 
 	// Input card
-	var equation = new EquationRender({
+	var equation = new Equation({
 		text: text
 	});
 
@@ -35,21 +35,71 @@ function handle_query(f, e) {
 		children: equation.element()
 	})).element());
 
+	if (equation.left != null) {
+		var left = equation.left;
+		left.simplify();
+		left = equation.left = left.valueOf();
+		left.parent = null;
+		left.top_parent = left;
+	}
+	var right = equation.right;
+	right.simplify();
+	right = equation.right = right.valueOf();
+	right.parent = null;
+	right.top_parent = right;
+
+	equation.updateVarInfo();
+	console.log(equation);
+
 	// Modules
 	for (var x = 0, y = modules.length; x < y; ++ x) {
 		output.appendChild(modules[x].element());
 	}
 
 	// Solution
-	var solution = new SolutionRender({
-		value: equation.group.valueOf()
-	});
-
 	output.appendChild((new Card({
 		label: "Solution",
 		color: "skin",
-		children: solution.element()
+		children: equation.element()
 	})).element());
+
+	// Suggestions
+	var suggestions = new Array();
+	if (equation.left_degree <= equation.right_degree) {
+		var min_side = "left";
+		var max_side = "right";
+		var min_degree = equation.left_degree;
+		var max_degree = equation.right_degree;
+	} else {
+		var min_side = "right";
+		var max_side = "left";
+		var min_degree = equation.right_degree;
+		var max_degree = equation.left_degree;
+	}
+
+	if (min_degree >= 1) {
+		suggestions.push({
+			title: "Solve for " + equation[min_side +
+				"_vars"][0] + " = 0",
+			icon: "superscript"
+		});
+	}
+
+	for (var x = 0, y = suggestions.length;
+		x < y; ++ x) {
+		var suggestion = document.createElement("div");
+		suggestion.addClass("card white");
+		suggestion.addClass("joined-top joined-bottom");
+		suggestion.addClass("suggestion");
+		var icon = document.createElement("i");
+		icon.addClass("fa");
+		icon.addClass("fa-" + suggestions[x].icon);
+		suggestion.appendChild(icon);
+		suggestion.appendChild(document.createTextNode(
+			suggestions[x].title));
+		// TODO: Link/onclick query thing
+		output.appendChild(suggestion);
+	}
 }
 
 // Homepage Styling
