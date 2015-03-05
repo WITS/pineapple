@@ -1,11 +1,8 @@
 function handle_query(f, e) {
 	e.preventDefault();
 
+	var output = document.createDocumentFragment();
 	var text = f.text.value.trim();
-
-	// Clear output
-	var output = document.getElementById("output");
-	output.empty();
 
 	// Return to the homepage?
 	if (!text.length) {
@@ -79,17 +76,22 @@ function handle_query(f, e) {
 
 	if (min_degree >= 1) {
 		suggestions.push({
-			title: "Solve for " + equation[min_side +
+			title: "Find where " + equation[min_side +
 				"_vars"][0] + " = 0",
-			icon: "superscript"
+			icon: "search-plus"
 		});
 	}
 
+	var sug_wrapper = document.createElement("ul");
+	sug_wrapper.addClass("suggestions");
+	sug_wrapper.addClass("card white no-padding");
+	sug_wrapper.setAttribute("data-label",
+		"Try " + (suggestions.length == 1 ? "this" :
+			"one of these"));
+	output.appendChild(sug_wrapper);
 	for (var x = 0, y = suggestions.length;
 		x < y; ++ x) {
-		var suggestion = document.createElement("div");
-		suggestion.addClass("card white");
-		suggestion.addClass("joined-top joined-bottom");
+		var suggestion = document.createElement("li");
 		suggestion.addClass("suggestion");
 		var icon = document.createElement("i");
 		icon.addClass("fa");
@@ -98,8 +100,12 @@ function handle_query(f, e) {
 		suggestion.appendChild(document.createTextNode(
 			suggestions[x].title));
 		// TODO: Link/onclick query thing
-		output.appendChild(suggestion);
+		sug_wrapper.appendChild(suggestion);
 	}
+
+	var output_element = document.getElementById("output");
+	output_element.empty();
+	output_element.appendChild(output);
 }
 
 // Homepage Styling
