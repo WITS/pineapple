@@ -53,7 +53,7 @@ Equation.prototype.replace = function(v, value) {
 					type: "simplify",
 					title: "Replace " + v + " with " +
 					truncate_number(value),
-					visual: group.top_parent.element()
+					visual: this.element()
 				});
 				group.highlighted_temp.splice(0);
 				var e = group.getVar(v);
@@ -460,6 +460,8 @@ ExpressionGroup = function(json) {
 ExpressionGroup.prototype.push = function(group) {
 	this.groups.push(group);
 	group.parent = this;
+	group.side = this.side;
+	group.equation = this.equation;
 }
 
 ExpressionGroup.prototype.replace = function(g1, g2) {
@@ -467,7 +469,9 @@ ExpressionGroup.prototype.replace = function(g1, g2) {
 	// g2 = The new group
 
 	this.groups[this.groups.indexOf(g1)] = g2;
-	g2.parent = g1.parent;
+	g2.parent = this;
+	g2.side = this.side;
+	g2.equation = this.equation;
 }
 
 ExpressionGroup.prototype.insertBefore = function(g1, g2) {
@@ -478,7 +482,9 @@ ExpressionGroup.prototype.insertBefore = function(g1, g2) {
 		this.groups.indexOf(g1));
 	this.groups.push(g2);
 	this.groups = this.groups.concat(temp_groups);
-	g2.parent = g1.parent;
+	g2.parent = this;
+	g2.side = this.side;
+	g2.equation = this.equation;
 }
 
 ExpressionGroup.prototype.remove = function(group) {
@@ -514,7 +520,7 @@ ExpressionGroup.prototype.simplify = function() {
 						n1: other,
 						n2: group
 					}),
-					visual: this.top_parent.element()
+					visual: this.equation.element()
 				});
 				other.highlighted = false;
 				group.highlighted = false;
@@ -546,11 +552,10 @@ ExpressionGroup.prototype.simplify = function() {
 					n2: n2,
 					abs: subtraction
 				}),
-				visual: this.top_parent.element()
+				visual: this.equation.element()
 			});
 			n2.highlighted = false;
 			n1.add(n2);
-			// console.log(n1.toString());
 			this.groups.splice(constants[1], 1);
 			constants.splice(1, 1);
 			n1.simplify();
@@ -563,14 +568,15 @@ ExpressionGroup.prototype.simplify = function() {
 			this.groups.length >= 2) {
 			this.remove(n1);
 		}
-		// return true;
 	}
 	// Single group?
 	if (this.groups.length == 1) {
 		this.value = this.groups[0].valueOf();
-		// return true;
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
 	}
-	// return false;
 }
 
 ExpressionGroup.prototype.valueOf = function() {
@@ -914,7 +920,7 @@ MultiplyGroup.prototype.simplify = function() {
 						n1: n1,
 						n2: n2
 					}),
-					visual: this.top_parent.element()
+					visual: this.equation.element()
 				});
 				n2.highlighted = false;
 			}
@@ -927,25 +933,29 @@ MultiplyGroup.prototype.simplify = function() {
 		}
 		n1.highlighted = false;
 		n1.simplify();
-		if (n1.toNumber() == 1 &&
-			this.groups.length >= 2) {
-			this.remove(n1);
+		if (n1 instanceof Fraction) {
+			if (n1.toNumber() == 1 &&
+				this.groups.length >= 2) {
+				this.remove(n1);
+			}
 		}
-		// n1 = this.groups[constants[0]];
-		// return true;
 	}
 	// Single group?
 	if (this.groups.length == 1) {
 		this.value = this.groups[0].valueOf();
-		// return true;
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
 	}
 	// TODO: Joining more variables
-	// return false;
 }
 
 MultiplyGroup.prototype.push = function(group) {
 	this.groups.push(group);
 	group.parent = this;
+	group.side = this.side;
+	group.equation = this.equation;
 }
 
 MultiplyGroup.prototype.replace = function(g1, g2) {
@@ -954,6 +964,8 @@ MultiplyGroup.prototype.replace = function(g1, g2) {
 
 	this.groups[this.groups.indexOf(g1)] = g2;
 	g2.parent = g1.parent;
+	g2.side = this.side;
+	g2.equation = this.equation;
 }
 
 MultiplyGroup.prototype.insertBefore = function(g1, g2) {
@@ -965,6 +977,8 @@ MultiplyGroup.prototype.insertBefore = function(g1, g2) {
 	this.groups.push(g2);
 	this.groups = this.groups.concat(temp_groups);
 	g2.parent = g1.parent;
+	g2.side = this.side;
+	g2.equation = this.equation;
 }
 
 MultiplyGroup.prototype.remove = function(group) {
@@ -1130,9 +1144,11 @@ FractionGroup.prototype.simplify = function() {
 			parent: this.parent
 		});
 		this.value.simplify(this);
-		// return true;
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
 	}
-	// return false;
 }
 FractionGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -1239,7 +1255,7 @@ ExponentGroup.prototype.simplify = function() {
 				n1: this.base,
 				n2: this.exponent
 			}),
-			visual: this.top_parent.element()
+			visual: this.equation.element()
 		});
 		this.highlighted = false;
 		this.value = new Fraction({
@@ -1247,9 +1263,11 @@ ExponentGroup.prototype.simplify = function() {
 				e_val.toNumber()),
 			parent: this.parent
 		});
-		// return true;
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
 	}
-	// return false;
 }
 ExponentGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -1384,6 +1402,10 @@ AlgebraGroup.prototype.simplify = function() {
 	}
 	if (constant) {
 		this.value = this.coefficient;
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
 	}
 	// Join variables
 	if (this.temp_variables == null) {
@@ -1414,7 +1436,7 @@ AlgebraGroup.prototype.simplify = function() {
 					n1: +other.substr(1),
 					n2: +temp_var.substr(1)
 				}),
-				visual: this.top_parent.element()
+				visual: this.equation.element()
 			});
 			this.highlighted_temp.splice(0);
 			// Combine data
@@ -1427,7 +1449,6 @@ AlgebraGroup.prototype.simplify = function() {
 		var_letters.push(temp_var[0]);
 	}
 	this.temp_variables = null;
-	// return true;
 }
 AlgebraGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -1615,7 +1636,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 						numerator: -1,
 						denominator: -1
 					})),
-			visual: this.top_parent.element()
+			visual: this.equation.element()
 		});
 		this.highlighted = false;
 		this.numerator *= -1;
@@ -1643,7 +1664,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 				n1: this.numerator,
 				n2: this.denominator
 			}),
-			visual: this.top_parent.element()
+			visual: this.equation.element()
 		});
 		this.highlighted = false;
 		if (n % d == 0) {
@@ -1675,7 +1696,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 							numerator: x,
 							denominator: x
 						})),
-				visual: this.top_parent.element()
+				visual: this.equation.element()
 			});
 			this.highlighted = false;
 			this.numerator /= x;
