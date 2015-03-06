@@ -1,6 +1,6 @@
 Element.prototype.hasClass = function(className) {
 
-	return (new RegExp("\\b" + className + "\\b"
+	return (new RegExp("\\b(?!-)" + className + "\\b(?!-)"
 		).test(this.className));
 }
 
@@ -16,7 +16,7 @@ Element.prototype.addClass = function(className) {
 Element.prototype.removeClass = function(className) {
 
 	this.className = this.className.replace(
-		new RegExp("\\b" + className + "\\b", "g"),
+		new RegExp("\\b(?!-)" + className + "\\b(?!-)", "g"),
 			"").trim().replace(/\s{2,}/g, " ");
 }
 

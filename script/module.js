@@ -138,17 +138,20 @@ ModuleStep.prototype.element = function() {
 		title.innerHTML = this.title;
 		content.appendChild(title);
 
-		var render = document.createElement("div");
-		render.addClass("render");
-		if (this.visual.hasClass("right-side")) {
-			render.addClass("equation");
-			render.addClass("right-side");
-		} else if (this.visual.hasClass("left-side")) {
-			render.addClass("equation");
-			render.addClass("left-side");
+		if (!this.visual.hasClass("equation")) {
+			var render = document.createElement("div");
+			render.addClass("render");
+			if (this.visual.hasClass("right-side")) {
+				render.addClass("equation");
+				render.addClass("right-side");
+			} else if (this.visual.hasClass("left-side")) {
+				render.addClass("equation");
+				render.addClass("left-side");
+			}
+			render.appendChild(this.visual);
+		} else {
+			render = this.visual;
 		}
-		// console.log(this.visual.highlight);
-		render.appendChild(this.visual);
 		content.appendChild(render);
 	}
 	return this.elementObj;
@@ -162,10 +165,21 @@ function push_module_step(json) {
 	} else {
 		var current_module = {};
 	}
+
+	// Exceptions to the rule
+	if (current_module.type == "isolate" &&
+		json.type == "simplify") {
+		json.type = current_module.type;
+	}
+
 	if (current_module.type != json.type) {
 		switch (json.type) {
 			case "simplify":
-				var title = "Simplify"; break;
+				var title = "Simplify";
+				break;
+			case "isolate":
+				var title = "Isolate " + json.variable;
+				break;
 			default:
 				var title = "Title"; break;
 		}

@@ -41,11 +41,7 @@
 	padding: 0px;
 }
 
-.card.joined-bottom {
-	border-bottom: 0px;
-}
-
-.card.joined-top:not(.expanded) {
+.card:not(.expanded) + .card.joined-top:not(.expanded) {
 	margin-top: 0px;
 	border-top: 0px;
 }
@@ -173,6 +169,10 @@
 .module-step > .content > .render.left-side::after {
 	opacity: 0.2;
 	content: "=";
+}
+
+.module-step > .content > .render .equals {
+	opacity: 0.2;
 }
 
 .module-step > .content > .render.right-side::before {

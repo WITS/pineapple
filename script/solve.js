@@ -20,6 +20,7 @@ Equation = function(json) {
 			side: "right"
 		});
 	}
+	this.all_vars = new Array();
 	this.left_vars = new Array();
 	this.right_vars = new Array();
 }
@@ -27,8 +28,266 @@ Equation = function(json) {
 Equation.prototype.left_degree = 0;
 Equation.prototype.right_degree = 0;
 
+Equation.prototype.replace = function(v, value) {
+	var groups = new Array();
+	var right = false;
+	if (this.left != null) {
+		groups.push(this.left);
+	} else {
+		groups.push(this.right);
+		right = true;
+	}
+
+	while (groups.length) {
+		var group = groups[0];
+		if (group.groups != null) {
+			var i = group.groups.length;
+			while (i --) {
+				groups.push(group.groups[i]);
+			}
+		} else if (group.variable != null) {
+			if (group.hasVar(v)) {
+				// ModuleStep Replace Var
+				group.highlighted_temp.push(v);
+				push_module_step({
+					type: "simplify",
+					title: "Replace " + v + " with " +
+					truncate_number(value),
+					visual: group.top_parent.element()
+				});
+				group.highlighted_temp.splice(0);
+				var e = group.getVar(v);
+				group.removeVar(v);
+				var m_group = group.parent;
+				if (!(m_group instanceof MultiplyGroup)) {
+					m_group = new MultiplyGroup({
+						parent: group.parent
+					});
+					if (group.parent != null) {
+						group.parent.replace(group,
+							m_group);
+					} else {
+						this[group.side] = m_group;
+						m_group.equation = this;
+						m_group.side = group.side;
+					}
+					var remove = true;
+					for (var name in group.variable) {
+						remove = false;
+					}
+					if (!remove ||
+						group.coefficient.numerator != 1 ||
+						group.coefficient.denominator != 1) {
+						m_group.push(group);
+					}
+				}
+				if (e != 1) {
+					m_group.insertBefore(group,
+						new ExponentGroup({
+							base: value.toString(),
+							exponent: e.toString(),
+							parent: group.parent
+						}));
+				} else {
+					m_group.insertBefore(group,
+						new Fraction({
+							numerator: value,
+							parent: group.parent
+						}));
+				}
+			}
+		} else if (group.base != null) {
+			groups.push(group.base);
+			groups.push(group.exponent);
+		} else if (group instanceof FractionGroup) {
+			groups.push(group.numerator);
+			groups.push(group.denominator);
+		}
+
+		groups.splice(0, 1);
+		if (!right && !groups.length) {
+			groups.push(this.right);
+			right = true;
+		}
+	}
+}
+
+Equation.prototype.isolate = function(v) {
+	// Side preference
+	var pref_side = "left";
+	var other_side = "right";
+	if (this.left_degree < this.right_degree) {
+		pref_side = "right";
+		other_side = "left";
+	}
+
+	var group = this[pref_side];
+	if (group instanceof ExpressionGroup) {
+		for (var x = 0, y = group.groups.length;
+			x < y; ++ x) {
+			var g = group.groups[x];
+			if (g instanceof Fraction) {
+				var s_group = this[other_side];
+				if (!(s_group instanceof
+					ExpressionGroup)) {
+					this[other_side] =
+						new ExpressionGroup({
+							equation: this,
+							side: other_side
+						});
+					var remove = false;
+					if (s_group instanceof Fraction) {
+						if (s_group.toNumber() == 0) {
+							remove = true;
+						}
+					}
+					if (!remove) {
+						this[other_side].push(s_group);
+					}
+					s_group = this[other_side];
+				}
+				var adding = (g.toNumber() <= 0);
+				var g1 = g.negative();
+				var g2 = g.negative();
+				s_group.push(g1);
+				group.push(g2);
+				g1.highlighted = true;
+				g2.highlighted = true;
+				push_module_step({
+					type: "isolate",
+					variable: v,
+					title: (adding ? "Add" :
+						"Subtract") + " " +
+						truncate_number(g) + " " +
+						(adding ? "to" : "from") +
+						" both sides",
+					visual: this.element()
+				});
+				g1.highlighted = false;
+				g2.highlighted = false;
+			}
+		}
+	} else if (group instanceof MultiplyGroup) {
+		for (var x = 0, y = group.groups.length;
+			x < y; ++ x) {
+			var g = group.groups[x];
+			if (g instanceof Fraction) {
+				var s_group = this[other_side];
+				if (!(s_group instanceof
+					MultiplyGroup)) {
+					this[other_side] =
+						new MultiplyGroup({
+							equation: this,
+							side: other_side
+						});
+					var remove = false;
+					if (s_group instanceof Fraction) {
+						if (s_group.toNumber() == 1) {
+							remove = true;
+						}
+					}
+					if (!remove) {
+						this[other_side].push(s_group);
+					}
+					s_group = this[other_side];
+				}
+				var dividing = (Math.abs(g.toNumber()) >= 1);
+				var g1 = g.reciprocal();
+				var g2 = g.reciprocal();
+				s_group.push(g1);
+				group.push(g2);
+				g1.highlighted = true;
+				g2.highlighted = true;
+				push_module_step({
+					type: "isolate",
+					variable: v,
+					title: (dividing ? "Divide" :
+						"Multiply") + " both sides by " +
+						(dividing ? truncate_number(g) :
+							truncate_number(g1)),
+					visual: this.element()
+				});
+				g1.highlighted = false;
+				g2.highlighted = false;
+			}
+		}
+	} else if (group instanceof AlgebraGroup) {
+		if (group.coefficient.toNumber() != 1) {
+			var s_group = this[other_side];
+			if (!(s_group instanceof
+				MultiplyGroup)) {
+				this[other_side] =
+					new MultiplyGroup({
+						equation: this,
+						side: other_side
+					});
+				var remove = false;
+				if (s_group instanceof Fraction) {
+					if (s_group.toNumber() == 1) {
+						remove = true;
+					}
+				}
+				if (!remove) {
+					this[other_side].push(s_group);
+				}
+				s_group = this[other_side];
+			}
+			var m_group = new MultiplyGroup({
+				equation: this,
+				side: group.side
+			});
+			m_group.push(group);
+			this[group.side] = m_group;
+			var g = group.coefficient;
+			var dividing = (Math.abs(g.toNumber()) >= 1);
+			var g1 = g.reciprocal();
+			var g2 = g.reciprocal();
+			s_group.push(g1);
+			m_group.push(g2);
+			g1.highlighted = true;
+			g2.highlighted = true;
+			push_module_step({
+				type: "isolate",
+				variable: v,
+				title: (dividing ? "Divide" :
+					"Multiply") + " both sides by " +
+					(dividing ? truncate_number(g) :
+						truncate_number(g1)),
+				visual: this.element()
+			});
+			g1.highlighted = false;
+			g2.highlighted = false;
+		}
+	}
+
+	this.left.simplify();
+	this.left = this.left.valueOf();
+	this.right.simplify();
+	this.right = this.right.valueOf();
+
+	// Check if finished
+	var finished = false;
+	var group = this[pref_side];
+	if (group instanceof AlgebraGroup) {
+		finished = true;
+		if (group.coefficient.toNumber() != 1) {
+			finished = false;
+		}
+		for (var name in group.variable) {
+			if (name != v) {
+				// TODO: Make sure it's only
+				// the correct variable
+			}
+		}
+	}
+	if (!finished) {
+		this.isolate(v);
+	}
+}
+
 Equation.prototype.updateVarInfo = function(side) {
 	if (side == null) {
+		this.all_vars.splice(0);
 		this.updateVarInfo("left");
 		this.updateVarInfo("right");
 		return;
@@ -60,6 +319,9 @@ Equation.prototype.updateVarInfo = function(side) {
 				if (variables.indexOf(name) == -1) {
 					variables.push(name);
 				}
+				if (this.all_vars.indexOf(name) == -1) {
+					this.all_vars.push(name);
+				}
 			}
 		} else if (group.base != null) {
 			groups.push(group.base);
@@ -75,20 +337,50 @@ Equation.prototype.updateVarInfo = function(side) {
 	this[side + "_vars"] = variables;
 }
 
+Equation.prototype.getVarInfo = function() {
+	var return_val = new Object();
+	if (this.left_degree <= this.right_degree) {
+		return_val.min_side = "left";
+		return_val.max_side = "right";
+		return_val.min_degree = this.left_degree;
+		return_val.max_degree = this.right_degree;
+	} else {
+		return_val.min_side = "right";
+		return_val.max_side = "left";
+		return_val.min_degree = this.right_degree;
+		return_val.max_degree = this.left_degree;
+	}
+	return return_val;
+}
+
 Equation.prototype.element = function() {
 	var elem = document.createElement("div");
 	elem.addClass("render");
 	elem.addClass("equation");
 
 	if (this.left != null) {
-		elem.appendChild(this.left.element());
+		var left_elem = this.left.element();
+		if (this.left instanceof Fraction &&
+			left_elem.hasClass("negative")) {
+			left_elem.children[0].addClass("negative");
+			left_elem.removeClass("negative");
+		}
+		elem.appendChild(left_elem);
 		var equals = document.createElement(
 			"span");
 		equals.addClass("equals");
 		equals.innerHTML = "=";
 		elem.appendChild(equals);
 	}
-	elem.appendChild(this.right.element());
+
+	var right_elem = this.right.element();
+	if (this.right instanceof Fraction &&
+		right_elem.hasClass("negative")) {
+		right_elem.children[0].addClass("negative");
+		right_elem.removeClass("negative");
+	}
+
+	elem.appendChild(right_elem);
 
 	return elem;
 }
@@ -164,6 +456,35 @@ ExpressionGroup = function(json) {
 	}
 }
 
+
+ExpressionGroup.prototype.push = function(group) {
+	this.groups.push(group);
+	group.parent = this;
+}
+
+ExpressionGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	this.groups[this.groups.indexOf(g1)] = g2;
+	g2.parent = g1.parent;
+}
+
+ExpressionGroup.prototype.insertBefore = function(g1, g2) {
+	// g1 = The group used to find location
+	// g2 = The group being inserted
+
+	var temp_groups = this.groups.splice(
+		this.groups.indexOf(g1));
+	this.groups.push(g2);
+	this.groups = this.groups.concat(temp_groups);
+	g2.parent = g1.parent;
+}
+
+ExpressionGroup.prototype.remove = function(group) {
+	this.groups.splice(this.groups.indexOf(group), 1);
+}
+
 ExpressionGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var constants = new Array();
@@ -237,7 +558,11 @@ ExpressionGroup.prototype.simplify = function() {
 		}
 		n1.highlighted = false;
 		n1.simplify();
-		this.groups[constants[0]] = n1.valueOf();
+		n1 = this.groups[constants[0]] = n1.valueOf();
+		if (n1.toNumber() == 0 &&
+			this.groups.length >= 2) {
+			this.remove(n1);
+		}
 		// return true;
 	}
 	// Single group?
@@ -265,7 +590,7 @@ ExpressionGroup.prototype.element = function() {
 	if (this.highlighted) {
 		wrapper.addClass("highlighted");
 	}
-	if (this.side != null) {
+	if (this.parent == null && this.side != null) {
 		wrapper.addClass(this.side + "-side");
 	}
 
@@ -602,6 +927,10 @@ MultiplyGroup.prototype.simplify = function() {
 		}
 		n1.highlighted = false;
 		n1.simplify();
+		if (n1.toNumber() == 1 &&
+			this.groups.length >= 2) {
+			this.remove(n1);
+		}
 		// n1 = this.groups[constants[0]];
 		// return true;
 	}
@@ -614,6 +943,33 @@ MultiplyGroup.prototype.simplify = function() {
 	// return false;
 }
 
+MultiplyGroup.prototype.push = function(group) {
+	this.groups.push(group);
+	group.parent = this;
+}
+
+MultiplyGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	this.groups[this.groups.indexOf(g1)] = g2;
+	g2.parent = g1.parent;
+}
+
+MultiplyGroup.prototype.insertBefore = function(g1, g2) {
+	// g1 = The group used to find location
+	// g2 = The group being inserted
+
+	var temp_groups = this.groups.splice(
+		this.groups.indexOf(g1));
+	this.groups.push(g2);
+	this.groups = this.groups.concat(temp_groups);
+	g2.parent = g1.parent;
+}
+
+MultiplyGroup.prototype.remove = function(group) {
+	this.groups.splice(this.groups.indexOf(group), 1);
+}
 
 MultiplyGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -628,6 +984,9 @@ MultiplyGroup.prototype.element = function() {
 	wrapper.addClass("multiply-group");
 	if (this.highlighted) {
 		wrapper.addClass("highlighted");
+	}
+	if (this.parent == null && this.side != null) {
+		wrapper.addClass(this.side + "-side");
 	}
 
 	// Loop through groups and create elements
@@ -735,6 +1094,19 @@ FractionGroup = function(json) {
 	}
 }
 
+FractionGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	if (this.numerator == g1) {
+		this.numerator = g2;
+		g2.parent = this;
+	} else if (this.denominator == g1) {
+		this.denominator = g2;
+		g2.parent = this;
+	}
+}
+
 FractionGroup.prototype.simplify = function() {
 	this.numerator.simplify();
 	this.numerator.valueOf().parent =
@@ -770,8 +1142,12 @@ FractionGroup.prototype.valueOf = function() {
 	}
 }
 FractionGroup.prototype.element = function() {
-	return fraction_element(this.numerator,
+	var elem = fraction_element(this.numerator,
 		this.denominator, true, this.highlighted);
+	if (this.parent == null && this.side != null) {
+		elem.addClass(this.side + "-side");
+	}
+	return elem;
 }
 
 ExponentGroup = function(json) {
@@ -827,6 +1203,19 @@ ExponentGroup = function(json) {
 	}
 }
 
+ExponentGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	if (this.base == g1) {
+		this.base = g2;
+		g2.parent = this;
+	} else if (this.exponent == g1) {
+		this.exponent = g2;
+		g2.parent = this;
+	}
+}
+
 ExponentGroup.prototype.simplify = function() {
 	this.base.simplify();
 	this.base.valueOf().parent =
@@ -870,17 +1259,17 @@ ExponentGroup.prototype.valueOf = function() {
 	}
 }
 ExponentGroup.prototype.element = function() {
-	return exponent_element(this.base,
+	var elem = exponent_element(this.base,
 		this.exponent, false, this.highlighted);
+	if (this.parent == null && this.side != null) {
+		elem.addClass(this.side + "-side");
+	}
+	return elem;
 }
 
 AlgebraGroup = function(json) {
 	var json = json || {};
 	this.text = json.text || "0";
-	this.coefficient = json.coefficient || 
-		new Fraction({
-			parent: this
-		});
 	// Store the variables from text
 	// (before simplifying)
 	this.temp_variables = new Array();
@@ -894,6 +1283,10 @@ AlgebraGroup = function(json) {
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	this.coefficient = json.coefficient || 
+		new Fraction({
+			parent: this
+		});
 	this.equation = json.equation ||
 		this.top_parent.equation || null;
 	this.side = json.side ||
@@ -981,6 +1374,8 @@ AlgebraGroup.prototype.add = function(n) {
 	this.coefficient.add(n.coefficient);	
 }
 AlgebraGroup.prototype.simplify = function() {
+	// Simplify coefficient
+	this.coefficient.simplify();
 	// Is it a constant?
 	var constant = true;
 	for (var name in this.variable) {
@@ -1047,6 +1442,9 @@ AlgebraGroup.prototype.element = function() {
 	if (this.highlighted) {
 		elem.addClass("highlighted");
 	}
+	if (this.parent == null && this.side != null) {
+		elem.addClass(this.side + "-side");
+	}
 
 	var constant = this.coefficient;
 	if (constant.numerator != 1 ||
@@ -1068,7 +1466,9 @@ AlgebraGroup.prototype.element = function() {
 		for (var name in this.variable) {
 			var exponent = this.variable[name];
 			elem.appendChild(exponent_element(
-				name, exponent, true));
+				name, exponent, true,
+				this.highlighted_temp.indexOf(
+					name) != -1));
 		}
 	} else {
 		// Before simplification
@@ -1092,8 +1492,10 @@ AlgebraGroup.prototype.element = function() {
 
 Fraction = function(json) {
 	var json = json || {};
-	this.numerator = json.numerator || 1;
-	this.denominator = json.denominator || 1;
+	this.numerator = json.numerator != null ?
+		json.numerator : 1;
+	this.denominator = json.denominator != null ?
+		json.denominator : 1;
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1155,11 +1557,32 @@ Fraction.prototype.multiply = function(n) {
 	if (n instanceof Fraction) {
 		this.numerator *= n.numerator;
 		this.denominator *= n.denominator;
+		if (this.numerator == 0) {
+			this.denominator = 1;
+		} else if (this.numerator ==
+			this.denominator) {
+			this.numerator =
+				this.denominator = 1;
+		}
 	}
 	if (n instanceof AlgebraGroup) {
 		n.multiply(this);
 		this.value = n;
 	}
+}
+Fraction.prototype.duplicate = function() {
+	return new Fraction({
+		numerator: this.numerator,
+		denominator: this.denominator,
+		parent: this.parent
+	});
+}
+Fraction.prototype.negative = function() {
+	return new Fraction({
+		numerator: this.numerator * -1,
+		denominator: this.denominator,
+		parent: this.parent
+	});
 }
 Fraction.prototype.reciprocal = function() {
 	return new Fraction({
@@ -1257,8 +1680,6 @@ Fraction.prototype.simplify = function(visibleGroup) {
 			this.highlighted = false;
 			this.numerator /= x;
 			this.denominator /= x;
-			console.log("sx" + x + ": " +
-				this.toString());
 			return true;
 		}
 	}
@@ -1279,8 +1700,12 @@ Fraction.prototype.toString = function () {
 		this.denominator;
 }
 Fraction.prototype.element = function() {
-	return fraction_element(this.numerator,
+	var elem = fraction_element(this.numerator,
 		this.denominator, true, this.highlighted);
+	if (this.parent == null && this.side != null) {
+		elem.addClass(this.side + "-side");
+	}
+	return elem;
 }
 
 SolutionRender = function(json) {

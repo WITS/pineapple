@@ -13,16 +13,44 @@ function handle_query(f, e) {
 	}
 
 	// Pre-Processing
+	var equation_text = text;
 	text = text.replace(/\u00D7/g, "*");
 	text = text.replace(/\u00F7/g, "/");
 	text = text.replace(/\u00B2/g, "^2");
+	text = text.replace(/\?/g, "");
+	text = text.replace(/\s{2,}/g, " ");
+	equation_text = text;
+
+	// What are we showing?
+	var query_info = new Object();
+	query_info.type = "simplify";
+	var result;
+	
+	result = new RegExp("(?:find|(?:find )?where" +
+		"(?: does| is)? )([a-z])\\s?(?:=|is)?\\s?(" +
+		FLOAT_NUM_REGEX + ")(?: for| in | when| where)?",
+		"i").exec(text);
+	if (result == null) {
+		result = new RegExp("(?:find|(?:find )?where)" +
+			"([a-z])\\s?(?:=|is)?\\s?(" +
+			FLOAT_NUM_REGEX + ")",
+			"i").exec(text);
+	}
+	if (result != null) {
+		equation_text = text.replace(result[0], "");
+		equation_text = equation_text.replace(
+			/^\s*(?:for|in|when|where)/i, "");
+		query_info.type = "solve-for";
+		query_info.variable = result[1];
+		query_info.value = +result[2];
+	}
 
 	// Pre-Module
 	modules.splice(0);
 
 	// Input card
 	var equation = new Equation({
-		text: text
+		text: equation_text
 	});
 
 	output.appendChild((new Card({
@@ -46,38 +74,58 @@ function handle_query(f, e) {
 	right.top_parent = right;
 
 	equation.updateVarInfo();
+	var v_info = equation.getVarInfo();
 	console.log(equation);
+
+	// Additional work
+	if (equation.all_vars.length == 2) {
+		if (query_info.type == "solve-for") {
+			console.log(query_info);
+			// Put in the first variable where appropriate
+			equation.replace(query_info.variable,
+				query_info.value);
+			console.log(equation);
+			// Simplify again
+			if (equation.left) {
+				equation.left.simplify();
+				equation.left = equation.left.valueOf();
+			}
+			equation.right.simplify();
+			equation.right = equation.right.valueOf();
+			// What's the other variable?
+			query_info.other = equation.all_vars[1 -
+				equation.all_vars.indexOf(
+				query_info.variable)];
+			// Update variable info
+			equation.updateVarInfo();
+			v_info = equation.getVarInfo();
+			// What degree is the equation now?
+			if (v_info.max_degree == 1) {
+				equation.isolate(query_info.other);
+			}
+		}
+	}
 
 	// Modules
 	for (var x = 0, y = modules.length; x < y; ++ x) {
 		output.appendChild(modules[x].element());
 	}
 
-	// Solution
+	// Result
 	output.appendChild((new Card({
-		label: "Solution",
+		label: "Result",
 		color: "skin",
 		children: equation.element()
 	})).element());
 
 	// Suggestions
 	var suggestions = new Array();
-	if (equation.left_degree <= equation.right_degree) {
-		var min_side = "left";
-		var max_side = "right";
-		var min_degree = equation.left_degree;
-		var max_degree = equation.right_degree;
-	} else {
-		var min_side = "right";
-		var max_side = "left";
-		var min_degree = equation.right_degree;
-		var max_degree = equation.left_degree;
-	}
 
-	if (min_degree >= 1) {
+	if (v_info.min_degree >= 1 &&
+		query_info.type != "solve-for") {
 		suggestions.push({
-			title: "Find where " + equation[min_side +
-				"_vars"][0] + " = 0",
+			title: "Find where " + equation[
+				v_info.min_side + "_vars"][0] + " = 0",
 			icon: "search-plus"
 		});
 	}
