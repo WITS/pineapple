@@ -258,6 +258,51 @@ Equation.prototype.isolate = function(v) {
 			g1.highlighted = false;
 			g2.highlighted = false;
 		}
+	} else if (group instanceof FractionGroup) {
+		if (group.numerator instanceof AlgebraGroup ||
+			group.denominator instanceof AlgebraGroup) {
+			var s_group = this[other_side];
+			if (!(s_group instanceof
+				MultiplyGroup)) {
+				this[other_side] =
+					new MultiplyGroup({
+						equation: this,
+						side: other_side
+					});
+				var remove = false;
+				if (s_group instanceof Fraction) {
+					if (s_group.toNumber() == 1) {
+						remove = true;
+					}
+				}
+				if (!remove) {
+					this[other_side].push(s_group);
+				}
+				s_group = this[other_side];
+			}
+			var m_group = new MultiplyGroup({
+				equation: this,
+				side: group.side
+			});
+			m_group.push(group);
+			this[group.side] = m_group;
+			var g = group.denominator;
+			var g1 = g.duplicate();
+			var g2 = g.duplicate();
+			s_group.push(g1);
+			m_group.push(g2);
+			g1.highlighted = true;
+			g2.highlighted = true;
+			push_module_step({
+				type: "isolate",
+				variable: v,
+				title: "Multiply both sides by " +
+					truncate_number(g),
+				visual: this.element()
+			});
+			g1.highlighted = false;
+			g2.highlighted = false;
+		}
 	}
 
 	this.left.simplify();
@@ -489,6 +534,15 @@ ExpressionGroup.prototype.insertBefore = function(g1, g2) {
 
 ExpressionGroup.prototype.remove = function(group) {
 	this.groups.splice(this.groups.indexOf(group), 1);
+}
+
+ExpressionGroup.prototype.toString = function() {
+	var g_array = new Array();
+	for (var x = 0, y = this.groups.length; x < y;
+		++ x) {
+		g_array.push(this.groups[x].toString());
+	}
+	return g_array.join("+");
 }
 
 ExpressionGroup.prototype.simplify = function() {
@@ -888,17 +942,84 @@ MultiplyGroup = function(json) {
 MultiplyGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var constants = new Array();
+	var strings = new Array();
+	var denominators = new Object();
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
 		group.simplify();
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
+
+		var group_str = group.toString();
+		var fraction_group = null;
+		var other_group = null;
+
+		if (group instanceof FractionGroup) {
+			var d_str = group.denominator.toString();
+			var index = strings.indexOf(d_str);
+			if (index != -1) {
+				var i_group = this.groups[index];
+				i_group.highlighted = true;
+				group.highlighted = true;
+				// ModuleStep Denominator Simplification
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "*",
+						n1: i_group,
+						n2: group
+					}),
+					visual: this.equation.element()
+				});
+				i_group.highlighted = false;
+				group.highlighted = false;
+				fraction_group = group;
+				other_group = i_group;
+			} else {
+				denominators[d_str] = x;
+			}
+		} else {
+			if (denominators[group_str] != null) {
+				var i_group = this.groups[denominators[
+					group_str]];
+				i_group.highlighted = true;
+				group.highlighted = true;
+				// ModuleStep Denominator Simplification
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "*",
+						n1: i_group,
+						n2: group
+					}),
+					visual: this.equation.element()
+				});
+				i_group.highlighted = false;
+				group.highlighted = false;
+				denominators[group_str] = null;
+				fraction_group = i_group;
+				other_group = group;
+			}
+		}
+		if (fraction_group != null) {
+			group = fraction_group.numerator;
+			this.insertBefore(fraction_group, group);
+			this.remove(fraction_group);
+			this.remove(other_group);
+			// Let's just start simplifying
+			// all over again
+			this.simplify();
+			return;
+		}
+
 		if (group instanceof Fraction) {
 			constants.push(x);
 		} else if (group instanceof AlgebraGroup) {
 			constants.push(x);
 		}
+
+		strings.push(group_str);
 	}
 	if (constants.length >= 2) {
 		var n1 = this.groups[constants[0]];
@@ -983,6 +1104,15 @@ MultiplyGroup.prototype.insertBefore = function(g1, g2) {
 
 MultiplyGroup.prototype.remove = function(group) {
 	this.groups.splice(this.groups.indexOf(group), 1);
+}
+
+MultiplyGroup.prototype.toString = function() {
+	var g_array = new Array();
+	for (var x = 0, y = this.groups.length; x < y;
+		++ x) {
+		g_array.push(this.groups[x].toString());
+	}
+	return g_array.join("*");
 }
 
 MultiplyGroup.prototype.valueOf = function() {
@@ -1121,6 +1251,11 @@ FractionGroup.prototype.replace = function(g1, g2) {
 	}
 }
 
+FractionGroup.prototype.toString = function() {
+	return this.numerator.toString() + "/" +
+		this.denominator.toString();
+}
+
 FractionGroup.prototype.simplify = function() {
 	this.numerator.simplify();
 	this.numerator.valueOf().parent =
@@ -1230,6 +1365,11 @@ ExponentGroup.prototype.replace = function(g1, g2) {
 		this.exponent = g2;
 		g2.parent = this;
 	}
+}
+
+ExponentGroup.prototype.toString = function() {
+	return "(" + this.base.toString() + ")^(" +
+		+ this.exponent.toString() + ")";
 }
 
 ExponentGroup.prototype.simplify = function() {
@@ -1390,6 +1530,17 @@ AlgebraGroup.prototype.multiply = function(n) {
 AlgebraGroup.prototype.add = function(n) {
 	// Add coefficients
 	this.coefficient.add(n.coefficient);	
+}
+AlgebraGroup.prototype.toString = function() {
+	// Variable String
+	var v_array = new Array();
+	for (var name in this.variable) {
+		v_array.push(name + "^" +
+			this.variable[name]);
+	}
+	var v_str = v_array.join("");
+	return this.coefficient.toString() +
+		v_str;
 }
 AlgebraGroup.prototype.simplify = function() {
 	// Simplify coefficient
