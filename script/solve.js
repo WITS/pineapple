@@ -405,7 +405,7 @@ Equation.prototype.element = function() {
 
 	if (this.left != null) {
 		var left_elem = this.left.element();
-		if (this.left instanceof Fraction &&
+		if (left_elem.hasClass("fraction") &&
 			left_elem.hasClass("negative")) {
 			left_elem.children[0].addClass("negative");
 			left_elem.removeClass("negative");
@@ -419,7 +419,7 @@ Equation.prototype.element = function() {
 	}
 
 	var right_elem = this.right.element();
-	if (this.right instanceof Fraction &&
+	if (left_elem.hasClass("fraction") &&
 		right_elem.hasClass("negative")) {
 		right_elem.children[0].addClass("negative");
 		right_elem.removeClass("negative");
