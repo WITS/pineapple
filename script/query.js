@@ -1,8 +1,17 @@
 function handle_query(f, e) {
-	e.preventDefault();
+	if (e != null) {
+		e.preventDefault();
+	}
+
+	if (typeof f !== 'string') {
+		var text = f.text.value.trim();
+	} else {
+		var text = f.trim();
+		var f = document.getElementById("input-form");
+		f.text.value = text;
+	}
 
 	var output = document.createDocumentFragment();
-	var text = f.text.value.trim();
 
 	// Return to the homepage?
 	if (!text.length) {
@@ -53,11 +62,69 @@ function handle_query(f, e) {
 		text: equation_text
 	});
 
+	var input_children = new Array();
+	var pre_input = new Array();
+	var post_input = new Array();
+
+	if (query_info.type == "solve-for") {
+		post_input.push("where ");
+		post_input.push("_" + query_info.variable);
+		post_input.push("=");
+		post_input.push("_" + query_info.value);
+	}
+
+	if (pre_input.length) {
+		var query_info_elem =
+			document.createElement("span");
+		query_info_elem.addClass("query-info");
+		input_children.push(query_info_elem);
+		for (var x = 0, y = pre_input.length; x < y;
+			++ x) {
+			if (pre_input[x][0] == "_") {
+				var child = document.createElement(
+					"em");
+				em.innerHTML = pre_input[x].substr(1);
+			} else {
+				var child = document.createTextNode(
+					pre_input[x]);
+			}
+			query_info_elem.appendChild(child);
+		}
+	}
+
+	input_children.push(equation.element());
+
+	if (post_input.length) {
+		var query_info_elem =
+			document.createElement("span");
+		query_info_elem.addClass("query-info");
+		input_children.push(query_info_elem);
+		for (var x = 0, y = post_input.length; x < y;
+			++ x) {
+			if (post_input[x][0] == "_") {
+				var child = document.createElement(
+					"span");
+				child.addClass("emphasis");
+				child.innerHTML = post_input[x].substr(1);
+			} else if (post_input[x] == "=") {
+				var child = document.createElement(
+					"span");
+				child.addClass("equals");
+				child.innerHTML = "=";
+			}
+			else {
+				var child = document.createTextNode(
+					post_input[x]);
+			}
+			query_info_elem.appendChild(child);
+		}
+	}
+
 	output.appendChild((new Card({
 		label: "Input",
 		joined: "bottom",
 		color: "leaf",
-		children: equation.element()
+		children: input_children
 	})).element());
 
 	if (equation.left != null) {
@@ -126,7 +193,9 @@ function handle_query(f, e) {
 		suggestions.push({
 			title: "Find where " + equation[
 				v_info.min_side + "_vars"][0] + " = 0",
-			icon: "search-plus"
+			icon: "search-plus",
+			query: text + " where " + equation[
+				v_info.min_side + "_vars"][0] + " = 0"
 		});
 	}
 
@@ -149,13 +218,20 @@ function handle_query(f, e) {
 		suggestion.appendChild(icon);
 		suggestion.appendChild(document.createTextNode(
 			suggestions[x].title));
-		// TODO: Link/onclick query thing
+		suggestion.setAttribute("data-query",
+			suggestions[x].query);
+		suggestion.addEventListener("click",
+			handle_query_suggestion);
 		sug_wrapper.appendChild(suggestion);
 	}
 
 	var output_element = document.getElementById("output");
 	output_element.empty();
 	output_element.appendChild(output);
+}
+
+function handle_query_suggestion() {
+	handle_query(this.getAttribute("data-query"));
 }
 
 // Homepage Styling

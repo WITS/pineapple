@@ -67,6 +67,24 @@
 	padding: 0px 6px;
 }
 
+.card > .render {
+	display: inline-block;
+}
+
+.card > .query-info {
+	font-weight: 300;
+	font-size: 2.0em;
+}
+
+.card > .query-info:last-child {
+	margin-left: 12px;
+}
+
+.card > .query-info > .emphasis,
+.card > .query-info > .equals {
+	
+}
+
 .module > .title,
 .suggestion {
 	display: block;

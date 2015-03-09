@@ -1551,6 +1551,9 @@ AlgebraGroup.prototype.simplify = function() {
 		constant = false;
 		break;
 	}
+	if (this.coefficient.toNumber() == 0) {
+		constant = true;
+	}
 	if (constant) {
 		this.value = this.coefficient;
 		this.value.parent = this.parent;

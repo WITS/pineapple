@@ -151,7 +151,8 @@ body.homepage #nav {
 	/*vertical-align: middle;*/
 }
 
-.render .equals {
+.render .equals,
+.card > .query-info > .equals {
 	margin: 0em 0.3em;
 	opacity: 0.5;
 }
