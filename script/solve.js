@@ -25,6 +25,7 @@ Equation = function(json) {
 	this.right_vars = new Array();
 }
 
+Equation.prototype.comparison = "=";
 Equation.prototype.left_degree = 0;
 Equation.prototype.right_degree = 0;
 
@@ -315,6 +316,14 @@ Equation.prototype.isolate = function(v) {
 	// Update var info
 	this.updateVarInfo();
 
+	// Check if No Real Solution
+	if (this.left_degree == 0 &&
+		this.right_degree == 0) {
+		console.log("NRS?");
+		this.comparison = "&ne;";
+		return;
+	}
+
 	// Check if finished
 	var finished = false;
 	var group = this[pref_side];
@@ -419,7 +428,7 @@ Equation.prototype.element = function() {
 		var equals = document.createElement(
 			"span");
 		equals.addClass("equals");
-		equals.innerHTML = "=";
+		equals.innerHTML = this.comparison;
 		elem.appendChild(equals);
 	}
 

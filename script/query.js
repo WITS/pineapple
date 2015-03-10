@@ -36,12 +36,12 @@ function handle_query(f, e) {
 	var result;
 	
 	result = new RegExp("(?:find|(?:find )?where" +
-		"(?: does| is)? )([a-z])\\s?(?:=|is)?\\s?(" +
+		"(?: does| is)? )([a-z])\\s?(?:=|is)?\\s?(-?" +
 		FLOAT_NUM_REGEX + ")(?: for| in | when| where)?",
 		"i").exec(text);
 	if (result == null) {
 		result = new RegExp("(?:find|(?:find )?where)" +
-			"([a-z])\\s?(?:=|is)?\\s?(" +
+			"([a-z])\\s?(?:=|is)?\\s?(-?" +
 			FLOAT_NUM_REGEX + ")",
 			"i").exec(text);
 	}
