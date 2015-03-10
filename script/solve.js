@@ -192,7 +192,7 @@ Equation.prototype.isolate = function(v) {
 					}
 					s_group = this[other_side];
 				}
-				var dividing = (Math.abs(g.toNumber()) >= 1);
+				var dividing = (Math.abs(g.toNumber()) > 1);
 				var g1 = g.reciprocal();
 				var g2 = g.reciprocal();
 				s_group.push(g1);
@@ -242,7 +242,7 @@ Equation.prototype.isolate = function(v) {
 			// TODO: Make this step also divide
 			// out any unwanted variables
 			var g = group.coefficient;
-			var dividing = (Math.abs(g.toNumber()) >= 1);
+			var dividing = (Math.abs(g.toNumber()) > 1);
 			var g1 = g.reciprocal();
 			var g2 = g.reciprocal();
 			s_group.push(g1);
@@ -1115,7 +1115,7 @@ MultiplyGroup.prototype.element = function() {
 					times.addClass("highlighted");
 				}
 			}
-			if (group instanceof Fraction &&
+			if (group_elem.hasClass("fraction") &&
 				group_elem.hasClass("negative")) {
 				group_elem.removeClass("negative");
 				group_elem.children[0].addClass(
