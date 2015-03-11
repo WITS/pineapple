@@ -140,6 +140,13 @@
 	content: "\f00d";
 }
 
+.module-step,
+.embedded-module {
+	-webkit-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.5s,
+		background-color 0.2s;
+}
+
 .module-step {
 	display: flex;
 	flex-flow: row nowrap;
@@ -152,11 +159,10 @@
 	max-height: 200px;
 	overflow: hidden;
 	opacity: 1;
-	-webkit-transition: padding 0.3s,
-		max-height 0.3s, opacity 0.5s;
 }
 
-.module:not(.expanded) > .module-step {
+.module:not(.expanded) > .module-step,
+.module:not(.expanded) > .embedded-module {
 	padding: 0px 12px;
 	border-top: 0px;
 	max-height: 0px;
@@ -214,6 +220,33 @@
 
 .module-step > .content > .render.left-side::after {
 	padding-left: 6px;
+}
+
+.hidden.embedded-module {
+	background-color: whitesmoke;
+	box-shadow: inset 0px -1px 0px 0px #E8E8E8,
+		inset 0px 1px 0px 0px #E8E8E8;
+	/*box-shadow: inset 0px 3px 2px -2px
+		rgba(0, 0, 0, 0.1);*/
+}
+
+.hidden.embedded-module > .module-step {
+	max-height: 0px;
+	opacity: 0.1;
+}
+
+.embedded-module:not(.hidden) {
+	/*box-shadow: inset -1px 0px 0px 0px #cb5027,
+		inset 1px 0px 0px 0px #cb5027;*/
+}
+
+.embedded-module {
+	padding-left: 18px;
+}
+
+/*.embedded-module > .module-step:first-child,*/
+.hidden.embedded-module + .module-step {
+	border-top-color: transparent;
 }
 
 @media (max-width: 640px) {

@@ -102,6 +102,7 @@ Module.prototype.element = function() {
 		}
 
 		// Add steps
+		var embedded = null;
 		for (var x = 0, y = this.steps.length;
 			x < y; ++ x) {
 			var step = this.steps[x];
@@ -109,7 +110,26 @@ Module.prototype.element = function() {
 				step = new ModuleStep(step);
 			}
 			step.order = (x + 1);
-			elem.appendChild(step.element());
+			var step_elem = step.element();
+			if (this.type != "simplify" &&
+				step.type == "simplify") {
+				step_elem.addClass("embedded");
+				if (embedded == null) {
+					embedded = document.createElement(
+						"div");
+					embedded.addClass("embedded-module");
+					embedded.addClass("hidden");
+					embedded.addEventListener("click",
+						function() {
+						this.toggleClass("hidden");
+					});
+					elem.appendChild(embedded);
+				}
+				embedded.appendChild(step_elem);
+			} else {
+				embedded = null;
+				elem.appendChild(step_elem);
+			}
 		}
 	}
 	return this.elementObj;
@@ -117,6 +137,7 @@ Module.prototype.element = function() {
 
 ModuleStep = function(json) {
 	this.order = json.order || 0;
+	this.type = json.type || null;
 	this.title = json.title || "Title";
 	this.visual = json.visual || null;
 	this.elementObj = null;
@@ -166,13 +187,9 @@ function push_module_step(json) {
 		var current_module = {};
 	}
 
-	// Exceptions to the rule
-	if (current_module.type == "isolate" &&
-		json.type == "simplify") {
-		json.type = current_module.type;
-	}
-
-	if (current_module.type != json.type) {
+	if (current_module.type != json.type &&
+		(current_module.type == null ||
+		json.type != "simplify")) {
 		switch (json.type) {
 			case "simplify":
 				var title = "Simplify";
