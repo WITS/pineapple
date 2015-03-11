@@ -76,7 +76,7 @@
 	font-size: 2.0em;
 }
 
-.card > .query-info:last-child {
+.card > .render ~ .query-info {
 	margin-left: 12px;
 }
 
