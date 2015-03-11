@@ -40,7 +40,7 @@ function handle_query(f, e) {
 		FLOAT_NUM_REGEX + ")(?: for| in | when| where)?",
 		"i").exec(text);
 	if (result == null) {
-		result = new RegExp("(?:find|(?:find )?where)" +
+		result = new RegExp("(?:find|(?:find )?where|,\\s?)" +
 			"([a-z])\\s?(?:=|is)?\\s?(-?" +
 			FLOAT_NUM_REGEX + ")",
 			"i").exec(text);
@@ -120,12 +120,14 @@ function handle_query(f, e) {
 		}
 	}
 
-	output.appendChild((new Card({
+	var input_card = (new Card({
 		label: "Input",
 		joined: "bottom",
 		color: "leaf",
 		children: input_children
-	})).element());
+	})).element();
+
+	output.appendChild(input_card);
 
 	if (equation.left != null) {
 		var left = equation.left;
@@ -171,6 +173,20 @@ function handle_query(f, e) {
 				equation.isolate(query_info.other);
 			}
 		}
+	}
+
+	// Add expanding hint
+	if (modules.length) {
+		var hint = document.createElement("div");
+		hint.addClass("hint");
+		input_card.appendChild(hint);
+
+		var icon = document.createElement("i");
+		icon.addClass("fa fa-cogs");
+		hint.appendChild(icon);
+		hint.appendChild(document.createTextNode(
+			(IS_MOBILE ? "Tap" : "Click") +
+			" below to see each step"));
 	}
 
 	// Modules

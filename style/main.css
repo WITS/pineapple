@@ -263,6 +263,30 @@ body.homepage #nav {
 	color: rgba(0, 0, 0, 0.85);
 }
 
+/* Large displays */
+
+@media (min-width: 1280px) {
+
+#page-wrapper {
+	width: 60%;
+	left: 20%;
+}
+
+}
+
+/* Very large displays */
+
+@media (min-width: 1600px) {
+
+#page-wrapper {
+	width: 1024px;
+	left: calc(50% - 512px);
+}
+
+}
+
+/* Small displays */
+
 @media (max-width: 640px) {
 
 #page-wrapper {

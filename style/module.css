@@ -85,6 +85,21 @@
 	
 }
 
+.card > .hint {
+	font-family: "Roboto", Arial, sans-serif;
+	font-size: 1.4em;
+	font-weight: 300;
+	font-style: italic;
+	position: relative;
+	margin-top: 12px;
+	top: 6px;
+	opacity: 0.75;
+}
+
+.card > .hint > .fa {
+	margin-right: 6px;
+}
+
 .module > .title,
 .suggestion {
 	display: block;

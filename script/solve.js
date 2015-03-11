@@ -693,8 +693,8 @@ ExpressionGroup.prototype.element = function() {
 				prev_group instanceof Fraction &&
 				group.highlighted &&
 				group instanceof Fraction) {
-				if (prev_group.denominator ==
-					group.denominator) {
+				if (prev_group.denominator == 1 &&
+					group.denominator == 1) {
 					o_elem.addClass("highlighted");
 				}
 			}
@@ -1110,8 +1110,8 @@ MultiplyGroup.prototype.element = function() {
 				prev_group instanceof Fraction &&
 				group.highlighted &&
 				group instanceof Fraction) {
-				if (prev_group.denominator ==
-					group.denominator) {
+				if (prev_group.denominator == 1 &&
+					group.denominator == 1) {
 					times.addClass("highlighted");
 				}
 			}
