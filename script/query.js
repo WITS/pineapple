@@ -240,6 +240,10 @@ function handle_query(f, e) {
 	var output_element = document.getElementById("output");
 	output_element.empty();
 	output_element.appendChild(output);
+
+	// Clear the modules array so that the
+	// garbage collector can remove module objects
+	modules.splice(0);
 }
 
 function handle_query_suggestion() {

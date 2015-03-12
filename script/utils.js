@@ -29,10 +29,41 @@ Element.prototype.toggleClass = function(className) {
 	}
 }
 
-Element.prototype.empty = function() { // Removes all children
+Element.prototype.events = new Array();
 
-	while (this.children.length) {
-		this.removeChild(this.children[0]);
+function EventListenerInfo(arg) {
+	this.type = arg[0];
+	this.func = arg[1];
+	this.capture = arg[2] || false;
+}
+
+Element.prototype._addEventListener =
+	Element.prototype.addEventListener;
+
+Element.prototype.addEventListener = function(type,
+	func, capture) {
+	// Store the event listener so it can be
+	// removed later
+	this.events.push(new EventListenerInfo(arguments));
+	// Call the client's native method
+	this._addEventListener(type, func, capture);
+}
+
+Element.prototype.empty = function() { // Removes all children
+	while (this.firstChild) {
+		if (this.firstChild instanceof Element) {
+			// Remove child's children
+			this.firstChild.empty();
+			// Remove events
+			var i = this.firstChild.events.length;
+			while (i --) {
+				var e = this.firstChild.events[0];
+				this.firstChild.removeEventListener(e.type,
+					e.func, e.capture);
+			}
+		}
+		// Remove child node
+		this.removeChild(this.firstChild);
 	}
 }
 

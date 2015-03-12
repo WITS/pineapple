@@ -1362,7 +1362,6 @@ FractionGroup.prototype.simplify = function() {
 				n_fraction.denominator;
 			n_fraction.denominator = 1;
 		}
-		console.log(n + " / " + d);
 		var abs_n = Math.abs(n);
 		var abs_d = Math.abs(d);
 		if (n < 0 && d < 0) {
@@ -1938,7 +1937,8 @@ Fraction.prototype.multiply = function(n) {
 				this.denominator = 1;
 		}
 	}
-	if (n instanceof AlgebraGroup) {
+	if (n instanceof AlgebraGroup ||
+		n instanceof FractionGroup) {
 		n.multiply(this);
 		this.value = n;
 	}
