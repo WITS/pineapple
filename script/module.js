@@ -102,17 +102,20 @@ Module.prototype.element = function() {
 		}
 
 		// Add steps
-		var embedded = null;
-		for (var x = 0, y = this.steps.length;
+		for (var x = 0, y = this.steps.length,
+			s_n = e_n = 0, embedded = null;
 			x < y; ++ x) {
 			var step = this.steps[x];
 			if (!(step instanceof ModuleStep)) {
 				step = new ModuleStep(step);
 			}
-			step.order = (x + 1);
-			var step_elem = step.element();
 			if (this.type != "simplify" &&
 				step.type == "simplify") {
+				if (embedded == null) {
+					e_n = 0;
+				}
+				step.order = ++ e_n;
+				var step_elem = step.element();
 				step_elem.addClass("embedded");
 				if (embedded == null) {
 					embedded = document.createElement(
@@ -126,9 +129,18 @@ Module.prototype.element = function() {
 					elem.appendChild(embedded);
 				}
 				embedded.appendChild(step_elem);
+				if (x + 1 == y) {
+					embedded.setAttribute("data-count",
+						e_n);
+				}
 			} else {
-				embedded = null;
-				elem.appendChild(step_elem);
+				if (embedded != null) {
+					embedded.setAttribute("data-count",
+						e_n);
+					embedded = null;
+				}
+				step.order = ++ s_n;
+				elem.appendChild(step.element());
 			}
 		}
 	}

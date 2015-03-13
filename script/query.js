@@ -179,10 +179,15 @@ function handle_query(f, e) {
 	if (modules.length) {
 		var hint = document.createElement("div");
 		hint.addClass("hint");
+		input_card.appendChild(hint);
+
+		var icon = document.createElement("i");
+		icon.addClass("fa fa-chevron-down");
+		hint.appendChild(icon);
+
 		hint.appendChild(document.createTextNode(
 			(IS_MOBILE ? "Tap" : "Click") +
 			" below to see each step"));
-		input_card.appendChild(hint);
 	}
 
 	// Modules

@@ -89,7 +89,6 @@
 	font-family: "Roboto", Arial, sans-serif;
 	font-size: 1.4em;
 	font-weight: 300;
-	font-style: italic;
 	position: relative;
 	margin-top: 12px;
 	top: 6px;
@@ -140,11 +139,15 @@
 	content: "\f00d";
 }
 
-.module-step,
+.module-step {
+	-webkit-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.3s;
+}
+
 .embedded-module {
 	-webkit-transition: padding 0.3s,
 		max-height 0.3s, opacity 0.5s,
-		background-color 0.2s;
+		bottom 0.5s;
 }
 
 .module-step {
@@ -162,7 +165,8 @@
 }
 
 .module:not(.expanded) > .module-step,
-.module:not(.expanded) > .embedded-module {
+.module:not(.expanded) > .embedded-module,
+.hidden.embedded-module > .module-step {
 	padding: 0px 12px;
 	border-top: 0px;
 	max-height: 0px;
@@ -191,6 +195,7 @@
 .module-step > .content > .title {
 	flex: 1 1 auto;
 	display: inline-block;
+	text-align: left;
 }
 
 .module-step > .content > .title .render {
@@ -223,16 +228,11 @@
 }
 
 .hidden.embedded-module {
-	background-color: whitesmoke;
-	box-shadow: inset 0px -1px 0px 0px #E8E8E8,
-		inset 0px 1px 0px 0px #E8E8E8;
+	/*background-color: whitesmoke;*/
+	/*box-shadow: inset 0px -1px 0px 0px #E8E8E8,
+		inset 0px 1px 0px 0px #E8E8E8;*/
 	/*box-shadow: inset 0px 3px 2px -2px
 		rgba(0, 0, 0, 0.1);*/
-}
-
-.hidden.embedded-module > .module-step {
-	max-height: 0px;
-	opacity: 0.1;
 }
 
 .embedded-module:not(.hidden) {
@@ -241,11 +241,50 @@
 }
 
 .embedded-module {
-	padding-left: 18px;
+	margin: 0px 6px;
+	padding-left: 0px;
+	text-align: center;
+}
+
+.expanded > .hidden.embedded-module {
+	position: relative;
+	top: -20px;
+	border-bottom: 1px solid #E8E8E8;
+}
+
+.expanded > .embedded-module::after {
+	display: inline-block;
+	position: relative;
+	bottom: 6px;
+	/*border-radius: 20px;*/
+	height: 40px;
+	padding: 0px 12px;
+	line-height: 40px;
+	font-size: 1.5em;
+	/*background-color: rgb(129, 179, 66);*/
+	background-color: white;
+	color: lightgray;
+	content: "Show less";
+	-webkit-transition: bottom 0.3s;
+}
+
+.expanded > .hidden.embedded-module::after {
+	bottom: -20px;
+	/*color: rgb(129, 179, 66);*/
+	/*background-color: rgb(203, 80, 39);*/
+	content: "Show " attr(data-count) " more";
+}
+
+.expanded > .embedded-module:hover::after {
+	color: rgb(129, 179, 66);
 }
 
 .embedded.module-step::before {
 	color: rgb(203, 80, 39);
+}
+
+.embedded-module > .module-step {
+	margin-left: 18px;
 }
 
 /*.embedded-module > .module-step:first-child,*/
