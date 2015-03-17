@@ -263,7 +263,7 @@
 	font-size: 1.5em;
 	/*background-color: rgb(129, 179, 66);*/
 	background-color: white;
-	color: lightgray;
+	color: #ccc;
 	content: "Show less";
 	-webkit-transition: bottom 0.3s;
 }

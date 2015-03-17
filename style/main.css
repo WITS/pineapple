@@ -169,7 +169,8 @@ body.homepage #nav {
 
 .render .negative:first-child::before,
 .render .multiply-group > .negative::before,
-.render > .negative::before {
+.render > .negative::before,
+.render .denominator.negative::before {
 	content: "-";
 }
 

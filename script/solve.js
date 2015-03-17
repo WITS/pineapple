@@ -215,7 +215,9 @@ Equation.prototype.isolate = function(v) {
 	} else if (group instanceof AlgebraGroup) {
 		if (group.coefficient.toNumber() != 1) {
 			var s_group = this[other_side];
-			if (!(s_group instanceof
+			var g = group.coefficient;
+			var dividing = (Math.abs(g.toNumber()) > 1);
+			if (!dividing && !(s_group instanceof
 				MultiplyGroup)) {
 				this[other_side] =
 					new MultiplyGroup({
@@ -232,21 +234,46 @@ Equation.prototype.isolate = function(v) {
 					this[other_side].push(s_group);
 				}
 				s_group = this[other_side];
+			} else if (dividing && !(s_group
+				instanceof FractionGroup)) {
+				this[other_side] =
+					new FractionGroup({
+						equation: this,
+						side: other_side,
+						numerator: s_group,
+						denominator: "1"
+					});
+				s_group.parent = this[other_side];
+				s_group = this[other_side];
 			}
-			var m_group = new MultiplyGroup({
-				equation: this,
-				side: group.side
-			});
-			m_group.push(group);
+			if (!dividing) {
+				var m_group = new MultiplyGroup({
+					equation: this,
+					side: pref_side
+				});
+				m_group.push(group);
+			} else {
+				var m_group = new FractionGroup({
+					equation: this,
+					side: pref_side,
+					numerator: group,
+					denominator: "1"
+				});
+			}
 			this[group.side] = m_group;
 			// TODO: Make this step also divide
 			// out any unwanted variables
-			var g = group.coefficient;
-			var dividing = (Math.abs(g.toNumber()) > 1);
-			var g1 = g.reciprocal();
-			var g2 = g.reciprocal();
-			s_group.push(g1);
-			m_group.push(g2);
+			if (!dividing) {
+				var g1 = g.reciprocal();
+				var g2 = g.reciprocal();
+				s_group.push(g1);
+				m_group.push(g2);
+			} else {
+				var g1 = g.duplicate();
+				var g2 = g.duplicate();
+				s_group.denominator = g1;
+				m_group.denominator = g2;
+			}
 			g1.highlighted = true;
 			g2.highlighted = true;
 			push_module_step({
@@ -2402,6 +2429,9 @@ function fraction_element(n, d, simple, marked) {
 		denominator.addClass("denominator");
 		if (typeof d !== 'object') {
 			denominator.addClass("number");
+			if (d < 0) {
+				denominator.addClass("negative");
+			}
 			denominator.innerHTML = truncate_number(
 				d);
 		} else {
