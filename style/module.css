@@ -76,8 +76,12 @@
 	font-size: 2.0em;
 }
 
+.card > .query-info ~ .render {
+	margin-left: 8px;
+}
+
 .card > .render ~ .query-info {
-	margin-left: 12px;
+	margin-left: 8px;
 }
 
 .card > .query-info > .emphasis,

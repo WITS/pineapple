@@ -34,7 +34,7 @@ function handle_query(f, e) {
 	var query_info = new Object();
 	query_info.type = "simplify";
 	var result;
-	
+
 	result = new RegExp("(?:find|(?:find )?where" +
 		"(?: does| is)? )([a-z])\\s?(?:=|is)?\\s?(-?" +
 		FLOAT_NUM_REGEX + ")(?: for| in | when| where)?",
@@ -54,6 +54,19 @@ function handle_query(f, e) {
 		query_info.value = +result[2];
 	}
 
+	if (result == null) {
+		result = new RegExp("\\bfactors?\\b(?: of)?" +
+			"(?: ([a-z])(?!\\s?[=+*/^-])\\s?" +
+			"(?:for|in|when|where)?)?",
+			"i").exec(text);
+		if (result != null) {
+			// console.log(result);
+			equation_text = text.replace(result[0], "");
+			query_info.type = "factor";
+			query_info.variable = result[1];
+		}
+	}
+
 	// Pre-Module
 	modules.splice(0);
 
@@ -71,6 +84,10 @@ function handle_query(f, e) {
 		post_input.push("_" + query_info.variable);
 		post_input.push("=");
 		post_input.push("_" + query_info.value);
+	}
+
+	if (query_info.type == "factor") {
+		pre_input.push("factor");
 	}
 
 	if (pre_input.length) {
@@ -174,6 +191,27 @@ function handle_query(f, e) {
 			}
 		}
 	}
+	// TEMP: Limit the degree to 2 for factoring
+	if (v_info.max_degree == 2) {
+		if (query_info.type == "factor") {
+			if (query_info.variable == null) {
+				if (equation.left_degree ==
+					v_info.max_degree) {
+					query_info.variable =
+						equation.left_vars[0];
+				} else {
+					query_info.variable =
+						equation.right_vars[0];
+				}
+			}
+			console.log(query_info);
+			// Factor
+			equation.factor(query_info.variable);
+			// Update variable info
+			equation.updateVarInfo();
+			v_info = equation.getVarInfo();
+		}
+	}
 
 	// Add expanding hint
 	if (modules.length) {
@@ -211,7 +249,7 @@ function handle_query(f, e) {
 			title: "Find where " + equation[
 				v_info.min_side + "_vars"][0] + " = 0",
 			icon: "search-plus",
-			query: text + " where " + equation[
+			query: equation_text + " where " + equation[
 				v_info.min_side + "_vars"][0] + " = 0"
 		});
 	}

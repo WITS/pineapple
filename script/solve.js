@@ -53,13 +53,27 @@ Equation.prototype.replace = function(v, value) {
 				push_module_step({
 					type: "simplify",
 					title: "Replace " + v + " with " +
-					truncate_number(value),
+						truncate_number(value),
 					visual: this.element()
 				});
 				group.highlighted_temp.splice(0);
 				var e = group.getVar(v);
 				group.removeVar(v);
 				var m_group = group.parent;
+				// Remove if replacing with 0
+				if (value == 0) {
+					if (m_group != null) {
+						m_group.remove(group);
+					} else {
+						this[group.side] = new Fraction({
+							numerator: 0,
+							equation: this,
+							side: group.side
+						});
+					}
+					continue;
+				}
+				// Else
 				if (!(m_group instanceof MultiplyGroup)) {
 					m_group = new MultiplyGroup({
 						parent: group.parent
@@ -371,6 +385,79 @@ Equation.prototype.isolate = function(v) {
 	}
 }
 
+Equation.prototype.factor = function(v) {
+	// Eliminate other variables
+	for (var x = 0, y = this.all_vars.length;
+		x < y; ++ x) {
+		if (this.all_vars[x] == v) {
+			continue;
+		}
+		this.replace(this.all_vars[x], 0);
+	}
+	// Update var info
+	this.updateVarInfo();
+	var v_info = this.getVarInfo();
+	// Quadratic
+	if (v_info.max_degree == 2) {
+		// console.log("Quadratic");
+		// TODO: Quadratic formula / factoring
+		var side = (this.right_degree < 2 ? "left" :
+			"right");
+		var a = b = c = 0; // Coefficients
+		var d; // Discriminant
+		if (this[side] instanceof AlgebraGroup) {
+			a = this[side].coefficient.toNumber();
+		} else if (this[side] instanceof
+			ExpressionGroup) {
+			for (var i = this[side].groups.length;
+				i --; ) {
+				var group = this[side].groups[i];
+				if (group instanceof AlgebraGroup) {
+					if (group.getVar(v) == 2) {
+						a = group.coefficient.toNumber();
+					} else {
+						b = group.coefficient.toNumber();
+					}
+				} else if (group instanceof Fraction) {
+					c = group.toNumber();
+				}
+			}
+		}
+		d = Math.pow(b, 2) - (4 * a * c);
+		console.log("{"+ a +","+ b +","+ c +"}\n" + d);
+		if (d < 0) {
+			console.warn("No real solution");
+			return false;
+		}
+		var sqrt_d = Math.sqrt(d);
+		if (Math.floor(sqrt_d) == sqrt_d) {
+			console.log("Can factor");
+			// ModuleStep: Factor variable
+			this[side].highlighted = true;
+			push_module_step({
+				type: "simplify",
+				title: "Factor " + v,
+				visual: this.element()
+			});
+			this[side].highlighted = false;
+			// Get the two factors
+			var f1 = get_fraction(-(-b + sqrt_d) / (2 * a));
+			var f2 = get_fraction(-(-b - sqrt_d) / (2 * a));
+			// Restructure this side of the equation
+			this[side] = new MultiplyGroup({
+				text: "(" + f1.denominator + v +
+					"+" + f1.numerator +
+					")(" + f2.denominator + v +
+					"+" + f2.numerator + ")",
+				equation: this,
+				side: side
+			});
+		} else {
+			console.log("Not factorable");
+		}
+	}
+}
+
 Equation.prototype.updateVarInfo = function(side) {
 	if (side == null) {
 		this.all_vars.splice(0);
@@ -541,7 +628,6 @@ ExpressionGroup = function(json) {
 		}));
 	}
 }
-
 
 ExpressionGroup.prototype.push = function(group) {
 	this.groups.push(group);
@@ -1126,7 +1212,9 @@ MultiplyGroup.prototype.element = function() {
 		group_elem = group.element();
 
 		// Operation Elements
-		if (x && prev_elem.innerHTML != "") {
+		if (x && prev_elem.innerHTML != "" &&
+			!(prev_elem.hasClass("parentheses") ||
+			group_elem.hasClass("parentheses"))) {
 			var times = document.createElement(
 				"span");
 			times.addClass("operation");
@@ -1447,8 +1535,8 @@ FractionGroup.prototype.simplify = function() {
 			}
 			return true;
 		}
-		var n_factors = getFactors(abs_n).slice(1);
-		var d_factors = getFactors(abs_d).slice(1);
+		var n_factors = get_factors(abs_n).slice(1);
+		var d_factors = get_factors(abs_d).slice(1);
 		var i = n_factors.length;
 		while (i --) {
 			var x = n_factors[i];
@@ -1927,9 +2015,9 @@ Fraction.prototype.add = function(n) {
 			}));
 		}
 		this.numerator += n.numerator;
-		var n_factors = getFactors(
+		var n_factors = get_factors(
 			this.numerator).slice(1);
-		var d_factors = getFactors(
+		var d_factors = get_factors(
 			this.denominator).slice(1);
 		var i = n_factors.length;
 		while (i --) {
@@ -2057,8 +2145,8 @@ Fraction.prototype.simplify = function(visibleGroup) {
 		}
 		return true;
 	}
-	var n_factors = getFactors(abs_n).slice(1);
-	var d_factors = getFactors(abs_d).slice(1);
+	var n_factors = get_factors(abs_n).slice(1);
+	var d_factors = get_factors(abs_d).slice(1);
 	var i = n_factors.length;
 	while (i --) {
 		var x = n_factors[i];
@@ -2270,7 +2358,7 @@ function truncate_number(n, abs) {
 	return n_str + d_str;
 }
 
-function getFactors(x) {
+function get_factors(x) {
 	var factors = new Array();
 	for (var y = 1; y <= x; ++ y) {
 		if (factors.indexOf(y) != -1) {
@@ -2285,6 +2373,58 @@ function getFactors(x) {
 		return (a - b);
 	});
 	return factors;
+}
+
+function get_fraction(x, plain) {
+	// x (Number)
+	// plain (Boolean)
+	// when plain is true the return value
+	// will be a plain object, not a
+	// Fraction object
+	var plain = plain || false;
+
+	var return_obj = (plain ? new Object() :
+		new Fraction());
+	var sign = (x < 0 ? -1 : 1);
+	var n = Math.abs(x);
+	var d = 1;
+	var dec_digits = /\.\d+$/.exec(x.toString());
+	if (dec_digits == null) {
+		return_obj.numerator = sign * n;
+		return_obj.denominator = d;
+		return return_obj;
+	}
+
+	// Get rid of numbers past the decimal point
+	var dec_digits = dec_digits[0].length - 1;
+	var ratio = Math.pow(10, dec_digits);
+	n *= ratio;
+	d *= ratio;
+
+	// Simplify (if possible)
+	if (n % d == 0) {
+		n /= d;
+		d = 1;
+	} else if (d % n == 0) {
+		d /= n;
+		n = 1;
+	} else { // GCF?
+		var n_factors = get_factors(n).slice(1);
+		var d_factors = get_factors(d).slice(1);
+		var i = n_factors.length;
+		while (i --) {
+			var f = n_factors[i];
+			if (d_factors.indexOf(f) != -1) {
+				n /= f;
+				d /= f;
+				break;
+			}
+		}
+	}
+
+	return_obj.numerator = sign * n;
+	return_obj.denominator = d;
+	return return_obj;
 }
 
 // Rendering Functions
