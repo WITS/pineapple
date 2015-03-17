@@ -441,11 +441,16 @@ Equation.prototype.factor = function(v) {
 			});
 			this[side].highlighted = false;
 			// Get the two factors
-			var f1 = get_fraction(-(-b + sqrt_d) / (2 * a));
-			var f2 = get_fraction(-(-b - sqrt_d) / (2 * a));
+			var f1 = get_fraction(
+				-(-b + sqrt_d) / (2 * a));
+			var f2 = get_fraction(
+				-(-b - sqrt_d) / (2 * a));
+			var fc = a /
+				(f1.denominator * f2.denominator);
 			// Restructure this side of the equation
 			this[side] = new MultiplyGroup({
-				text: "(" + f1.denominator + v +
+				text: (fc != 1 ? fc : "") +
+					"(" + f1.denominator + v +
 					"+" + f1.numerator +
 					")(" + f2.denominator + v +
 					"+" + f2.numerator + ")",
