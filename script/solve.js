@@ -406,7 +406,8 @@ Equation.prototype.factor = function(v) {
 		var a = b = c = 0; // Coefficients
 		var d; // Discriminant
 		if (this[side] instanceof AlgebraGroup) {
-			a = this[side].coefficient.toNumber();
+			console.log("Factoring is pointless");
+			return true;
 		} else if (this[side] instanceof
 			ExpressionGroup) {
 			for (var i = this[side].groups.length;
@@ -451,9 +452,11 @@ Equation.prototype.factor = function(v) {
 			this[side] = new MultiplyGroup({
 				text: (fc != 1 ? fc : "") +
 					"(" + f1.denominator + v +
-					"+" + f1.numerator +
+					(f1.numerator != 0 ?
+						"+" + f1.numerator : "") +
 					")(" + f2.denominator + v +
-					"+" + f2.numerator + ")",
+					(f2.numerator != 0 ?
+						"+" + f2.numerator : "") + ")",
 				equation: this,
 				side: side
 			});
