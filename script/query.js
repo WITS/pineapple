@@ -191,6 +191,15 @@ function handle_query(f, e) {
 			}
 		}
 	}
+	// Factors of a constant
+	if (v_info.max_degree == 0 &&
+		equation.left == null &&
+		query_info.type == "factor") {
+		// console.log(get_factors(equation.right));
+		equation.result = new BracketGroup({
+			text: (get_factors(equation.right)).join(",")
+		});
+	}
 	// TEMP: Limit the degree to 2 for factoring
 	if (v_info.max_degree == 2) {
 		if (query_info.type == "factor") {
@@ -234,10 +243,12 @@ function handle_query(f, e) {
 	}
 
 	// Result
+	var result_elem = equation.result.element();
+	result_elem.addClass("render");
 	output.appendChild((new Card({
 		label: "Result",
 		color: "skin",
-		children: equation.element()
+		children: result_elem
 	})).element());
 
 	// Suggestions

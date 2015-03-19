@@ -13,6 +13,11 @@ Element.prototype.addClass = function(className) {
 	}
 }
 
+Element.prototype.appendTextNode = function(text) {
+	var node = document.createTextNode(text);
+	this.appendChild(node);
+}
+
 Element.prototype.removeClass = function(className) {
 
 	this.className = this.className.replace(

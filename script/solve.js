@@ -23,6 +23,7 @@ Equation = function(json) {
 	this.all_vars = new Array();
 	this.left_vars = new Array();
 	this.right_vars = new Array();
+	this.result = this;
 }
 
 Equation.prototype.comparison = "=";
@@ -2206,6 +2207,54 @@ Fraction.prototype.element = function() {
 	return elem;
 }
 
+BracketGroup = function(json) {
+	this.groups = json.groups || new Array();
+	if (json.text != null && !this.groups.length) {
+		var groups = json.text.split(",");
+		for (var x = 0, y = groups.length; x < y;
+			++ x) {
+			this.groups.push(new ExpressionGroup({
+				text: groups[x]
+			}));
+			if (!json.preventSimplify) {
+				this.groups[x].simplify();
+				this.groups[x] =
+					this.groups[x].valueOf();
+			}
+		}
+	}
+}
+
+BracketGroup.prototype.simplify = function() {
+	for (var x = 0, y = this.groups.length; x < y;
+		++ x) {
+		var group = this.groups[x];
+		group.simplify();
+		this.groups[x] = group.valueOf();
+	}
+}
+
+BracketGroup.prototype.element = function() {
+	var wrapper = document.createElement("div");
+	wrapper.addClass("brackets");
+
+	for (var x = 0, y = this.groups.length; x < y;
+		++ x) {
+		// Comma
+		if (x) {
+			var comma = document.createElement("span");
+			comma.addClass("comma");
+			comma.appendTextNode(",");
+			wrapper.appendChild(comma);
+		}
+		// Group element
+		var group = this.groups[x];
+		wrapper.appendChild(group.element());
+	}
+
+	return wrapper;
+}
+
 SolutionRender = function(json) {
 	this.value = json.value || 0;
 }
@@ -2374,7 +2423,9 @@ function get_factors(x) {
 		}
 		if (x % y == 0) {
 			factors.push(y);
-			factors.push(x / y);
+			if (x / y != y) {
+				factors.push(x / y);
+			}
 		}
 	}
 	factors.sort(function(a, b) {

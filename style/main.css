@@ -130,7 +130,8 @@ body.homepage #nav {
 
 /* Rendering */
 
-.equation.render {
+.equation.render,
+.brackets.render {
 	font-size: 3.2em;
 	font-weight: 300;
 }
@@ -249,6 +250,26 @@ body.homepage #nav {
 .render .operation[data-operation='-'
 		]:first-child {
 	padding-right: 0px;
+}
+
+.render .comma {
+	opacity: 0.5;
+	margin-right: 0.15em;
+}
+
+.brackets::before,
+.brackets::after {
+	opacity: 0.5;
+}
+
+.brackets::before {
+	margin-right: 0.15em;
+	content: "{";
+}
+
+.brackets::after {
+	margin-left: 0.15em;
+	content: "}";
 }
 
 #output:empty ~ #footer {
