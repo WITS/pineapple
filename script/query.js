@@ -55,15 +55,16 @@ function handle_query(f, e) {
 	}
 
 	if (result == null) {
-		result = new RegExp("\\bfactors?\\b(?: of)?" +
+		result = new RegExp("\\b(?:what are the )?("+
+			"(?:factor|root)s?\\b(?: of)?" +
 			"(?: ([a-z])(?!\\s?[=+*/^-])\\s?" +
-			"(?:for|in|when|where)?)?",
+			"(?:for|in|when|where)?)?)",
 			"i").exec(text);
 		if (result != null) {
-			// console.log(result);
 			equation_text = text.replace(result[0], "");
 			query_info.type = "factor";
-			query_info.variable = result[1];
+			query_info.phrasing = result[1];
+			query_info.variable = result[2];
 		}
 	}
 
@@ -87,7 +88,8 @@ function handle_query(f, e) {
 	}
 
 	if (query_info.type == "factor") {
-		pre_input.push("factor");
+		pre_input.push(
+			query_info.phrasing.toLowerCase());
 	}
 
 	if (pre_input.length) {
