@@ -940,7 +940,7 @@ MultiplyGroup = function(json) {
 
 	// Exponent Groups
 	for (var x = 0, y = this.groups.length;
-		x < y; ++ x) {
+		x < y; x ++) {
 		var group = this.groups[x];
 
 		// Skip group objects
@@ -950,8 +950,8 @@ MultiplyGroup = function(json) {
 
 		// If the caret will be part of an
 		// AlgebraGroup it should be ignored
-		if (!(new RegExp("(?:^\\^|[^a-zA-Z]\\^||\\^$)",
-			"g").test(group))) {
+		if (!(new RegExp("(?:^\\^|[^a-zA-Z]\\^||\\^$)"
+			).test(group))) {
 			console.log("Apparently not: " + group);
 			continue;
 		}
@@ -1607,19 +1607,10 @@ ExponentGroup = function(json) {
 
 	// Base
 	if (typeof this.base === 'string') {
-		if (/[a-z]/i.test(this.base)) {
-			// AlgebraGroup
-			this.base = new AlgebraGroup({
-				text: this.base,
-				parent: this
-			});
-		} else {
-			// Fraction
-			this.base = new Fraction({
-				numerator: +this.base,
-				parent: this
-			});
-		}
+		this.base = new MultiplyGroup({
+			text: this.base,
+			parent: this
+		});
 	}
 	// Denominator
 	if (typeof this.exponent === 'string') {
@@ -2505,6 +2496,23 @@ function exponent_element(b, e, simple, marked) {
 
 	var wrapper = null;
 
+	// Radical? (e.g. e = 1/2)
+	var radical = false;
+	var r_index = 0;
+	if (typeof e === 'number') {
+		var e_fraction = get_fraction(e);
+	} else if (e instanceof Fraction) {
+		var e_fraction = get_fraction(e.toNumber());
+	}
+	
+	if (e_fraction) {
+		if (e_fraction.numerator == 1 &&
+			e_fraction.denominator != 1) {
+			radical = true;
+			r_index = e_fraction.denominator;
+		}
+	}
+
 	if (!simple || e != 1) {
 		wrapper = document.createElement("span");
 		if (marked) {
@@ -2512,11 +2520,6 @@ function exponent_element(b, e, simple, marked) {
 		}
 		wrapper.addClass("operation");
 		wrapper.addClass("exponent-wrapper");
-		// if (b instanceof Fraction) {
-		// 	if (b.toNumber() < 0) {
-		// 		wrapper.addClass("negative");
-		// 	}
-		// }
 		wrapper.setAttribute("data-operation",
 			"^");
 	}
@@ -2537,14 +2540,10 @@ function exponent_element(b, e, simple, marked) {
 			base.removeClass("negative");
 			base.addClass("parentheses");
 		}
-		if (b.groups != null) {
+		if (b.groups != null &&
+			b.groups.length > 1) {
 			base.addClass("parentheses");
 		}
-		// if (wrapper != null &&
-		// 	base.hasClass("negative")) {
-		// 	wrapper.addClass("negative");
-		// 	base.removeClass("negative");
-		// }
 	}
 
 	if (wrapper == null) {
@@ -2558,9 +2557,39 @@ function exponent_element(b, e, simple, marked) {
 		}
 		return base;
 	}
+
+	// Radical
+	if (radical) {
+		wrapper.removeClass("exponent-wrapper");
+		wrapper.addClass("radical-wrapper");
+
+		if (r_index != 2) {
+			// Index value
+			var index = document.createElement("div");
+			index.addClass("index");
+			index.appendTextNode(r_index);
+			wrapper.appendChild(index);
+		}
+
+		// Radicand
+		var radicand = document.createElement("div");
+		radicand.addClass("radicand");
+		radicand.appendChild(base);
+		wrapper.appendChild(radicand);
+
+		// Radical
+		var radical_elem = document.createElement(
+			"span");
+		radical_elem.addClass("radical");
+		radicand.appendChild(radical_elem);
+
+		return wrapper;
+	}
+
 	base.addClass("base");
 	wrapper.appendChild(base);
 
+	// Exponent
 	if (typeof e !== 'object') {
 		var exponent = document.createElement("div");
 		exponent.addClass("number");

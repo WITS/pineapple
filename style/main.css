@@ -257,19 +257,59 @@ body.homepage #nav {
 	margin-right: 0.15em;
 }
 
-.brackets::before,
-.brackets::after {
+.render .brackets::before,
+.render .brackets::after {
 	opacity: 0.5;
 }
 
-.brackets::before {
+.render .brackets::before {
 	margin-right: 0.15em;
 	content: "{";
 }
 
-.brackets::after {
+.render .brackets::after {
 	margin-left: 0.15em;
 	content: "}";
+}
+
+.render .radical-wrapper {
+	position: relative;
+	min-height: 20px;
+}
+
+.render .radical-wrapper > .index {
+	position: relative;
+	top: -0.25em;
+	display: inline-block;
+	font-size: 0.5em;
+	vertical-align: super;
+}
+
+.render .radicand > .radical {
+	position: absolute;
+	right: calc(112.94% - 1px);
+	bottom: 0px;
+	display: inline-block;
+	width: 1px;
+	height: 50%;
+	background-color: black;
+	vertical-align: bottom;
+	-webkit-transform: skewX(30deg);
+}
+
+.render .radical-wrapper > .radicand {
+	position: relative;
+	display: inline-block;
+	margin-left: 6px;
+	padding-left: 4px;
+	border: 1px solid black;
+	border-right-style: none;
+	border-bottom-style: none;
+	-webkit-transform: skewX(-15deg);
+}
+
+.render .radicand > * {
+	-webkit-transform: skewX(15deg);
 }
 
 #output:empty ~ #footer {
