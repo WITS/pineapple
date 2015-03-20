@@ -309,6 +309,11 @@ body.homepage #nav {
 	-webkit-transform: skewX(-15deg);
 }
 
+.render .radical-wrapper >
+	.radicand:first-child {
+	margin-left: 12px;
+}
+
 .render .radicand > * {
 	-webkit-transform: skewX(15deg);
 }
