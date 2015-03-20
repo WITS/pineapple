@@ -1588,14 +1588,36 @@ FractionGroup.prototype.element = function() {
 
 ExponentGroup = function(json) {
 	var json = json || {};
-	this.base = json.base || 1;
-	this.exponent = json.exponent || 1;
-	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
 	if (this.parent != null) {
 		this.top_parent = this.parent.top_parent;
 	}
+	if (json.text) {
+		var caret_pos = json.text.indexOf("^");
+		if (caret_pos != -1) {
+			json.base =
+				new Fraction({
+					text:
+						json.text.substr(0, caret_pos),
+					parent: this
+				});
+			json.exponent =
+				new Fraction({
+					text:
+						json.text.substr(caret_pos + 1),
+					parent: this
+				});
+		} else {
+			json.base = new Fraction({
+				text: json.text,
+				parent: this
+			});
+		}
+	}
+	this.base = json.base || "1";
+	this.exponent = json.exponent || "1";
+	this.highlighted = json.highlighted || false;
 	this.equation = json.equation ||
 		this.top_parent.equation || null;
 	this.side = json.side ||
@@ -1607,14 +1629,35 @@ ExponentGroup = function(json) {
 
 	// Base
 	if (typeof this.base === 'string') {
-		this.base = new MultiplyGroup({
-			text: this.base,
-			parent: this
-		});
+		if (this.base.indexOf("^") != -1) {
+			// ExponentGroup
+			this.base = new ExponentGroup({
+				text: this.base,
+				parent: this
+			});
+		} else if (/[a-z]/i.test(this.base)) {
+			// AlgebraGroup
+			this.base = new AlgebraGroup({
+				text: this.base,
+				parent: this
+			});
+		} else {
+			// Fraction
+			this.base = new Fraction({
+				text: this.base,
+				parent: this
+			});
+		}
 	}
 	// Denominator
 	if (typeof this.exponent === 'string') {
-		if (/[a-z]/i.test(this.exponent)) {
+		if (this.exponent.indexOf("^") != -1) {
+			// ExponentGroup
+			this.exponent = new ExponentGroup({
+				text: this.exponent,
+				parent: this
+			});
+		} else if (/[a-z]/i.test(this.exponent)) {
 			// AlgebraGroup
 			this.exponent = new AlgebraGroup({
 				text: this.exponent,
@@ -1623,7 +1666,7 @@ ExponentGroup = function(json) {
 		} else {
 			// Fraction
 			this.exponent = new Fraction({
-				numerator: +this.exponent,
+				text: this.exponent,
 				parent: this
 			});
 		}
@@ -1979,6 +2022,17 @@ AlgebraGroup.prototype.element = function() {
 
 Fraction = function(json) {
 	var json = json || {};
+	if (json.text) {
+		var slash_pos = json.text.indexOf("/");
+		if (slash_pos != -1) {
+			json.numerator =
+				+json.text.substr(0, slash_pos);
+			json.denominator =
+				+json.text.substr(slash_pos + 1);
+		} else {
+			json.numerator = +json.text;
+		}
+	}
 	this.numerator = json.numerator != null ?
 		json.numerator : 1;
 	this.denominator = json.denominator != null ?
