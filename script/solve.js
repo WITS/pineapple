@@ -541,7 +541,7 @@ Equation.prototype.element = function() {
 	elem.addClass("equation");
 
 	if (this.left != null) {
-		var left_elem = this.left.element();
+		var left_elem = this.left.valueOf().element();
 		if (left_elem.hasClass("fraction") &&
 			left_elem.hasClass("negative")) {
 			left_elem.children[0].addClass("negative");
@@ -555,7 +555,7 @@ Equation.prototype.element = function() {
 		elem.appendChild(equals);
 	}
 
-	var right_elem = this.right.element();
+	var right_elem = this.right.valueOf().element();
 	if (right_elem.hasClass("fraction") &&
 		right_elem.hasClass("negative")) {
 		right_elem.children[0].addClass("negative");
@@ -635,6 +635,11 @@ ExpressionGroup = function(json) {
 			text: group_text,
 			parent: this
 		}));
+	}
+
+	// Initial value
+	if (this.groups.length == 1) {
+		this.value = this.groups[0].valueOf();
 	}
 }
 
@@ -1067,6 +1072,11 @@ MultiplyGroup = function(json) {
 				parent: this
 			});
 		}
+	}
+
+	// Initial value
+	if (this.groups.length == 1) {
+		this.value = this.groups[0].valueOf();
 	}
 }
 
@@ -1578,8 +1588,10 @@ FractionGroup.prototype.valueOf = function() {
 	}
 }
 FractionGroup.prototype.element = function() {
-	var elem = fraction_element(this.numerator,
-		this.denominator, true, this.highlighted);
+	var elem = fraction_element(
+		this.numerator.valueOf(),
+		this.denominator.valueOf(),
+		true, this.highlighted);
 	if (this.parent == null && this.side != null) {
 		elem.addClass(this.side + "-side");
 	}
@@ -1736,8 +1748,10 @@ ExponentGroup.prototype.valueOf = function() {
 	}
 }
 ExponentGroup.prototype.element = function() {
-	var elem = exponent_element(this.base,
-		this.exponent, false, this.highlighted);
+	var elem = exponent_element(
+		this.base.valueOf(),
+		this.exponent.valueOf(),
+		false, this.highlighted);
 	if (this.parent == null && this.side != null) {
 		elem.addClass(this.side + "-side");
 	}
@@ -2324,15 +2338,27 @@ function describe_operation(json) {
 	}
 	if (json.operation == "^") {
 		var o_string = null;
+		var root = get_fraction(json.n2);
 		if (json.n2 == 2) {
 			o_string = "Square";
 		} else if (json.n2 == 3) {
 			o_string = "Cube";
-		} else if (json.n2 == 0.5) {
-			o_string = "Take the square root of";
+		} else if (root.numerator == 1 &&
+			root.denominator != 1) {
+			var n = root.denominator;
+			var n_str;
+			switch (n) {
+				case 2: n_str = "square"; break;
+				case 3: n_str = "cubed"; break;
+				default: n_str = n + ordinal_of(
+					n); break;
+			}
+			o_string = "Take the " +
+				n_str + " root of";
 		}
 		if (o_string != null) {
-			return o_string + " " + json.n1;
+			return o_string + " " +
+				truncate_number(json.n1);
 		}
 	}
 	if (json.operation == "-") {
@@ -2462,6 +2488,13 @@ function truncate_number(n, abs) {
 
 function get_factors(x) {
 	var factors = new Array();
+	// Only does integral factors <!>
+	// if x has no integral factors,
+	// return empty array
+	if (/\.\d+/.test(x.toString()) || x == 0) {
+		return factors;
+	}
+	x = Math.abs(x);
 	for (var y = 1; y <= x; ++ y) {
 		if (factors.indexOf(y) != -1) {
 			break;
@@ -2490,9 +2523,17 @@ function get_fraction(x, plain) {
 	var return_obj = (plain ? new Object() :
 		new Fraction());
 	var sign = (x < 0 ? -1 : 1);
-	var n = Math.abs(x);
-	var d = 1;
-	var dec_digits = /\.\d+$/.exec(x.toString());
+	if (typeof x === 'number') {
+		var n = Math.abs(x);
+		var d = 1;	
+	} else if (x instanceof Fraction) {
+		var n = Math.abs(x.numerator);
+		var d = Math.abs(x.denominator);
+	} else {
+		var n = 1;
+		var d = 1;
+	}
+	var dec_digits = /\.\d+$/.exec(n.toString());
 	if (dec_digits == null) {
 		return_obj.numerator = sign * n;
 		return_obj.denominator = d;
@@ -2501,6 +2542,8 @@ function get_fraction(x, plain) {
 
 	// Get rid of numbers past the decimal point
 	var dec_digits = dec_digits[0].length - 1;
+	console.log(dec_digits);
+	// return return_obj;
 	var ratio = Math.pow(10, dec_digits);
 	n *= ratio;
 	d *= ratio;
@@ -2553,10 +2596,9 @@ function exponent_element(b, e, simple, marked) {
 	// Radical? (e.g. e = 1/2)
 	var radical = false;
 	var r_index = 0;
-	if (typeof e === 'number') {
+	if (typeof e === 'number' ||
+		e instanceof Fraction) {
 		var e_fraction = get_fraction(e);
-	} else if (e instanceof Fraction) {
-		var e_fraction = get_fraction(e.toNumber());
 	}
 	
 	if (e_fraction) {
