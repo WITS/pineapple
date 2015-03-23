@@ -146,10 +146,10 @@ body.homepage #nav {
 .render .fraction-group,
 .render .exponent-group,
 .render .algebra-group,
+.render .plus-minus-group,
 .render .operation,
 .render .number {
 	display: inline-block;
-	/*vertical-align: middle;*/
 }
 
 .render .equals,
@@ -207,6 +207,11 @@ body.homepage #nav {
 	.exponent-wrapper):not(
 	.fraction) {
 	padding: 0em 0.15em;
+}
+
+.render .operation + .plus-minus-group >
+	.operation {
+	padding-left: 0em !important;
 }
 
 .render .parentheses > .fraction:first-child,

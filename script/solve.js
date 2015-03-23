@@ -687,6 +687,8 @@ ExpressionGroup = function(json) {
 	this.text = this.text.replace(/\+{2,}/g, "+");
 	this.text = this.text.replace(
 		/(^|[^\+\*\/\^\(])(-|\u00B1)/g, "$1+$2");
+	this.text = this.text.replace(
+		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -903,6 +905,14 @@ ExpressionGroup.prototype.simplify = function() {
 			this.remove(n1);
 		}
 	}
+	// 0 + x + y... = x + y...
+	if (this.groups.length > 1 &&
+		constants.length) {
+		var n1 = this.groups[constants[0]];
+		if (n1.toString() == "0") {
+			this.remove(n1);
+		}
+	}
 	// Single group?
 	if (this.groups.length == 1) {
 		this.value = this.groups[0].valueOf();
@@ -1004,12 +1014,14 @@ MultiplyGroup = function(json) {
 	var p_level = 0;
 
 	var temp_text = this.text.replace(
-		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(])(" +
-			FLOAT_NUM_REGEX + ")", "gi"), "$1*$2");
+		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(" +
+			"\u00B1])(" + FLOAT_NUM_REGEX +
+			")", "gi"), "$1*$2");
 	temp_text = temp_text.replace(new RegExp(
 		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + FLOAT_NUM_REGEX + ")\\^"), "-1*$1^");
+	console.log(temp_text);
 	
 	// console.log(temp_text);
 	var prev_character = "";
@@ -1083,9 +1095,42 @@ MultiplyGroup = function(json) {
 	// Loop through and convert strings to
 	// appropriate groups
 
+	// Plus/Minus Groups
+	for (var x = 0, y = this.groups.length;
+		x < y; ++ x) {
+		var group = this.groups[x];
+
+		// Skip group objects
+		if (typeof group === 'object') {
+			continue;
+		}
+
+		var index = group.indexOf("\u00B1");
+		// If no plus/minus char, skip
+		if (index == -1) {
+			continue;
+		}
+		var temp_groups = this.groups.splice(x + 1);
+		var plus_minus = new PlusMinusGroup({
+			parent: this
+		});
+		this.groups.push(plus_minus);
+		plus_minus.group = new MultiplyGroup({
+			text: group.substr(index + 1),
+			parent: plus_minus
+		});
+		if (index == 0) {
+			this.groups.splice(x, 1);
+		} else {
+			this.groups[x] = group.substr(0,
+				index - 1);
+		}
+		this.groups = this.groups.concat(temp_groups);
+	}
+
 	// Exponent Groups
 	for (var x = 0, y = this.groups.length;
-		x < y; x ++) {
+		x < y; ++ x) {
 		var group = this.groups[x];
 
 		// Skip group objects
@@ -1237,10 +1282,16 @@ MultiplyGroup.prototype.simplify = function() {
 		group = this.groups[x] = group.valueOf();
 
 		if (group instanceof Fraction ||
-			group instanceof AlgebraGroup) {
+			group instanceof AlgebraGroup ||
+			group instanceof FractionGroup) {
 			constants.push(x);
-		} else if (group instanceof FractionGroup) {
-			constants.push(x);
+		} else if (group instanceof
+			PlusMinusGroup) {
+			if (group.group instanceof Fraction ||
+			group.group instanceof AlgebraGroup ||
+			group.group instanceof FractionGroup) {
+				constants.push(x);
+			}
 		}
 	}
 	if (constants.length >= 2) {
@@ -1494,6 +1545,14 @@ FractionGroup.prototype.replace = function(g1, g2) {
 }
 
 FractionGroup.prototype.multiply = function(n) {
+	// Plus/Minus?
+	if (n instanceof PlusMinusGroup) {
+		this.multiply(n.group);
+		n.group.value = this.valueOf();
+		this.value = n;
+		this.highlighted = false;
+		return;
+	}
 	// Cancels out?
 	if (n.toString() ==
 		this.denominator.toString()) {
@@ -2018,6 +2077,14 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 	this.text = text;
 }
 AlgebraGroup.prototype.multiply = function(n) {
+	// Plus/Minus?
+	if (n instanceof PlusMinusGroup) {
+		this.multiply(n.group);
+		n.group.value = this.valueOf();
+		this.value = n;
+		this.highlighted = false;
+		return;
+	}
 	// Multiply coefficients
 	if (n instanceof Fraction ||
 		typeof n === 'number') {
@@ -2271,6 +2338,14 @@ Fraction.prototype.add = function(n) {
 	}
 }
 Fraction.prototype.multiply = function(n) {
+	// Plus/Minus?
+	if (n instanceof PlusMinusGroup) {
+		this.multiply(n.group);
+		n.group.value = this.valueOf();
+		this.value = n;
+		this.highlighted = false;
+		return;
+	}
 	// Number
 	if (typeof n === 'number') {
 		this.numerator *= n;
@@ -2497,6 +2572,19 @@ PlusMinusGroup = function(json) {
 	this.value = this;
 }
 
+PlusMinusGroup.prototype.multiply = function(n) {
+	this.group.multiply(n);
+	this.group = this.group.valueOf();
+	this.group.highlighted = false;
+	if (this.group instanceof AlgebraGroup) {
+		this.group.temp_highlighted.splice(0);
+	}
+}
+
+PlusMinusGroup.prototype.toString = function() {
+	return "\u00B1" + this.group.toString();
+}
+
 PlusMinusGroup.prototype.simplify = function() {
 	// Simplify group
 	this.group.simplify();
@@ -2516,9 +2604,10 @@ PlusMinusGroup.prototype.valueOf = function() {
 
 PlusMinusGroup.prototype.element = function() {
 	var wrapper =
-		document.createDocumentFragment();
-	wrapper.hasClass = function() {
-		return false;
+		document.createElement("span");
+	wrapper.addClass("plus-minus-group");
+	if (this.highlighted) {
+		wrapper.addClass("highlighted");
 	}
 	var plus_minus = document.createElement(
 		"span");
