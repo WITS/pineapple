@@ -279,7 +279,7 @@ body.homepage #nav {
 
 .render .radical-wrapper {
 	position: relative;
-	padding-left: 0.2em;
+	padding-left: 0em !important;
 	min-height: 20px;
 }
 
@@ -316,7 +316,7 @@ body.homepage #nav {
 
 .render .radical-wrapper >
 	.radicand:first-child {
-	margin-left: 12px;
+	margin-left: 0.4em;
 }
 
 .render .radicand > * {

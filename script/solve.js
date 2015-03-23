@@ -2849,8 +2849,6 @@ function get_fraction(x, plain) {
 
 	// Get rid of numbers past the decimal point
 	var dec_digits = dec_digits[0].length - 1;
-	console.log(dec_digits);
-	// return return_obj;
 	var ratio = Math.pow(10, dec_digits);
 	n *= ratio;
 	d *= ratio;
