@@ -190,7 +190,13 @@ ModuleStep.prototype.element = function() {
 	return this.elementObj;
 }
 
-function push_module_type(type) {
+function push_module_type(json) {
+	var json = json || new Object();
+	if (typeof json === 'string') {
+		var type = json;
+		json = new Object();
+		json.type = type;
+	}
 	// New module?
 	if (modules.length) {
 		var current_module =
@@ -199,10 +205,10 @@ function push_module_type(type) {
 		var current_module = {};
 	}
 
-	if (current_module.type != type &&
+	if (current_module.type != json.type &&
 		(current_module.type == null ||
-		type != "simplify")) {
-		switch (type) {
+		json.type != "simplify")) {
+		switch (json.type) {
 			case "simplify":
 				var title = "Simplify";
 				break;
@@ -211,13 +217,13 @@ function push_module_type(type) {
 				break;
 			case "quadratic":
 				var title = "Quadratic equation";
-				type = "simplify";
+				json.type = "simplify";
 				break;
 			default:
 				var title = "Title"; break;
 		}
 		current_module = new Module({
-			type: type,
+			type: json.type,
 			title: title,
 			joined: "both"
 		});
@@ -229,6 +235,6 @@ function push_module_type(type) {
 
 function push_module_step(json) {
 	var current_module =
-		push_module_type(json.type);
+		push_module_type(json);
 	current_module.push(json);
 }
