@@ -301,7 +301,10 @@ body.homepage #nav {
 	height: 50%;
 	background-color: black;
 	vertical-align: bottom;
+	transform: skewX(30deg);
 	-webkit-transform: skewX(30deg);
+	-moz-transform: skewX(30deg);
+	-o-transform: skewX(30deg);
 }
 
 .render .radical-wrapper > .radicand {
@@ -312,7 +315,10 @@ body.homepage #nav {
 	border: 1px solid black;
 	border-right-style: none;
 	border-bottom-style: none;
+	transform: skewX(-15deg);
 	-webkit-transform: skewX(-15deg);
+	-moz-transform: skewX(-15deg);
+	-o-transform: skewX(-15deg);
 }
 
 .render .radical-wrapper >
@@ -321,7 +327,10 @@ body.homepage #nav {
 }
 
 .render .radicand > * {
+	transform: skewX(15deg);
 	-webkit-transform: skewX(15deg);
+	-moz-transform: skewX(15deg);
+	-o-transform: skewX(15deg);
 }
 
 #output:empty ~ #footer {

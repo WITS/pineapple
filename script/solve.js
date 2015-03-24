@@ -151,6 +151,7 @@ Equation.prototype.isolate = function(v) {
 		for (var x = 0, y = group.groups.length;
 			x < y; ++ x) {
 			var g = group.groups[x];
+			var restart = false;
 			if (g instanceof Fraction) {
 				var s_group = this[other_side];
 				if (!(s_group instanceof
@@ -190,6 +191,70 @@ Equation.prototype.isolate = function(v) {
 				});
 				g1.highlighted = false;
 				g2.highlighted = false;
+				restart = true;
+			} else if (g instanceof AlgebraGroup) {
+				// Has other vars?
+				var var_str = "";
+				for (var name in g.variable) {
+					if (name == v) {
+						continue;
+					}
+					var_str += name + "^" +
+						g.variable[name];
+				}
+				if (var_str.length) {
+					console.log("get rid of " + var_str);
+					var s_group = this[other_side];
+					if (!(s_group instanceof
+						ExpressionGroup)) {
+						this[other_side] =
+							new ExpressionGroup({
+								equation: this,
+								side: other_side
+							});
+						var remove = false;
+						if (s_group instanceof Fraction) {
+							if (s_group.toNumber() == 0) {
+								remove = true;
+							}
+						}
+						if (!remove) {
+							this[other_side].push(s_group);
+						}
+						s_group = this[other_side];
+					}
+					var adding =
+						(g.coefficient.toNumber() <= 0);
+					var g1 = g.duplicate();
+					g1.coefficient.multiply(-1);
+					var g2 = g1.duplicate();
+					s_group.push(g1);
+					group.push(g2);
+					g1.highlighted = true;
+					g2.highlighted = true;
+					push_module_step({
+						type: "isolate",
+						variable: v,
+						title: (adding ? "Add" :
+							"Subtract") + " " +
+							truncate_number(g) + " " +
+							(adding ? "to" : "from") +
+							" both sides",
+						visual: this.element()
+					});
+					g1.highlighted = false;
+					g2.highlighted = false;
+					restart = true;
+				}
+			}
+			// Start over?
+			if (restart) {
+				this.left.simplify();
+				this.left = this.left.valueOf();
+				this.right.simplify();
+				this.right = this.right.valueOf();
+				x = 0;
+				y = group.groups.length;
 			}
 		}
 	} else if (group instanceof MultiplyGroup) {
@@ -864,14 +929,33 @@ ExpressionGroup.prototype.simplify = function() {
 				this.groups.splice(x, 1);
 				-- x;
 				-- y;
+				if (other.coefficient.toString() ==
+					"0") {
+					var o_index = this.groups.indexOf(
+						other);
+					if (this.groups.length == 1) {
+						other.coefficient.parent = this;
+						this.groups[o_index] = other.coefficient;
+						constants.push(o_index);
+						constants = constants.sort();
+					} else {
+						this.groups.splice(o_index, 1);
+						// Correct constants
+						for (var i = constants.length;
+							i --; ) {
+							if (constants[i] > o_index) {
+								-- constants[i];
+							}
+						}
+					}
+				}
 			}
 		}
 	}
 	algebra = null;
-	if (constants.length >= 2) {
+	if (constants.length) {
 		var n1 = this.groups[constants[0]];
 		n1.highlighted = true;
-		var x = constants.length;
 		var offset = 0;
 		while (constants.length > 1) {
 			constants[1] -= offset;
@@ -904,12 +988,9 @@ ExpressionGroup.prototype.simplify = function() {
 			this.groups.length >= 2) {
 			this.remove(n1);
 		}
-	}
-	// 0 + x + y... = x + y...
-	if (this.groups.length > 1 &&
-		constants.length) {
-		var n1 = this.groups[constants[0]];
-		if (n1.toString() == "0") {
+		// 0 + x + y... = x + y...
+		if (this.groups.length > 1 &&
+			n1.toString() == "0") {
 			this.remove(n1);
 		}
 	}
