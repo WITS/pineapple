@@ -1021,7 +1021,6 @@ MultiplyGroup = function(json) {
 		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + FLOAT_NUM_REGEX + ")\\^"), "-1*$1^");
-	console.log(temp_text);
 	
 	// console.log(temp_text);
 	var prev_character = "";
