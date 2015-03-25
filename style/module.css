@@ -149,6 +149,11 @@
 	content: "\f161";
 }
 
+body:not(.mobile) .module:not(.expanded) >
+	.title:hover {
+	background-color: rgba(129, 179, 66, 0.1);
+}
+
 .module.expanded > .title::before {
 	content: "\f00d";
 }
