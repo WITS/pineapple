@@ -129,6 +129,14 @@ Equation.prototype.replace = function(v, value) {
 }
 
 Equation.prototype.isolate = function(v) {
+	// If no left side exists set it to 0
+	if (this.left == null) {
+		this.left = new Fraction({
+			numerator: 0,
+			equation: this,
+			side: "left"
+		});
+	}
 	// Side preference
 	var pref_side = "left";
 	var other_side = "right";
@@ -673,7 +681,7 @@ Equation.prototype.updateVarInfo = function(side) {
 		} else if (group.variable != null) {
 			for (var name in group.variable) {
 				degree = Math.max(degree,
-					group.variable[name]);
+					group.variable[name].toNumber());
 				if (variables.indexOf(name) == -1) {
 					variables.push(name);
 				}
@@ -1278,38 +1286,57 @@ MultiplyGroup = function(json) {
 			continue;
 		}
 
-		var slash_pos = group.indexOf("/");
-		if (slash_pos != -1) {
-			// Keep track of how to modify
-			// this.elements array
-			var replace_pos = 0;
-			var replace_len = 0;
-			// Numerator
-			if (slash_pos) {
-				var n = group.substr(0, slash_pos);
-			} else {
-				-- replace_pos;
-				++ replace_len;
-				var n = this.groups[x - 1];
+		// var slash_pos = group.indexOf("/");
+		var slash_pos = -1;
+		var start_pos = 0;
+		while (slash_pos == -1) {
+			slash_pos = group.indexOf("/",
+				start_pos);
+			if (slash_pos == -1) {
+				break;
 			}
-			// Denominator
-			if (slash_pos != group.length - 1) {
-				var d = group.substr(slash_pos + 1);
-			} else {
-				++ replace_len;
-				var d = this.groups[x + 1];
+			if (slash_pos >= 3) {
+				if (new RegExp("[a-z]\\^-?" +
+					FLOAT_NUM_REGEX + "\\/[0-9.\-]" +
+					"$", "i").test(group.substr(
+					0, slash_pos + 2))) {
+					start_pos = slash_pos + 1;
+					slash_pos = -1;
+				}
 			}
-			this.groups[x + replace_pos] =
-				new FractionGroup({
-					numerator: n,
-					denominator: d,
-					parent: this
-				});
-			this.groups.splice(x + replace_pos + 1,
-				replace_len);
-			x += replace_pos;
-			y -= replace_len;
 		}
+		if (slash_pos == -1) {
+			continue;
+		}
+		// Keep track of how to modify
+		// this.elements array
+		var replace_pos = 0;
+		var replace_len = 0;
+		// Numerator
+		if (slash_pos) {
+			var n = group.substr(0, slash_pos);
+		} else {
+			-- replace_pos;
+			++ replace_len;
+			var n = this.groups[x - 1];
+		}
+		// Denominator
+		if (slash_pos != group.length - 1) {
+			var d = group.substr(slash_pos + 1);
+		} else {
+			++ replace_len;
+			var d = this.groups[x + 1];
+		}
+		this.groups[x + replace_pos] =
+			new FractionGroup({
+				numerator: n,
+				denominator: d,
+				parent: this
+			});
+		this.groups.splice(x + replace_pos + 1,
+			replace_len);
+		x += replace_pos;
+		y -= replace_len;
 	}
 
 	// Algebra Groups / Fractions
@@ -1559,8 +1586,8 @@ MultiplyGroup.prototype.element = function() {
 
 FractionGroup = function(json) {
 	var json = json || {};
-	this.numerator = json.numerator || 1;
-	this.denominator = json.denominator || 1;
+	this.numerator = json.numerator || "1";
+	this.denominator = json.denominator || "1";
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1680,16 +1707,17 @@ FractionGroup.prototype.simplify = function() {
 	// Combine exponents
 	if (n_val instanceof AlgebraGroup &&
 		d_val instanceof AlgebraGroup) {
-		console.log(d_val);
 		for (var name in n_val.variable) {
 			if (!d_val.hasVar(name)) {
 				continue;
 			}
 			var n_exponent = n_val.getVar(name);
+			var n_exp_number = n_exponent.toNumber();
 			var d_exponent = d_val.getVar(name);
+			var d_exp_number = d_exponent.toNumber();
 			var title_visual = new AlgebraGroup({
-				text: name + "^" + Math.min(n_exponent,
-					d_exponent)
+				text: name + "^" + Math.min(
+					n_exp_number, d_exp_number)
 			});
 			n_val.highlighted_temp.push(name);
 			d_val.highlighted_temp.push(name);
@@ -1710,14 +1738,14 @@ FractionGroup.prototype.simplify = function() {
 				visual: elem
 			});
 
-			if (n_exponent == d_exponent) {
+			if (n_exp_number == d_exp_number) {
 				n_val.removeVar(name);
 				d_val.removeVar(name);
-			} else if (n_exponent > d_exponent) {
-				n_val.incrementVar(name, -d_exponent);
+			} else if (n_exp_number > d_exp_number) {
+				n_val.incrementVar(name, d_exponent.negative());
 				d_val.removeVar(name);
 			} else {
-				d_val.incrementVar(name, -n_exponent);
+				d_val.incrementVar(name, n_exponent.negative());
 				n_val.removeVar(name);
 			}
 		}
@@ -2109,14 +2137,25 @@ AlgebraGroup.prototype.removeVar = function(name) {
 	delete this.variable[name];
 }
 AlgebraGroup.prototype.setVar = function(name, degree) {
+	if (!(degree instanceof Fraction)) {
+		degree = new Fraction({
+			text: degree
+		});
+	}
 	this.variable[name] = degree;
 	return degree;
 }
 AlgebraGroup.prototype.incrementVar = function(name, degree) {
+	if (!(degree instanceof Fraction)) {
+		degree = new Fraction({
+			text: degree
+		});
+	}
 	if (!this.hasVar(name)) {
 		return this.setVar(name, degree);
 	} else {
-		return (this.variable[name] += degree);
+		this.variable[name].add(degree);
+		return (this.variable[name]);
 	}
 }
 AlgebraGroup.prototype.variableText = function() {
@@ -2137,7 +2176,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 			+coefficient[0];
 	}
 	variables = text.match(new RegExp(
-		"[a-z](?:\\^" + FLOAT_NUM_REGEX + ")?",
+		"[a-z](?:\\^" + NEG_FRACTION_REGEX + ")?",
 		"gi"));
 	if (variables == null) {
 		console.error("No variables!");
@@ -2150,7 +2189,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 			variables[i] += "^1";
 		}
 		var var_letter = variables[i][0];
-		var var_exp = +variables[i].substr(2);
+		var var_exp = variables[i].substr(2);
 		this.temp_variables.push(var_letter + var_exp);
 		this.incrementVar(var_letter, var_exp);
 	}
@@ -2184,13 +2223,8 @@ AlgebraGroup.prototype.add = function(n) {
 AlgebraGroup.prototype.duplicate = function() {
 	var variable = new Object();
 
-	for (var name in this.variable) {
-		variable[name] = this.variable[name];
-	}
-
 	return new AlgebraGroup({
-		coefficient: this.coefficient.duplicate(),
-		variable: variable,
+		text: this.toString(),
 		parent: this.parent
 	});
 }
@@ -2211,7 +2245,7 @@ AlgebraGroup.prototype.simplify = function() {
 	// Is it a constant?
 	var constant = true;
 	for (var name in this.variable) {
-		if (this.variable[name] == 0) {
+		if (this.variable[name].toNumber() == 0) {
 			this.highlighted_temp.push(name);
 			var var_obj = new AlgebraGroup({
 				text: name
@@ -2265,20 +2299,27 @@ AlgebraGroup.prototype.simplify = function() {
 			var other = this.temp_variables[var_pos];
 			this.highlighted_temp.push(var_pos);
 			this.highlighted_temp.push(x);
+			// Get fractions of exponents
+			var e1 = new Fraction({
+				text: other.substr(1)
+			});
+			var e2 = new Fraction({
+				text: temp_var.substr(1)
+			});
 			// ModuleStep (Variable Exp.)
 			push_module_step({
 				type: "simplify",
 				title: describe_operation({
 					operation: "+",
-					n1: +other.substr(1),
-					n2: +temp_var.substr(1)
+					n1: e1,
+					n2: e2
 				}),
 				visual: this.equation.element()
 			});
 			this.highlighted_temp.splice(0);
 			// Combine data
-			var new_exp = (+other.substr(1)) +
-				(+temp_var.substr(1));
+			e1.add(e2);
+			var new_exp = e1.toString();
 			this.temp_variables[var_pos] =
 				other[0] + new_exp;
 			this.temp_variables[x] = "";
@@ -2338,7 +2379,10 @@ AlgebraGroup.prototype.element = function() {
 				continue;
 			}
 			elem.appendChild(exponent_element(
-				temp_var[0], +temp_var.substr(1),
+				temp_var[0], new Fraction({
+					text: temp_var.substr(1),
+					parent: this
+				}),
 				true,
 				this.highlighted_temp.indexOf(
 					x) != -1));

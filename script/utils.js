@@ -100,3 +100,7 @@ function date_to_abs_str(d) {
 }
 
 FLOAT_NUM_REGEX = "(?:\\d+\\.?\\d*|\\d*\\.\\d+)";
+FRACTION_REGEX = FLOAT_NUM_REGEX + "(?:/" +
+	FLOAT_NUM_REGEX + ")?";
+NEG_FRACTION_REGEX = "-?" + FLOAT_NUM_REGEX +
+	"(?:/-?" + FLOAT_NUM_REGEX + ")?";

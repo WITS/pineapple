@@ -170,6 +170,7 @@ body.homepage #nav {
 
 .render .negative:first-child::before,
 .render .multiply-group > .negative::before,
+.render .exponent.negative::before,
 .render > .negative::before,
 .render .denominator.negative::before {
 	content: "-";
@@ -324,6 +325,11 @@ body.homepage #nav {
 .render .radical-wrapper >
 	.radicand:first-child {
 	margin-left: calc(0.3980em + 1px);
+}
+
+.render .radical-wrapper:not(
+	:first-child) {
+	margin-left: 0.1em;
 }
 
 .render .radicand > * {
