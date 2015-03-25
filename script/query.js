@@ -262,7 +262,7 @@ function handle_query(f, e) {
 		input_card.appendChild(hint);
 
 		var icon = document.createElement("i");
-		icon.addClass("fa fa-chevron-down");
+		icon.addClass("fa fa-angle-down");
 		hint.appendChild(icon);
 
 		hint.appendChild(document.createTextNode(

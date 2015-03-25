@@ -108,7 +108,9 @@
 }
 
 .card > .hint > .fa {
-	margin-right: 6px;
+	width: 20px;
+	margin-right: 8px;
+	text-align: center;
 }
 
 .module > .title,
