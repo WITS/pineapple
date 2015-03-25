@@ -1,3 +1,10 @@
+/*
+ * Solve.js - classes for interpeting
+ * and solving equations/expressions
+ * Copyright (C) 2015  Ian Jones
+ * http://pineapple.help/LICENSE.txt
+ */
+
 Equation = function(json) {
 	this.text = json.text || "0";
 	var sides = this.text.split("=");

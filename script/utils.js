@@ -1,3 +1,10 @@
+/*
+ * Utils.js - adds new methods to Elements
+ * and defines some useful "constants"
+ * Copyright (C) 2015  Ian Jones
+ * http://pineapple.help/LICENSE.txt
+ */
+
 Element.prototype.hasClass = function(className) {
 
 	return (new RegExp("\\b(?!-)" + className + "\\b(?!-)"
@@ -74,31 +81,6 @@ Element.prototype.empty = function() { // Removes all children
 
 IS_MOBILE = /(iPhone|iPod|iPad|Android|BlackBerry)/i.test(
 	navigator.userAgent);
-
-function date_to_abs_str(d) {
-	var return_val = "";
-
-	switch (d.getMonth()) {
-		case 0: return_val += "January"; break;
-		case 1: return_val += "February"; break;
-		case 2: return_val += "March"; break;
-		case 3: return_val += "April"; break;
-		case 4: return_val += "May"; break;
-		case 5: return_val += "June"; break;
-		case 6: return_val += "July"; break;
-		case 7: return_val += "August"; break;
-		case 8: return_val += "September"; break;
-		case 9: return_val += "October"; break;
-		case 10: return_val += "November"; break;
-		case 11: return_val += "December"; break;
-	}
-
-	return_val += " " + d.getDate() + ", " +
-		d.getFullYear();
-
-	return return_val;
-}
-
 FLOAT_NUM_REGEX = "(?:\\d+\\.?\\d*|\\d*\\.\\d+)";
 FRACTION_REGEX = FLOAT_NUM_REGEX + "(?:/" +
 	FLOAT_NUM_REGEX + ")?";

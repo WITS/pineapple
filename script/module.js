@@ -1,3 +1,10 @@
+/*
+ * Module.js - handles creating, storing,
+ * and displaying steps for solutions
+ * Copyright (C) 2015  Ian Jones
+ * http://pineapple.help/LICENSE.txt
+ */
+
 modules = new Array();
 
 Card = function(json) {

@@ -1,3 +1,10 @@
+/*
+ * Query.js - interprets instructions from
+ * queries and determines what actions to take
+ * Copyright (C) 2015  Ian Jones
+ * http://pineapple.help/LICENSE.txt
+ */
+
 function handle_query(f, e) {
 	if (e != null) {
 		e.preventDefault();
