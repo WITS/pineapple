@@ -585,7 +585,7 @@ Equation.prototype.factor = function(v, solve) {
 			return false;
 		}
 		var sqrt_d = Math.sqrt(d);
-		if (Math.floor(sqrt_d) == sqrt_d) {
+		if (sqrt_d % 1 == 0) {
 			console.log("Can factor");
 			// ModuleStep: Factor variable
 			this[side].highlighted = true;
@@ -698,7 +698,7 @@ Equation.prototype.factor = function(v, solve) {
 				});
 				this[pref_side].numerator =
 					new ExpressionGroup({
-					text: "("+(-b)+"\u00B1("+b+"^2-4*"+
+					text: "("+(-b)+"\u00B1(("+b+")^2-4*"+
 						a+"*"+c+")^.5)",
 					parent: this[pref_side]
 				});
@@ -2633,7 +2633,6 @@ Fraction.prototype.simplify = function(visibleGroup) {
 		} else {
 			this.highlighted = true;
 		}
-		console.log(this);
 		push_module_step({
 			type: "simplify",
 			title: describe_operation({
