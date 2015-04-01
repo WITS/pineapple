@@ -50,9 +50,9 @@ Equation.prototype.replace = function(v, value) {
 	while (groups.length) {
 		var group = groups[0];
 		if (group.groups != null) {
-			var i = group.groups.length;
-			while (i --) {
-				groups.push(group.groups[i]);
+			for (var x = 0, y = group.groups.length;
+				x < y; ++ x) {
+				groups.push(group.groups[x]);
 			}
 		} else if (group.variable != null) {
 			if (group.hasVar(v)) {
@@ -81,6 +81,7 @@ Equation.prototype.replace = function(v, value) {
 					}
 					continue;
 				}
+				var val = value;
 				// Else
 				if (!(m_group instanceof MultiplyGroup)) {
 					m_group = new MultiplyGroup({
@@ -98,6 +99,12 @@ Equation.prototype.replace = function(v, value) {
 					for (var name in group.variable) {
 						remove = false;
 					}
+					if (remove &&
+						group.coefficient.numerator == -1 &&
+						group.coefficient.denominator == 1) {
+						group.coefficient.numerator = 1;
+						val *= -1;
+					}
 					if (!remove ||
 						group.coefficient.numerator != 1 ||
 						group.coefficient.denominator != 1) {
@@ -105,18 +112,16 @@ Equation.prototype.replace = function(v, value) {
 					}
 				}
 				if (e != 1) {
-					m_group.insertBefore(group,
-						new ExponentGroup({
-							base: value.toString(),
-							exponent: e.toString(),
-							parent: group.parent
-						}));
+					m_group.push(new ExponentGroup({
+						base: val.toString(),
+						exponent: e.toString(),
+						parent: group.parent
+					}));
 				} else {
-					m_group.insertBefore(group,
-						new Fraction({
-							numerator: value,
-							parent: group.parent
-						}));
+					m_group.push(new Fraction({
+						numerator: val,
+						parent: group.parent
+					}));
 				}
 			}
 		} else if (group.base != null) {
@@ -573,6 +578,10 @@ Equation.prototype.factor = function(v, solve) {
 		console.log("{"+ a +","+ b +","+ c +"}\n" + d);
 		if (d < 0) {
 			console.warn("No real solution");
+			this.result = new ResultText({
+				text: "No real solution",
+				icon: "exclamation-triangle"
+			});
 			return false;
 		}
 		var sqrt_d = Math.sqrt(d);
@@ -593,18 +602,68 @@ Equation.prototype.factor = function(v, solve) {
 				-(-b - sqrt_d) / (2 * a));
 			var fc = a /
 				(f1.denominator * f2.denominator);
+			var f1_text = f1.denominator + v +
+					(f1.numerator != 0 ?
+					"+" + f1.numerator : "");
+			var f2_text = f2.denominator + v +
+					(f2.numerator != 0 ?
+					"+" + f2.numerator : "");
 			// Restructure this side of the equation
 			this[side] = new MultiplyGroup({
 				text: (fc != 1 ? fc : "") +
-					"(" + f1.denominator + v +
-					(f1.numerator != 0 ?
-						"+" + f1.numerator : "") +
-					")(" + f2.denominator + v +
-					(f2.numerator != 0 ?
-						"+" + f2.numerator : "") + ")",
+					"(" + f1_text +
+					")(" + f2_text + ")",
 				equation: this,
 				side: side
 			});
+			// Solve factors
+			if (solve) {
+				// Get factor objects
+				var f1g = this.right.groups[
+					+(fc != 1)].valueOf();
+				var f2g = this.right.groups[
+					+(fc != 1) + 1].valueOf();
+				var solutions = new Array();
+				push_module_type("solve-factors");
+				var f1e = new Equation({
+					text: f1_text + "=0"
+				});
+				f1g.highlighted = true;
+				push_module_step({
+					type: "solve-factors",
+					title: "Set " + 
+						truncate_number(f1g) +
+						" equal to zero",
+					visual: this.element()
+				});
+				f1g.highlighted = false;
+				f1e.isolate(v);
+				solutions.push(f1e.right);
+				var f2e = new Equation({
+					text: f2_text + "=0"
+				});
+				f2g.highlighted = true;
+				push_module_step({
+					type: "solve-factors",
+					title: "Set " + 
+						truncate_number(f2g) +
+						" equal to zero",
+					visual: this.element()
+				});
+				f2g.highlighted = false;
+				f2e.isolate(v);
+				solutions.push(f2e.right);
+				this.left = new AlgebraGroup({
+					text: v,
+					equation: this,
+					side: "left"
+				});
+				this.right = new BracketGroup({
+					groups: solutions,
+					equation: this,
+					side: "right"
+				});
+			}
 		} else {
 			console.log("Not factorable");
 			if (solve) {
@@ -653,6 +712,11 @@ Equation.prototype.factor = function(v, solve) {
 				this[pref_side].simplify();
 				this[pref_side] =
 					this[pref_side].valueOf();
+			} else {
+				this.result = new ResultText({
+					text: "Not factorable",
+					icon: "exclamation-triangle"
+				});
 			}
 		}
 	}
@@ -1771,7 +1835,9 @@ FractionGroup.prototype.simplify = function() {
 				d_val.denominator,
 			denominator: n_val.denominator *
 				d_val.numerator,
-			parent: this.parent
+			parent: this.parent,
+			equation: this.equation,
+			side: this.side
 		});
 		this.value.simplify(this);
 		this.value.parent = this.parent;
@@ -2567,6 +2633,7 @@ Fraction.prototype.simplify = function(visibleGroup) {
 		} else {
 			this.highlighted = true;
 		}
+		console.log(this);
 		push_module_step({
 			type: "simplify",
 			title: describe_operation({
@@ -2672,6 +2739,15 @@ BracketGroup.prototype.element = function() {
 
 	for (var x = 0, y = this.groups.length; x < y;
 		++ x) {
+		var group = this.groups[x];
+		var group_elem = group.element();
+		// Correct negative fractions
+		if (group_elem.hasClass("fraction") &&
+			group_elem.hasClass("negative")) {
+			group_elem.removeClass("negative");
+			group_elem.children[0].addClass(
+				"negative");
+		}
 		// Comma
 		if (x) {
 			var comma = document.createElement("span");
@@ -2680,8 +2756,7 @@ BracketGroup.prototype.element = function() {
 			wrapper.appendChild(comma);
 		}
 		// Group element
-		var group = this.groups[x];
-		wrapper.appendChild(group.element());
+		wrapper.appendChild(group_elem);
 	}
 
 	return wrapper;
@@ -2752,20 +2827,20 @@ PlusMinusGroup.prototype.element = function() {
 	return wrapper;
 }
 
-SolutionRender = function(json) {
-	this.value = json.value || 0;
+ResultText = function(json) {
+	this.text = json.text || new String();
+	this.icon = json.icon || null;
 }
 
-SolutionRender.prototype.element = function() {
+ResultText.prototype.element = function() {
 	var elem = document.createElement("div");
-	elem.addClass("render");
-	elem.addClass("solution");
-
-	if (typeof this.value === 'number') {
-		elem.innerHTML = this.value;
-	} else {
-		elem.appendChild(this.value.element());
+	elem.addClass("result-text");
+	if (this.icon != null) {
+		var icon = document.createElement("i");
+		icon.addClass("fa fa-" + this.icon);
+		elem.appendChild(icon);
 	}
+	elem.appendTextNode(this.text);
 
 	return elem;
 }
@@ -2873,6 +2948,7 @@ function truncate_number(n, abs) {
 	}
 	if (typeof n === 'object') {
 		var n_elem = n.element();
+		n_elem.removeClass("equation");
 		n_elem.removeClass("highlighted");
 		var subtracted = false;
 		var x = n;

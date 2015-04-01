@@ -136,9 +136,12 @@ body.homepage #nav {
 	font-weight: 300;
 }
 
-.solution.render {
-	font-size: 3.2em;
-	font-weight: 400;
+.result-text {
+	font-size: 2.4em;
+}
+
+.result-text > .fa {
+	margin-right: 12px;
 }
 
 .render .expression-group,
@@ -148,6 +151,7 @@ body.homepage #nav {
 .render .algebra-group,
 .render .plus-minus-group,
 .render .operation,
+.render .brackets,
 .render .number {
 	display: inline-block;
 }
@@ -170,6 +174,7 @@ body.homepage #nav {
 
 .render .negative:first-child::before,
 .render .multiply-group > .negative::before,
+.render .brackets > .negative::before,
 .render .exponent.negative::before,
 .render > .negative::before,
 .render .denominator.negative::before {

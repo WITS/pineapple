@@ -313,6 +313,10 @@ body:not(.mobile) .module:not(.expanded) >
 
 @media (max-width: 640px) {
 
+.module-step::before {
+	display: none;
+}
+
 .module-step > .content {
 	flex-flow: column nowrap;
 	align-items: flex-start;

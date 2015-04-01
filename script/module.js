@@ -190,7 +190,7 @@ ModuleStep.prototype.element = function() {
 			}
 			render.appendChild(this.visual);
 		} else {
-			render = this.visual;
+			var render = this.visual;
 		}
 		content.appendChild(render);
 	}
@@ -212,6 +212,11 @@ function push_module_type(json) {
 		var current_module = {};
 	}
 
+	if (current_module.type == "solve-factors" &&
+		json.type == "isolate") {
+		json.type = "simplify";
+	}
+
 	if (current_module.type != json.type &&
 		(current_module.type == null ||
 		json.type != "simplify")) {
@@ -225,6 +230,9 @@ function push_module_type(json) {
 			case "quadratic":
 				var title = "Quadratic equation";
 				json.type = "simplify";
+				break;
+			case "solve-factors":
+				var title = "Solve factors";
 				break;
 			default:
 				var title = "Title"; break;

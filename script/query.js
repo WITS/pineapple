@@ -43,7 +43,7 @@ function handle_query(f, e) {
 	var result;
 
 	if (result == null) {
-		result = new RegExp("^solve (.*) for ([a-z])",
+		result = new RegExp("^solve (.*) for ([a-z](?!\\^))",
 			"i").exec(text);
 		if (result != null) {
 			console.log(result);
@@ -56,14 +56,14 @@ function handle_query(f, e) {
 	if (result == null) {
 		result = new RegExp("(?:find |(?:find )?whe(?:re|n)" +
 		"(?: does| is)? |solve(?: for)?(?: whe(?:re|n))? )" +
-		"([a-z])(?:\\s?(?:=|is)?\\s?(-?" +
+		"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
 		FLOAT_NUM_REGEX + "))?" +
 		"(?: for| in| when| where)?",
 		"i").exec(text);
 	}
 	if (result == null) {
 		result = new RegExp("(?:find|(?:find )?where|,\\s?)" +
-			"([a-z])(?:\\s?(?:=|is)?\\s?(-?" +
+			"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
 			FLOAT_NUM_REGEX + "))?",
 			"i").exec(text);
 	}
@@ -263,7 +263,8 @@ function handle_query(f, e) {
 	}
 
 	// Add expanding hint
-	if (modules.length) {
+	// TODO: Add expanding hint modal
+	if (false /*modules.length*/) {
 		var hint = document.createElement("div");
 		hint.addClass("hint");
 		input_card.appendChild(hint);
@@ -294,14 +295,32 @@ function handle_query(f, e) {
 	// Suggestions
 	var suggestions = new Array();
 
-	if (v_info.min_degree >= 1 &&
+	if (v_info.max_degree == 0 &&
+		equation.left == null) {
+		var n = equation.right.toString();
+		if (query_info.type != "factor" &&
+			!/[\/.]/.test(n)) {
+			suggestions.push({
+				title: "Find the factors of " + n,
+				icon: "search-plus",
+				query: "factors of " + n
+			});
+		}
+	} else if (v_info.max_degree >= 1 &&
 		query_info.type != "solve-for") {
+		var v = equation[
+			v_info.max_side + "_vars"][0];
 		suggestions.push({
-			title: "Find where " + equation[
-				v_info.min_side + "_vars"][0] + " = 0",
+			title: "Solve for " + v,
 			icon: "search-plus",
-			query: equation_text + " where " + equation[
-				v_info.min_side + "_vars"][0] + " = 0"
+			query: "solve " + equation_text +
+				" for " + v
+		});
+		suggestions.push({
+			title: "Find where " + v + " = 0",
+			icon: "search-plus",
+			query: equation_text + " where " +
+				v + " = 0"
 		});
 	}
 
