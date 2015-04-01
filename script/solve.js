@@ -1614,7 +1614,8 @@ MultiplyGroup.prototype.element = function() {
 
 		// Operation Elements
 		if (x && prev_elem.innerHTML != "" &&
-			!(prev_elem.hasClass("parentheses") ||
+			!((prev_elem.hasClass("parentheses") &&
+				!group_elem.hasClass("negative")) ||
 			group_elem.hasClass("parentheses"))) {
 			var times = document.createElement(
 				"span");

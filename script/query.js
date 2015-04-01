@@ -42,16 +42,19 @@ function handle_query(f, e) {
 	query_info.type = "simplify";
 	var result;
 
+	result = new RegExp("^solve (.*) for ([a-z](?!\\^))",
+		"i").exec(text);
 	if (result == null) {
-		result = new RegExp("^solve (.*) for ([a-z](?!\\^))",
+		result = new RegExp("^solve (.*([a-z]).*)",
 			"i").exec(text);
-		if (result != null) {
-			console.log(result);
-			equation_text = result[1];
-			query_info.type = "solve-for";
-			query_info.variable = result[2];
-		}
 	}
+	if (result != null) {
+		console.log(result);
+		equation_text = result[1];
+		query_info.type = "solve-for";
+		query_info.variable = result[2];
+	}
+	
 
 	if (result == null) {
 		result = new RegExp("(?:find |(?:find )?whe(?:re|n)" +

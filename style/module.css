@@ -313,8 +313,12 @@ body:not(.mobile) .module:not(.expanded) >
 
 @media (max-width: 640px) {
 
+.module-step {
+	font-size: 1.8em;
+}
+
 .module-step::before {
-	display: none;
+	min-width: 24px;
 }
 
 .module-step > .content {
