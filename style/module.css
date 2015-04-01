@@ -331,4 +331,8 @@ body:not(.mobile) .module:not(.expanded) >
 	text-align: left;
 }
 
+.module-step > .content > .title {
+	padding-bottom: 4px;
+}
+
 }
