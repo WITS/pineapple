@@ -60,14 +60,14 @@ function handle_query(f, e) {
 		result = new RegExp("(?:find |(?:find )?whe(?:re|n)" +
 		"(?: does| is)? |solve(?: for)?(?: whe(?:re|n))? )" +
 		"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
-		FLOAT_NUM_REGEX + "))?" +
+		NEG_FRACTION_REGEX + "))?" +
 		"(?: for| in| when| where)?",
 		"i").exec(text);
 	}
 	if (result == null) {
 		result = new RegExp("(?:find|(?:find )?where|,\\s?)" +
 			"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
-			FLOAT_NUM_REGEX + "))?",
+			NEG_FRACTION_REGEX + "))?",
 			"i").exec(text);
 	}
 	if (query_info.type == "simplify" &&
@@ -78,7 +78,7 @@ function handle_query(f, e) {
 		query_info.type = "solve-for";
 		query_info.variable = result[1];
 		if (result[2] != null) {
-			query_info.value = +result[2];
+			query_info.value = result[2];
 		}
 	}
 
@@ -113,7 +113,11 @@ function handle_query(f, e) {
 			post_input.push("where ");
 			post_input.push("_" + query_info.variable);
 			post_input.push("=");
-			post_input.push("_" + query_info.value);
+			post_input.push("_" + truncate_number(
+				new Fraction({
+					text: query_info.value
+				})
+			));
 		} else {
 			pre_input.push("solve");
 			post_input.push("for ");
@@ -197,7 +201,8 @@ function handle_query(f, e) {
 
 	equation.updateVarInfo();
 	var v_info = equation.getVarInfo();
-	console.log(equation);
+	// console.log(equation);
+	console.log(equation.toString());
 
 	// Additional work
 	if (equation.all_vars.length) {

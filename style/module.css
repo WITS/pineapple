@@ -92,6 +92,10 @@
 	margin-left: 8px;
 }
 
+.card > .query-info .render {
+	display: inline-block;
+}
+
 .card > .query-info > .emphasis,
 .card > .query-info > .equals {
 	

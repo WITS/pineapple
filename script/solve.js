@@ -47,6 +47,10 @@ Equation.prototype.replace = function(v, value) {
 		right = true;
 	}
 
+	var visual_value = new Fraction({
+		text: value
+	});
+
 	while (groups.length) {
 		var group = groups[0];
 		if (group.groups != null) {
@@ -61,7 +65,7 @@ Equation.prototype.replace = function(v, value) {
 				push_module_step({
 					type: "simplify",
 					title: "Replace " + v + " with " +
-						truncate_number(value),
+						truncate_number(visual_value),
 					visual: this.element()
 				});
 				group.highlighted_temp.splice(0);
@@ -103,7 +107,11 @@ Equation.prototype.replace = function(v, value) {
 						group.coefficient.numerator == -1 &&
 						group.coefficient.denominator == 1) {
 						group.coefficient.numerator = 1;
-						val *= -1;
+						if (typeof val === 'number') {
+							val *= -1;
+						} else {
+							val = "-" + val;
+						}
 					}
 					if (!remove ||
 						group.coefficient.numerator != 1 ||
@@ -119,7 +127,7 @@ Equation.prototype.replace = function(v, value) {
 					}));
 				} else {
 					m_group.push(new Fraction({
-						numerator: val,
+						text: val.toString(),
 						parent: group.parent
 					}));
 				}
@@ -282,8 +290,9 @@ Equation.prototype.isolate = function(v) {
 			x < y; ++ x) {
 			var g = group.groups[x];
 			if (g instanceof Fraction) {
+				var dividing = (Math.abs(g.toNumber()) > 1);
 				var s_group = this[other_side];
-				if (!(s_group instanceof
+				if (!dividing && !(s_group instanceof
 					MultiplyGroup)) {
 					this[other_side] =
 						new MultiplyGroup({
@@ -300,14 +309,31 @@ Equation.prototype.isolate = function(v) {
 						this[other_side].push(s_group);
 					}
 					s_group = this[other_side];
+				} else if (dividing && !(s_group
+					instanceof FractionGroup)) {
+					this[other_side] = new FractionGroup({
+						equation: this,
+						side: other_side,
+						numerator: s_group,
+						denominator: "1"
+					});
+					s_group.parent = this[other_side];
+					s_group = this[other_side];
 				}
-				var dividing = (Math.abs(g.toNumber()) > 1);
-				var g1 = g.reciprocal();
-				var g2 = g.reciprocal();
-				s_group.push(g1);
-				group.push(g2);
-				g1.highlighted = true;
-				g2.highlighted = true;
+				if (!dividing) {
+					var g1 = g.reciprocal();
+					var g2 = g.reciprocal();
+					s_group.push(g1);
+					m_group.push(g2);
+					g1.highlighted = true;
+				} else {
+					var g1 = g.duplicate();
+					var g2 = g.duplicate();
+					s_group.denominator.multiply(g1);
+					m_group.denominator = g2;
+					s_group.denominator.highlight(
+						g1.toString());
+				}
 				push_module_step({
 					type: "isolate",
 					variable: v,
@@ -317,7 +343,11 @@ Equation.prototype.isolate = function(v) {
 							truncate_number(g1)),
 					visual: this.element()
 				});
-				g1.highlighted = false;
+				if (!dividing) {
+					g1.highlighted = false;
+				} else {
+					s_group.denominator.highlight(false);
+				}
 				g2.highlighted = false;
 			}
 		}
@@ -370,20 +400,20 @@ Equation.prototype.isolate = function(v) {
 				});
 			}
 			this[group.side] = m_group;
-			// TODO: Make this step also divide
-			// out any unwanted variables
 			if (!dividing) {
 				var g1 = g.reciprocal();
 				var g2 = g.reciprocal();
 				s_group.push(g1);
 				m_group.push(g2);
+				g1.highlighted = true;
 			} else {
 				var g1 = g.duplicate();
 				var g2 = g.duplicate();
-				s_group.denominator = g1;
+				s_group.denominator.multiply(g1);
 				m_group.denominator = g2;
+				s_group.denominator.highlight(
+					g1.toString());
 			}
-			g1.highlighted = true;
 			g2.highlighted = true;
 			push_module_step({
 				type: "isolate",
@@ -394,7 +424,11 @@ Equation.prototype.isolate = function(v) {
 						truncate_number(g1)),
 				visual: this.element()
 			});
-			g1.highlighted = false;
+			if (!dividing) {
+				g1.highlighted = false;
+			} else {
+				s_group.denominator.highlight(false);
+			}
 			g2.highlighted = false;
 		} else {
 			// Has other vars?
@@ -428,6 +462,9 @@ Equation.prototype.isolate = function(v) {
 				});
 				this[group.side] = m_group;
 
+				var g = new AlgebraGroup({ // Visual
+					text: var_str
+				});
 				var g1 = new AlgebraGroup({
 					text: var_str,
 					parent: s_group
@@ -436,19 +473,22 @@ Equation.prototype.isolate = function(v) {
 					text: var_str,
 					parent: m_group
 				});
-				s_group.denominator = g1;
+				s_group.denominator.multiply(g1);
+				s_group.denominator =
+					s_group.denominator.valueOf();
 				m_group.denominator = g2;
 
-				g1.highlighted = true;
+				console.log(s_group.denominator);
+				s_group.denominator.highlight(var_str);
 				g2.highlighted = true;
 				push_module_step({
 					type: "isolate",
 					variable: v,
 					title: ("Divide both sides by " +
-						truncate_number(g1)),
+						truncate_number(g)),
 					visual: this.element()
 				});
-				g1.highlighted = false;
+				s_group.denominator.highlight(false);
 				g2.highlighted = false;
 			}
 		}
@@ -790,6 +830,11 @@ Equation.prototype.getVarInfo = function() {
 	return return_val;
 }
 
+Equation.prototype.toString = function() {
+	return (this.left != null ? this.left.toString()
+		+ this.comparison : "") + this.right.toString();
+}
+
 Equation.prototype.element = function() {
 	var elem = document.createElement("div");
 	elem.addClass("render");
@@ -968,7 +1013,7 @@ ExpressionGroup.prototype.toString = function() {
 		++ x) {
 		g_array.push(this.groups[x].toString());
 	}
-	return g_array.join("+");
+	return g_array.join("+").replace(/\+-/g, "-");
 }
 
 ExpressionGroup.prototype.simplify = function() {
@@ -1542,6 +1587,15 @@ MultiplyGroup.prototype.push = function(group) {
 	group.equation = this.equation;
 }
 
+MultiplyGroup.prototype.multiply = function(n) {
+	if (typeof n !== 'object') {
+		n = new Fraction({
+			text: n
+		});
+	}
+	this.push(n);
+}
+
 MultiplyGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
@@ -1775,6 +1829,34 @@ FractionGroup.prototype.simplify = function() {
 	this.denominator =
 		this.denominator.valueOf();
 	var d_val = this.denominator;
+
+	// Join fractions in numerator/denominator
+	if (n_val instanceof Fraction &&
+		(d_val instanceof Fraction ||
+		d_val instanceof MultiplyGroup ||
+		d_val instanceof AlgebraGroup ||
+		d_val instanceof FractionGroup)) {
+		if (Math.abs(n_val.denominator) != 1) {
+			d_val.multiply(
+				n_val.denominator);
+			this.denominator = d_val =
+				d_val.valueOf();
+			n_val.denominator = 1;
+		}
+	}
+	if (d_val instanceof Fraction &&
+		(n_val instanceof Fraction ||
+		n_val instanceof MultiplyGroup ||
+		n_val instanceof AlgebraGroup ||
+		n_val instanceof FractionGroup)) {
+		if (Math.abs(d_val.denominator) != 1) {
+			n_val.multiply(
+				d_val.denominator);
+			this.numerator = n_val =
+				n_val.valueOf();
+			d_val.denominator = 1;
+		}
+	}
 
 	// Combine exponents
 	if (n_val instanceof AlgebraGroup &&
@@ -2269,6 +2351,31 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 	}
 	this.text = text;
 }
+AlgebraGroup.prototype.highlight = function(part) {
+	// Un-highlight everything
+	if (part === false) {
+		this.highlighted = false;
+		this.coefficient.highlighted = false;
+		this.highlighted_temp.splice(0);
+		return null;
+	}
+	// Highlight everything
+	if (part === true || part == null) {
+		this.highlighted = true;
+		return this;
+	}
+	// Highlight coefficient
+	if (new RegExp("^" + NEG_FRACTION_REGEX).test(part)) {
+		this.coefficient.highlighted = true;
+		return this.coefficient;
+	}
+	// Highlight a var
+	var vars = part.replace(new RegExp("\\^" +
+		NEG_FRACTION_REGEX, "g"), "").split("");
+	this.highlighted_temp =
+		this.highlighted_temp.concat(vars);
+	console.log(this.highlighted_temp);
+}
 AlgebraGroup.prototype.multiply = function(n) {
 	// Plus/Minus?
 	if (n instanceof PlusMinusGroup) {
@@ -2276,6 +2383,12 @@ AlgebraGroup.prototype.multiply = function(n) {
 		n.group.value = this.valueOf();
 		this.value = n;
 		this.highlighted = false;
+		return;
+	}
+	// FractionGroup
+	if (n instanceof FractionGroup) {
+		n.multiply(this);
+		this.value = n.valueOf();
 		return;
 	}
 	// Multiply coefficients
@@ -2459,7 +2572,9 @@ AlgebraGroup.prototype.element = function() {
 				}),
 				true,
 				this.highlighted_temp.indexOf(
-					x) != -1));
+					x) != -1 ||
+				this.highlighted_temp.indexOf(
+					temp_var[0]) != -1));
 		}
 	}
 
@@ -2495,6 +2610,19 @@ Fraction = function(json) {
 	if (this.top_parent != null) {
 		this.equation = this.top_parent.equation;
 		this.side = this.top_parent.side;
+	}
+}
+
+Fraction.prototype.highlight = function(part) {
+	// Un-highlight everything
+	if (part === false) {
+		this.highlighted = false;
+		return null;
+	}
+	// Highlight everything
+	if (part === true || part == null) {
+		this.highlighted = true;
+		return this;
 	}
 }
 
