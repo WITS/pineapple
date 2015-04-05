@@ -1412,8 +1412,8 @@ MultiplyGroup = function(json) {
 				break;
 			}
 			if (slash_pos >= 3) {
-				if (new RegExp("[a-z]\\^-?" +
-					FLOAT_NUM_REGEX + "\\/[0-9.\-]" +
+				if (new RegExp("[a-z]\\^" +
+					NEG_FRACTION_REGEX +
 					"$", "i").test(group.substr(
 					0, slash_pos + 2))) {
 					start_pos = slash_pos + 1;
@@ -1870,8 +1870,9 @@ FractionGroup.prototype.simplify = function() {
 			var d_exponent = d_val.getVar(name);
 			var d_exp_number = d_exponent.toNumber();
 			var title_visual = new AlgebraGroup({
-				text: name + "^" + Math.min(
-					n_exp_number, d_exp_number)
+				text: name + "^" + (n_exp_number <
+					d_exp_number ? n_exponent :
+					d_exponent)
 			});
 			n_val.highlighted_temp.push(name);
 			d_val.highlighted_temp.push(name);
@@ -2325,11 +2326,15 @@ AlgebraGroup.prototype.variableText = function() {
 }
 AlgebraGroup.prototype.updateFromText = function(text) {
 	var variables;
-	var coefficient = new RegExp("^-?" +
-		FLOAT_NUM_REGEX).exec(text);
+	var coefficient = new RegExp("^-?(?:" +
+		FRACTION_REGEX + ")?").exec(text);
 	if (coefficient != null) {
-		this.coefficient.numerator =
-			+coefficient[0];
+		this.coefficient = new Fraction({
+			text: coefficient,
+			parent: this,
+			equation: this.equation,
+			side: this.side
+		});
 	}
 	variables = text.match(new RegExp(
 		"[a-z](?:\\^" + NEG_FRACTION_REGEX + ")?",
@@ -2584,6 +2589,9 @@ AlgebraGroup.prototype.element = function() {
 Fraction = function(json) {
 	var json = json || {};
 	if (json.text) {
+		if (json.text == "-" || json.text == "") {
+			json.text += "1";
+		}
 		var slash_pos = json.text.indexOf("/");
 		if (slash_pos != -1) {
 			json.numerator =
@@ -2633,14 +2641,10 @@ Fraction.prototype.add = function(n) {
 		var this_d = this.denominator;
 		var n_d = n.denominator;
 		if (n_d != this_d) {
-			this.multiply(new Fraction({
-				numerator: n_d,
-				denominator: n_d
-			}));
-			n.multiply(new Fraction({
-				numerator: this_d,
-				denominator: this_d
-			}));
+			this.numerator *= n_d;
+			this.denominator *= n_d;
+			n.numerator *= this_d;
+			n.denominator *= this_d;
 		}
 		this.numerator += n.numerator;
 		var n_factors = get_factors(
