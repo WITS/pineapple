@@ -288,6 +288,7 @@ body.homepage #nav {
 	padding-left: 0em !important;
 	padding-right: 0.1725em !important;
 	min-height: 20px;
+	margin-top: 1px;
 }
 
 .render .radical-wrapper > .index {
