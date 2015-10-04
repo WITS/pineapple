@@ -162,12 +162,12 @@ body.homepage #nav {
 	opacity: 0.5;
 }
 
-.render * .parentheses:not(.exponent)::before,
+.render *:not(.radicand) > .parentheses:not(.exponent)::before,
 .render .fraction.base::before {
 	content: "(";
 }
 
-.render * .parentheses:not(.exponent)::after,
+.render *:not(.radicand) > .parentheses:not(.exponent)::after,
 .render .fraction.base::after {
 	content: ")";
 }
