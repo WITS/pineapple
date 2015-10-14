@@ -7,6 +7,7 @@
 
 function handle_query(f, e) {
 	if (e != null) {
+		if (IS_MOBILE) f.text.blur();
 		e.preventDefault();
 	}
 

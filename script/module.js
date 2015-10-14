@@ -260,7 +260,7 @@ function push_module_step(json) {
 	var current_module =
 		push_module_type(json);
 	if (json.type == "reference" && !json.title) {
-		json.title = !IS_MOBILE ? "This gives" : "";
+		json.title = "This gives";
 	}
 	current_module.push(json);
 }
