@@ -160,7 +160,7 @@ Module.prototype.element = function() {
 ModuleStep = function(json) {
 	this.order = json.order || 0;
 	this.type = json.type || null;
-	this.title = json.title || "Title";
+	this.title = json.title || "";
 	this.visual = json.visual || null;
 	this.elementObj = null;
 }
@@ -260,7 +260,7 @@ function push_module_step(json) {
 	var current_module =
 		push_module_type(json);
 	if (json.type == "reference" && !json.title) {
-		json.title = "This gives";
+		json.title = !IS_MOBILE ? "This gives" : "";
 	}
 	current_module.push(json);
 }
