@@ -198,7 +198,19 @@ body:not(.mobile) .module:not(.expanded) >
 		max-height 0.3s, opacity 0.2s;
 }
 
-.module-step::before {
+.reference-module > .module-step {
+	border-top: 0px;
+}
+
+:not(.expanded) + .reference-module {
+	margin-top: 0;
+}
+
+.reference-module + :not(.expanded) {
+	margin-top: 0;
+}
+
+:not(.reference-module) > .module-step::before {
 	display: inline-block;
 	padding-left: 6px;
 	padding-right: 12px;

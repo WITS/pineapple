@@ -144,6 +144,28 @@ body.homepage #nav {
 	margin-right: 12px;
 }
 
+.error-result {
+	font-size: 2.4em;
+	font-weight: 300;
+}
+
+.error-result::before,
+.error-result::after {
+	display: inline-block;
+	font: normal normal normal 14px/1 FontAwesome;
+	font-size: inherit;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transform: translate(0, 0);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.error-result::before {
+	margin-right: 12px;
+	content: "\f071";
+}
+
 .render .expression-group,
 .render .multiply-group,
 .render .fraction-group,
@@ -170,6 +192,12 @@ body.homepage #nav {
 .render *:not(.radicand) > .parentheses:not(.exponent)::after,
 .render .fraction.base::after {
 	content: ")";
+}
+
+/* Cancel out parenthesis */
+.render .fraction > * > .parentheses:only-child::before,
+.render .fraction > * > .parentheses:only-child::after {
+	content: "";
 }
 
 .render .negative:first-child::before,

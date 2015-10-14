@@ -101,11 +101,14 @@ Module.prototype.element = function() {
 
 		// Add title
 		if (this.title != null) {
-			var title =
-				document.createElement("div");
-			title.addClass("title");
-			title.innerHTML = this.title;
-			elem.appendChild(title);
+			if (this.title != "Reference") {
+				var title = document.createElement("div");
+				title.addClass("title");
+				title.innerHTML = this.title;
+				elem.appendChild(title);
+			} else {
+				elem.addClass("expanded");
+			}
 		}
 
 		// Add steps
@@ -178,7 +181,7 @@ ModuleStep.prototype.element = function() {
 		title.innerHTML = this.title;
 		content.appendChild(title);
 
-		if (!this.visual.hasClass("equation")) {
+		if (this.visual && !this.visual.hasClass("equation")) {
 			var render = document.createElement("div");
 			render.addClass("render");
 			if (this.visual.hasClass("right-side")) {
@@ -219,6 +222,7 @@ function push_module_type(json) {
 
 	if (current_module.type != json.type &&
 		(current_module.type == null ||
+		current_module.type == "reference" ||
 		json.type != "simplify")) {
 		switch (json.type) {
 			case "simplify":
@@ -229,13 +233,16 @@ function push_module_type(json) {
 				break;
 			case "quadratic":
 				var title = "Quadratic equation";
-				json.type = "simplify";
 				break;
 			case "solve-factors":
 				var title = "Solve factors";
 				break;
+			case "reference":
+				var title = "Reference";
+				break;
 			default:
-				var title = "Title"; break;
+				var title = "Title";
+				break;
 		}
 		current_module = new Module({
 			type: json.type,
@@ -249,7 +256,11 @@ function push_module_type(json) {
 }
 
 function push_module_step(json) {
+	// console.log(json);
 	var current_module =
 		push_module_type(json);
+	if (json.type == "reference" && !json.title) {
+		json.title = "This gives";
+	}
 	current_module.push(json);
 }

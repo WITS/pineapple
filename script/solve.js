@@ -53,6 +53,8 @@ Equation.prototype.replace = function(v, value) {
 
 	while (groups.length) {
 		var group = groups[0];
+		groups.splice(0, 1);
+		// console.log(group);
 		if (group.groups != null) {
 			for (var x = 0, y = group.groups.length;
 				x < y; ++ x) {
@@ -60,6 +62,7 @@ Equation.prototype.replace = function(v, value) {
 			}
 		} else if (group.variable != null) {
 			if (group.hasVar(v)) {
+				// console.log("Replacing " + v);
 				// ModuleStep Replace Var
 				group.highlighted_temp.push(v);
 				push_module_step({
@@ -71,9 +74,10 @@ Equation.prototype.replace = function(v, value) {
 				group.highlighted_temp.splice(0);
 				var e = group.getVar(v);
 				group.removeVar(v);
-				var m_group = group.parent;
+				var m_group = group.parent = group.parent.valueOf();
+				// console.log(m_group);
 				// Remove if replacing with 0
-				if (value == 0) {
+				if (String(value) == "0") {
 					if (m_group != null) {
 						m_group.remove(group);
 					} else {
@@ -99,18 +103,17 @@ Equation.prototype.replace = function(v, value) {
 						m_group.equation = this;
 						m_group.side = group.side;
 					}
-					var remove = true;
-					for (var name in group.variable) {
-						remove = false;
-					}
+					var remove = !(Object.keys(group.variable).length);
 					if (remove &&
 						group.coefficient.numerator == -1 &&
 						group.coefficient.denominator == 1) {
 						group.coefficient.numerator = 1;
 						if (typeof val === 'number') {
 							val *= -1;
-						} else {
+						} else if (val[0] != "-") {
 							val = "-" + val;
+						} else {
+							val = val.substr(1);
 						}
 					}
 					if (!remove ||
@@ -131,6 +134,7 @@ Equation.prototype.replace = function(v, value) {
 						parent: group.parent
 					}));
 				}
+				// console.log(m_group);
 			}
 		} else if (group.base != null) {
 			groups.push(group.base);
@@ -138,9 +142,10 @@ Equation.prototype.replace = function(v, value) {
 		} else if (group instanceof FractionGroup) {
 			groups.push(group.numerator);
 			groups.push(group.denominator);
+		} else if (group.group) {
+			groups.push(group.group);
 		}
 
-		groups.splice(0, 1);
 		if (!right && !groups.length) {
 			groups.push(this.right);
 			right = true;
@@ -658,6 +663,11 @@ Equation.prototype.factor = function(v, solve) {
 			});
 			// Solve factors
 			if (solve) {
+				// Output reference visual
+				push_module_step({
+					type: "reference",
+					visual: this.element()
+				});
 				// Get factor objects
 				var f1g = this.right.groups[
 					+(fc != 1)].valueOf();
@@ -727,28 +737,56 @@ Equation.prototype.factor = function(v, solve) {
 				} else {
 					var other_side = "left";
 				}
+				// If just simplified
+				if (modules.length) {
+					push_module_step({
+						type: "reference",
+						visual: this.element()
+					});
+				}
+				// Output reference visual
+				var quad_equation = new Equation({
+					text: "(-b\u00B1(b^2-4ac)^0.5)/(2a)"
+				});
+				quad_equation.right.simplify();
+				quad_equation.right = quad_equation.right.valueOf();
+				push_module_step({
+					type: "simplify",
+					title: "Start with",
+					visual: quad_equation.element()
+				});
+				a = get_fraction(a).toString();
+				b = get_fraction(b).toString();
+				c = get_fraction(c).toString();
+				push_module_step({
+					type: "simplify",
+					title: "In this case a, b, and c are (respectively)",
+					visual: new BracketGroup({
+						text: a + "," + b + "," + c
+					}).element()
+				});
+				quad_equation.replace("a", a);
+				quad_equation.replace("b", b);
+				quad_equation.replace("c", c);
+				this[pref_side] = quad_equation.right;
 				this[other_side] = new AlgebraGroup({
 					text: v,
 					equation: this,
 					side: other_side
 				});
-				this[pref_side] = new FractionGroup({
-					equation: this,
-					side: pref_side
+				var lost_module = modules.pop();
+				lost_module.type = "quadratic";
+				lost_module.title = "Quadratic equation";
+				var new_module = push_module_type("quadratic");
+				for (var x = 0, y = lost_module.steps.length; x < y; ++ x) {
+					var step = lost_module.steps[x];
+					step.type = "quadratic";
+					new_module.steps.push(step);
+				}
+				push_module_step({
+					type: "reference",
+					visual: this[pref_side].element()
 				});
-				this[pref_side].numerator =
-					new ExpressionGroup({
-					text: "("+(-b)+"\u00B1(("+b+")^2-4*"+
-						a+"*"+c+")^.5)",
-					parent: this[pref_side]
-				});
-				this[pref_side].denominator =
-					new MultiplyGroup({
-					text: "2*" + a,
-					parent: this[pref_side]
-				});
-				push_module_type("quadratic");
-				modules[modules.length - 1].steps.splice(0);
 				this[pref_side].simplify();
 				this[pref_side] =
 					this[pref_side].valueOf();
@@ -2589,6 +2627,9 @@ AlgebraGroup.prototype.element = function() {
 Fraction = function(json) {
 	var json = json || {};
 	if (json.text) {
+		if (typeof json.text === 'number') {
+			json.text = String(json.text);
+		}
 		if (json.text == "-" || json.text == "") {
 			json.text += "1";
 		}
@@ -2916,6 +2957,19 @@ PlusMinusGroup.prototype.multiply = function(n) {
 	this.group.highlighted = false;
 	if (this.group instanceof AlgebraGroup) {
 		this.group.temp_highlighted.splice(0);
+	}
+}
+
+PlusMinusGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	if (this.group == g1) {
+		this.group = g2;
+		g2.parent = this;
+	} else {
+		console.warn("Attempt to replace nonexistant " +
+			"child in PlusMinusGroup");
 	}
 }
 

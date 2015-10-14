@@ -20,6 +20,21 @@ function handle_query(f, e) {
 
 	var output = document.createDocumentFragment();
 
+	// In case something goes wrong
+	function show_error() {
+		var error_child = document.createElement("div");
+		error_child.addClass("error-result");
+		error_child.appendTextNode("Sorry, something went wrong");
+		output.appendChild((new Card({
+			label: "Result",
+			color: "skin",
+			children: error_child
+		})).element());
+		var output_element = document.getElementById("output");
+		output_element.empty();
+		output_element.appendChild(output);
+	}
+
 	// Return to the homepage?
 	if (!text.length) {
 		// document.body.addClass("homepage");
@@ -186,6 +201,16 @@ function handle_query(f, e) {
 
 	output.appendChild(input_card);
 
+	{
+		var equation_str = equation.toString();
+		console.log(equation_str);
+		if (equation_str.indexOf("NaN") != -1) {
+			// ABORT! SOMETHING DUN GOOFED
+			show_error();
+			return false;
+		}
+	}
+
 	if (equation.left != null) {
 		var left = equation.left;
 		left.simplify();
@@ -202,7 +227,16 @@ function handle_query(f, e) {
 	equation.updateVarInfo();
 	var v_info = equation.getVarInfo();
 	// console.log(equation);
-	console.log(equation.toString());
+	{
+		var equation_str = equation.toString();
+		console.log(equation_str);
+		if (equation_str.indexOf("NaN") != -1) {
+			// ABORT! SOMETHING DUN GOOFED
+			show_error();
+			return false;
+		}
+	}
+	
 
 	// Additional work
 	if (equation.all_vars.length) {
