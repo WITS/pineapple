@@ -236,7 +236,7 @@ body:not(.mobile) .module:not(.expanded) >
 		max-height 0.3s, opacity 0.2s;
 }
 
-.reference-module > .module-step > .content::before {
+.reference-module > .module-step::before {
 	display: inline-block;
 	width: 20px;
 	padding-right: 8px;
@@ -256,7 +256,7 @@ body:not(.mobile) .module:not(.expanded) >
 	-o-transition: width 0.2s, color 0.2s;
 }
 
-.expanded + .reference-module > .module-step > .content::before {
+.expanded + .reference-module > .module-step::before {
 	width: 50px;
 	color: transparent;
 }
@@ -424,7 +424,6 @@ body:not(.mobile) .module:not(.expanded) >
 @media (max-width: 640px) {
 
 .reference-module > .module-step > .content > .title {
-	padding-left: 58px;
 	overflow: hidden;
 	transiton: max-height 0.6s;
 	-webkit-transiton: max-height 0.6s;

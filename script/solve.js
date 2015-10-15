@@ -1708,7 +1708,8 @@ MultiplyGroup.prototype.element = function() {
 		if (x && prev_elem.innerHTML != "" &&
 			!((prev_elem.hasClass("parentheses") &&
 				!group_elem.hasClass("negative")) ||
-			group_elem.hasClass("parentheses"))) {
+			group_elem.hasClass("parentheses") ||
+			group_elem.hasClass("radical-wrapper"))) {
 			var times = document.createElement(
 				"span");
 			times.addClass("operation");
