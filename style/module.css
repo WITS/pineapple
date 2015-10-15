@@ -236,6 +236,31 @@ body:not(.mobile) .module:not(.expanded) >
 		max-height 0.3s, opacity 0.2s;
 }
 
+.reference-module > .module-step > .content::before {
+	display: inline-block;
+	width: 20px;
+	padding-right: 8px;
+	font: normal normal normal 14px/1 FontAwesome;
+	font-size: 20px;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transform: translate(0, 0);
+	color: rgba(0, 0, 0, 0.2);
+	opacity: 1;
+	vertical-align: middle;
+	content: "\f175";
+	transition: width 0.2s, color 0.2s;
+	-webkit-transition: width 0.2s, color 0.2s;
+	-moz-transition: width 0.2s, color 0.2s;
+	-o-transition: width 0.2s, color 0.2s;
+}
+
+.expanded + .reference-module > .module-step > .content::before {
+	width: 50px;
+	color: transparent;
+}
+
 .reference-module > .module-step {
 	border-top: 0px;
 }
@@ -415,31 +440,6 @@ body:not(.mobile) .module:not(.expanded) >
 :not(.expanded) + .reference-module > .module-step > .content > .title {
 	max-height: 0;
 	-webkit-transition-timing-function: ease-out;
-}
-
-.reference-module > .module-step > .content > .title + *::before {
-	display: inline-block;
-	width: 20px;
-	padding-right: 8px;
-	font: normal normal normal 14px/1 FontAwesome;
-	font-size: 20px;
-	text-rendering: auto;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	transform: translate(0, 0);
-	color: rgba(0, 0, 0, 0.2);
-	opacity: 1;
-	vertical-align: middle;
-	content: "\f175";
-	transition: width 0.2s, color 0.2s;
-	-webkit-transition: width 0.2s, color 0.2s;
-	-moz-transition: width 0.2s, color 0.2s;
-	-o-transition: width 0.2s, color 0.2s;
-}
-
-.expanded + .reference-module > .module-step > .content > .title + *::before {
-	width: 50px;
-	color: transparent;
 }
 
 }
