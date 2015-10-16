@@ -209,9 +209,19 @@ body.homepage #nav {
 	content: "-";
 }
 
+.render .negative > .negative:first-child::before {
+	content: "";
+}
+
 .render .fraction > * > .expression-group::before,
 .render .fraction > * > .expression-group::after {
 	content: "";
+}
+
+/* Show errors neatly */
+.render * + * .number > i.fa,
+.render .operation + .number > i.fa {
+	margin-left: 6px;
 }
 
 .render .fraction.base {

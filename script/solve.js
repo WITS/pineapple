@@ -74,12 +74,12 @@ Equation.prototype.replace = function(v, value) {
 				group.highlighted_temp.splice(0);
 				var e = group.getVar(v);
 				group.removeVar(v);
-				var m_group = group.parent = group.parent.valueOf();
-				// console.log(m_group);
+				if (group.parent != null) group.parent = group.parent.valueOf();
+				var m_group = group.parent
 				// Remove if replacing with 0
 				if (String(value) == "0") {
 					if (m_group != null) {
-						m_group.remove(group);
+						m_group.value = new Fraction(0);
 					} else {
 						this[group.side] = new Fraction({
 							numerator: 0,
@@ -620,9 +620,8 @@ Equation.prototype.factor = function(v, solve) {
 			}
 		}
 		d = Math.pow(b, 2) - (4 * a * c);
-		console.log("{"+ a +","+ b +","+ c +"}\n" + d);
 		if (d < 0) {
-			console.warn("No real solution");
+			// console.warn("No real solution");
 			this.result = new ResultText({
 				text: "No real solution",
 				icon: "exclamation-triangle"
@@ -631,7 +630,7 @@ Equation.prototype.factor = function(v, solve) {
 		}
 		var sqrt_d = Math.sqrt(d);
 		if (sqrt_d % 1 == 0) {
-			console.log("Can factor");
+			// console.log("Can factor");
 			// ModuleStep: Factor variable
 			this[side].highlighted = true;
 			push_module_step({
@@ -916,6 +915,8 @@ ExpressionGroup = function(json) {
 		/(^|[^\+\*\/\^\(])(-|\u00B1)/g, "$1+$2");
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
+	this.text = this.text.replace(new RegExp("\\((" +
+		NEG_FRACTION_REGEX + ")\\)", "g"), "$1");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1258,12 +1259,15 @@ MultiplyGroup = function(json) {
 
 	var temp_text = this.text.replace(
 		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(" +
-			"\u00B1])(" + FLOAT_NUM_REGEX +
+			"\u00B1])(" + NEG_FRACTION_REGEX +
 			")", "gi"), "$1*$2");
 	temp_text = temp_text.replace(new RegExp(
 		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
-		"-(" + FLOAT_NUM_REGEX + ")\\^"), "-1*$1^");
+		"-(" + NEG_FRACTION_REGEX + ")\\^"), "-1*$1^");
+	temp_text = temp_text.replace(new RegExp("\\((" +
+		NEG_FRACTION_REGEX + ")\\)", "g"), "$1");
+	// console.log(temp_text);
 	
 	// console.log(temp_text);
 	var prev_character = "";
@@ -1371,6 +1375,7 @@ MultiplyGroup = function(json) {
 	}
 
 	// Exponent Groups
+	// console.log(this.groups);
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
@@ -1390,7 +1395,7 @@ MultiplyGroup = function(json) {
 
 		var caret_pos = group.match(
 			new RegExp("(?:^\\^|\\^$|" +
-				FLOAT_NUM_REGEX + "\\^)"));
+				NEG_FRACTION_REGEX + "\\^)"));
 		if (caret_pos != null) {
 			caret_pos = group.indexOf("^",
 				caret_pos.index);
@@ -1420,11 +1425,11 @@ MultiplyGroup = function(json) {
 			this.groups[x + replace_pos] =
 				new ExponentGroup({
 					base: b,
-					exponent: e,
+					exponent: typeof e === 'string' ? e : e.valueOf(),
 					parent: this
 				});
-			this.groups.splice(x + replace_pos + 1,
-				replace_len);
+			// console.log(this.groups.splice(x + replace_pos + 1,
+			// 	replace_len));
 			x += replace_pos;
 			y -= replace_len;
 		}
@@ -1434,6 +1439,7 @@ MultiplyGroup = function(json) {
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
+		// console.log(group);
 
 		// Skip group objects
 		if (typeof group === 'object') {
@@ -1514,7 +1520,7 @@ MultiplyGroup = function(json) {
 			});
 		} else { // Fraction
 			this.groups[x] = new Fraction({
-				numerator: +group,
+				text: group,
 				parent: this
 			});
 		}
@@ -1539,6 +1545,11 @@ MultiplyGroup.prototype.simplify = function() {
 		x < y; ++ x) {
 		var group = this.groups[x];
 		group.simplify();
+		if (group != this.groups[x]) {
+			-- x;
+			y = this.groups.length;
+			continue;
+		}
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
 
@@ -1653,6 +1664,7 @@ MultiplyGroup.prototype.insertBefore = function(g1, g2) {
 	this.groups.push(g2);
 	this.groups = this.groups.concat(temp_groups);
 	g2.parent = g1.parent;
+	g2.top_parent = g1.top_parent;
 	g2.side = this.side;
 	g2.equation = this.equation;
 }
@@ -2136,6 +2148,7 @@ ExponentGroup = function(json) {
 		this.top_parent = this.parent.top_parent;
 	}
 	if (json.text) {
+		console.log(json.text);
 		var caret_pos = json.text.indexOf("^");
 		if (caret_pos != -1) {
 			json.base =
@@ -2157,6 +2170,8 @@ ExponentGroup = function(json) {
 			});
 		}
 	}
+	// console.log(json.base);
+	// console.log(json.exponent);
 	this.base = json.base || "1";
 	this.exponent = json.exponent || "1";
 	this.highlighted = json.highlighted || false;
@@ -2191,7 +2206,7 @@ ExponentGroup = function(json) {
 			});
 		}
 	}
-	// Denominator
+	// Exponent
 	if (typeof this.exponent === 'string') {
 		if (this.exponent.indexOf("^") != -1) {
 			// ExponentGroup
@@ -2229,8 +2244,8 @@ ExponentGroup.prototype.replace = function(g1, g2) {
 }
 
 ExponentGroup.prototype.toString = function() {
-	return "(" + this.base.toString() + ")^(" +
-		+ this.exponent.toString() + ")";
+	return "(" + this.base.valueOf().toString() + ")^(" +
+		this.exponent.valueOf().toString() + ")";
 }
 
 ExponentGroup.prototype.simplify = function() {
@@ -2247,27 +2262,123 @@ ExponentGroup.prototype.simplify = function() {
 	var e_val = this.exponent;
 	if (b_val instanceof Fraction &&
 		e_val instanceof Fraction) {
-		// ModuleStep (Exponent)
-		this.highlighted = true;
-		push_module_step({
-			type: "simplify",
-			title: describe_operation({
-				operation: "^",
-				n1: this.base,
-				n2: this.exponent
-			}),
-			visual: this.equation.element()
-		});
-		this.highlighted = false;
-		this.value = new Fraction({
-			numerator: Math.pow(b_val.toNumber(),
-				e_val.toNumber()),
-			parent: this.parent
-		});
-		this.value.parent = this.parent;
-		if (this.parent == null) {
-			this.value.top_parent = this.value;
+		// Radical? (e.g. e = 1/2)
+		var radical = false;
+		var r_index = 0;
+		var e_fraction = get_fraction(e_val);
+		if (e_fraction.numerator == 1 &&
+			e_fraction.denominator != 1) {
+			radical = true;
+			r_index = e_fraction.denominator;
 		}
+
+		this.highlighted = true;
+		if (radical) { // Radical
+			var b = b_val.toNumber();
+			var factor = 1;
+			var factor_root;
+			for (var i = b; i >= 4; -- i) {
+				// Can divide base by i?
+				if (b % i) continue;
+				var root = Math.pow(i, 1 / r_index);
+				var remainder = root % 1;
+				// Able to factor out?
+				if (Math.min(remainder, 1 - remainder) > 2e-8) continue;
+				factor = i;
+				factor_root = Math.round(root);
+				break;
+			}
+			// console.log("Simplify radical: " + factor + ", " + factor_root);
+			if (factor != 1) { // Can be simplified
+				if (factor == b) {
+					// ModuleStep (Radical)
+					push_module_step({
+						type: "simplify",
+						title: describe_operation({
+							operation: "^",
+							n1: this.base,
+							n2: this.exponent
+						}),
+						visual: this.equation.element()
+					});
+					this.value = new Fraction({
+						numerator: factor_root,
+						parent: this.parent
+					});
+					this.value.parent = this.parent;
+					if (this.parent == null) {
+						this.value.top_parent = this.value;
+					}
+				} else {
+					// ModuleStep (Radical)
+					push_module_step({
+						type: "simplify",
+						title: describe_operation({
+							operation: "^/",
+							n1: new ExpressionGroup({
+								text: factor_root + "^" + r_index
+							}),
+							n2: this.base
+						}),
+						visual: this.equation.element()
+					});
+					var m_group = this.parent;
+					if (m_group) m_group = m_group.valueOf();
+					if (!(m_group instanceof MultiplyGroup)) {
+						// console.log(factor_root + "*(" + (b_val / factor) +
+						// 		")^(1/" + r_index + ")");
+						this.value = new MultiplyGroup({
+							equation: this.equation,
+							side: this.side,
+							parent: m_group,
+							text: factor_root + "*(" + (b_val / factor) +
+								")^(1/" + r_index + ")"
+						});
+						this.value.simplify();
+						this.value = this.value.valueOf();
+						// console.log(this.value.toString());
+						if (m_group) {
+							m_group.replace(this, this.value);
+						} else {
+							// console.log("Yo");
+							this.value.top_parent = this.value;
+							this.equation[this.side] = this.value;
+							// console.log(this.value);
+						}
+						m_group = this.value;
+					} else {
+						console.log("A m_group already?");
+						this.base.numerator /= factor;
+						this.value = this;
+						m_group.insertBefore(this, new Fraction(factor_root));
+						console.log(m_group.groups);
+					}
+				}
+			} else { // Still update the value
+				this.value = this;
+			}
+		} else { // Exponent
+			// ModuleStep (Exponent)
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "^",
+					n1: this.base,
+					n2: this.exponent
+				}),
+				visual: this.equation.element()
+			});
+			this.value = new Fraction({
+				numerator: Math.pow(b_val.toNumber(),
+					e_val.toNumber()),
+				parent: this.parent
+			});
+			this.value.parent = this.parent;
+			if (this.parent == null) {
+				this.value.top_parent = this.value;
+			}
+		}
+		this.highlighted = false;
 	}
 }
 ExponentGroup.prototype.valueOf = function() {
@@ -2626,7 +2737,10 @@ AlgebraGroup.prototype.element = function() {
 }
 
 Fraction = function(json) {
+	if (json === 0) json = '0';
 	var json = json || {};
+	if (typeof json === 'string' ||
+		typeof json === 'number') json = { text: json };
 	if (json.text) {
 		if (typeof json.text === 'number') {
 			json.text = String(json.text);
@@ -2646,8 +2760,7 @@ Fraction = function(json) {
 	}
 	this.numerator = json.numerator != null ?
 		json.numerator : 1;
-	this.denominator = json.denominator != null ?
-		json.denominator : 1;
+	this.denominator = json.denominator || 1;
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -3090,6 +3203,10 @@ function describe_operation(json) {
 			start = "Raise";
 			middle = "to the";
 			end = ordinal_of(json.n2) + " power";
+			break;
+		case "^/":
+			start = "Divide";
+			middle = "out of";
 			break;
 		default:
 			break;

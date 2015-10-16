@@ -22,7 +22,25 @@ function handle_query(f, e) {
 	var output = document.createDocumentFragment();
 
 	// In case something goes wrong
+	function validate_equation_string(str) {
+		if (str.indexOf("NaN") != -1) {
+			return false;
+		}
+		if (/\/0\.?0*(?:[^0-9]|$)/.test(str)) {
+			return false;
+		}
+		return true;
+	}
+
 	function show_error() {
+		console.log(equation);
+		// Convert NaN to icon representation
+		output.querySelectorAll(".card .render .number"
+			).forEach(function(elem) {
+			console.log(elem);
+			if (elem.innerHTML != "NaN") return;
+			elem.innerHTML = "<i class='fa fa-square'></i>";
+		});
 		var error_child = document.createElement("div");
 		error_child.addClass("error-result");
 		error_child.appendTextNode("Sorry, something went wrong");
@@ -205,7 +223,7 @@ function handle_query(f, e) {
 	{
 		var equation_str = equation.toString();
 		console.log(equation_str);
-		if (equation_str.indexOf("NaN") != -1) {
+		if (!validate_equation_string(equation_str)) {
 			// ABORT! SOMETHING DUN GOOFED
 			show_error();
 			return false;
@@ -231,7 +249,7 @@ function handle_query(f, e) {
 	{
 		var equation_str = equation.toString();
 		console.log(equation_str);
-		if (equation_str.indexOf("NaN") != -1) {
+		if (!validate_equation_string(equation_str)) {
 			// ABORT! SOMETHING DUN GOOFED
 			show_error();
 			return false;

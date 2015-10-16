@@ -41,8 +41,6 @@ Element.prototype.toggleClass = function(className) {
 	}
 }
 
-Element.prototype.events = new Array();
-
 function EventListenerInfo(arg) {
 	this.type = arg[0];
 	this.func = arg[1];
@@ -54,11 +52,26 @@ Element.prototype._addEventListener =
 
 Element.prototype.addEventListener = function(type,
 	func, capture) {
+	// If events hasn't been initialized, initialize it
+	if (!this.events) this.events = new Array();
 	// Store the event listener so it can be
 	// removed later
 	this.events.push(new EventListenerInfo(arguments));
 	// Call the client's native method
 	this._addEventListener(type, func, capture);
+}
+
+Element.prototype.unbindEventListeners = function(type) {
+	if (!this.events) return;
+	var type = type || "";
+	var i = this.events.length;
+	while (i --) {
+		var e = this.events[i];
+		if (type != "" && type != e.type) continue;
+		this.removeEventListener(e.type,
+			e.func, e.capture);
+		this.events.splice(i, 1);
+	}
 }
 
 Element.prototype.empty = function() { // Removes all children
@@ -67,20 +80,60 @@ Element.prototype.empty = function() { // Removes all children
 			// Remove child's children
 			this.firstChild.empty();
 			// Remove events
-			var i = this.firstChild.events.length;
-			while (i --) {
-				var e = this.firstChild.events[0];
-				this.firstChild.removeEventListener(e.type,
-					e.func, e.capture);
-			}
+			this.firstChild.unbindEventListeners();
 		}
 		// Remove child node
 		this.removeChild(this.firstChild);
 	}
 }
 
-IS_MOBILE = /(iPhone|iPod|iPad|Android|BlackBerry)/i.test(
-	navigator.userAgent);
+Element.prototype.remove = function() {
+	this.unbindEventListeners();
+	if (this.parentElement != null) {
+		this.parentElement.removeChild(this);
+	}
+}
+
+Element.prototype.getStyle = function(name) {
+	return this.currentStyle ? this.currentStyle[name] :
+     getComputedStyle(this, null)[name];
+}
+
+HTMLCollection.prototype.forEach =
+NodeList.prototype.forEach = function(fn) {
+	for (var i = this.length; i --; ) {
+		fn(this[i]);
+	}
+}
+
+IS_TOUCH_DEVICE = !!(('ontouchstart' in window) ||
+	window.DocumentTouch && document instanceof DocumentTouch);
+var userAgent = navigator.userAgent;
+IS_MOBILE = /(iPhone|iPod|iPad|Android|BlackBerry)/i.test(userAgent);
+IS_FIREFOX = (/\bfirefox\//i.test(userAgent) &&
+	!/\bseamonkey\//i.test(userAgent));
+IS_CHROME = (/\bchrome\//i.test(userAgent) &&
+	!/\bchromium\//i.test(userAgent));
+IS_SAFARI = (/\bsafari\//i.test(userAgent) &&
+	!/\b(?:chrome|chromium)\//i.test(userAgent));
+IS_OPERA = (/\b(?:opera|opr)\//i.test(userAgent));
+IS_WEBKIT = (IS_CHROME || IS_SAFARI || IS_OPERA);
+IS_MSIE = (/\bMSIE\b/i.test(userAgent));
+IS_MSIE_9 = (userAgent.indexOf("MSIE 9") != -1);
+
+// Check HTML on load
+window.addEventListener("load", function() {
+	// Add classes to the body
+	var userAgentList = ["touch-device", "mobile", "firefox", "chrome", "safari", "opera",
+		"webkit", "msie", "msie-9"];
+	for (var i = userAgentList.length; i --; ) {
+		var className = userAgentList[i];
+		if (window["IS_" + className.toUpperCase().replace(/-/g, '_')]) {
+			document.body.addClass(className);
+		}
+	}
+});
+
 FLOAT_NUM_REGEX = "(?:\\d+\\.?\\d*|\\d*\\.\\d+)";
 FRACTION_REGEX = FLOAT_NUM_REGEX + "(?:/" +
 	FLOAT_NUM_REGEX + ")?";
