@@ -1428,8 +1428,8 @@ MultiplyGroup = function(json) {
 					exponent: typeof e === 'string' ? e : e.valueOf(),
 					parent: this
 				});
-			// console.log(this.groups.splice(x + replace_pos + 1,
-			// 	replace_len));
+			this.groups.splice(x + replace_pos + 1,
+				replace_len);
 			x += replace_pos;
 			y -= replace_len;
 		}
