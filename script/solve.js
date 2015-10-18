@@ -1706,14 +1706,26 @@ MultiplyGroup.prototype.factorOut = function(factor, showSteps) {
 	if (constant != null) constant = constant[0];
 	for (var i = this.groups.length; i --; ) {
 		var group = this.groups[i];
-		if (group == AlgebraGroup) {
+		if (group instanceof AlgebraGroup) {
 			if (group.factors().indexOf(factor) != -1) {
 				group.factorOut(factor);
+				if (group.valueOf() instanceof Fraction) {
+					if (group.valueOf().toString() == "1" &&
+						this.groups.length > 1) {
+						this.remove(group);
+					}
+				}
 				break;
 			}
 		} else if (constant != null) {
 			if (group.factors().indexOf(constant) != -1) {
 				group.factorOut(constant);
+				if (group.valueOf() instanceof Fraction) {
+					if (group.valueOf().toString() == "1" &&
+						this.groups.length > 1) {
+						this.remove(group);
+					}
+				}
 				factor = factor.substr(constant.length);
 				constant = "";
 			}
@@ -2393,8 +2405,9 @@ ExponentGroup.prototype.factorOut = function(factor, showSteps) {
 		this.highlighted = false;
 	}
 	// Actually factor
-	this.base.valueOf().multiply(
-		new Fraction(factor).reciprocal());
+	var delta = new Fraction(factor);
+	delta.multiply(new Fraction(-1));
+	this.exponent.numerator.add(delta);
 }
 
 ExponentGroup.prototype.toString = function() {
@@ -2404,8 +2417,11 @@ ExponentGroup.prototype.toString = function() {
 
 ExponentGroup.prototype.factors = function() {
 	var b_val = this.base.valueOf();
-	if (b_val instanceof Fraction) {
-		return [b_val.toString()];
+	var e_val = this.exponent.valueOf();
+	if (b_val instanceof Fraction && e_val instanceof Fraction) {
+		if (e_val.toNumber() % 1 == 0) {
+			return [b_val.toString()];
+		}
 	}
 	return [];
 }
