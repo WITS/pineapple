@@ -184,12 +184,12 @@ body.homepage #nav {
 	opacity: 0.5;
 }
 
-.render *:not(.radicand) > .parentheses:not(.exponent)::before,
+.render *:not(.radicand):not(.right-side):not(.left-side):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::before,
 .render .fraction.base::before {
 	content: "(";
 }
 
-.render *:not(.radicand) > .parentheses:not(.exponent)::after,
+.render *:not(.radicand):not(.right-side):not(.left-side):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::after,
 .render .fraction.base::after {
 	content: ")";
 }

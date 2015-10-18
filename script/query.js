@@ -255,7 +255,6 @@ function handle_query(f, e) {
 			return false;
 		}
 	}
-	
 
 	// Additional work
 	if (equation.all_vars.length) {
@@ -285,6 +284,13 @@ function handle_query(f, e) {
 			}
 			// What degree is the equation now?
 			if (v_info.max_degree == 1) {
+				if (modules.length) {
+					// Output reference visual
+					push_module_step({
+						type: "reference",
+						visual: equation.element()
+					});
+				}
 				equation.isolate(query_info.other);
 			} else if (v_info.max_degree == 2) {
 				equation.factor(query_info.other,
