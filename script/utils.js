@@ -2,7 +2,7 @@
  * Utils.js - adds new methods to Elements
  * and defines some useful "constants"
  * Copyright (C) 2015  Ian Jones
- * http://pineapple.help/LICENSE.txt
+ * http://pineapple.pub/LICENSE.txt
  */
 
 Element.prototype.hasClass = function(className) {

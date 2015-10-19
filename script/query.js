@@ -2,7 +2,7 @@
  * Query.js - interprets instructions from
  * queries and determines what actions to take
  * Copyright (C) 2015  Ian Jones
- * http://pineapple.help/LICENSE.txt
+ * http://pineapple.pub/LICENSE.txt
  */
 
 function handle_query(f, e) {
@@ -56,10 +56,11 @@ function handle_query(f, e) {
 
 	// Return to the homepage?
 	if (!text.length) {
-		// document.body.addClass("homepage");
+		document.getElementById("output").empty();
+		document.body.addClass("homepage");
 		return;
 	} else {
-		// document.body.removeClass("homepage");
+		document.body.removeClass("homepage");
 	}
 
 	// Pre-Processing
@@ -347,6 +348,7 @@ function handle_query(f, e) {
 
 	// Modules
 	for (var x = 0, y = modules.length; x < y; ++ x) {
+		if (x == y - 1 && modules[x].type == "reference") continue;
 		output.appendChild(modules[x].element());
 	}
 
@@ -430,10 +432,11 @@ function handle_query_suggestion() {
 	handle_query(this.getAttribute("data-query"));
 }
 
-// Homepage Styling
+// Page load
 window.addEventListener("load", function() {
-	if (IS_MOBILE) {
-		document.body.addClass("mobile");	
-	}
-	// document.body.addClass("homepage");
+	document.querySelectorAll("#homepage-text code").forEach(
+		function(elem) {
+			elem.setAttribute("data-query", elem.innerHTML);
+			elem.addEventListener("click", handle_query_suggestion);
+		});
 });

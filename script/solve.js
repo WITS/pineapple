@@ -2,7 +2,7 @@
  * Solve.js - classes for interpeting
  * and solving equations/expressions
  * Copyright (C) 2015  Ian Jones
- * http://pineapple.help/LICENSE.txt
+ * http://pineapple.pub/LICENSE.txt
  */
 
 Equation = function(json) {
@@ -75,17 +75,21 @@ Equation.prototype.replace = function(v, value) {
 				var e = group.getVar(v);
 				group.removeVar(v);
 				if (group.parent != null) group.parent = group.parent.valueOf();
-				var m_group = group.parent
+				var m_group = group.parent;
 				// Remove if replacing with 0
 				if (String(value) == "0") {
-					if (m_group != null) {
+					if (m_group != null &&
+						m_group.valueOf() instanceof MultiplyGroup) {
 						m_group.value = new Fraction(0);
-					} else {
+					} else if (m_group == null) {
 						this[group.side] = new Fraction({
 							numerator: 0,
 							equation: this,
 							side: group.side
 						});
+					} else {
+						group.coefficient.numerator = 0;
+						group.coefficient.denominator = 1;
 					}
 					continue;
 				}
