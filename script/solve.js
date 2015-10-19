@@ -2258,7 +2258,7 @@ FractionGroup.prototype.simplify = function() {
 	// Complex factor simplification
 	var factors = this.factors();
 	factors = sort_factors(sanitize_factors(factors));
-	console.log(factors);
+	// console.log(factors);
 	if (factors.length) {
 		if (factors[0] != "1") {
 			// TODO: Divide out the first of each category
@@ -3029,7 +3029,6 @@ Fraction.prototype.add = function(n) {
 		if (this.numerator % 1 &&
 			this.denominator % 1 == 0) {
 			var val = this.numerator.toString();
-			console.log(val);
 			if (/\.\d{1,5}$/.test(val.toString())) {
 				var ratio = Math.pow(10,
 					val.match(/\.\d+/)[0].length - 1);
@@ -3040,7 +3039,6 @@ Fraction.prototype.add = function(n) {
 		if (n.numerator % 1 &&
 			n.denominator % 1 == 0) {
 			var val = n.numerator.toString();
-			console.log(val);
 			if (/\.\d{1,5}$/.test(val.toString())) {
 				var ratio = Math.pow(10,
 					val.match(/\.\d+/)[0].length - 1);
@@ -3624,8 +3622,24 @@ function truncate_number(n, abs) {
 	} else if (abs) {
 		n = Math.abs(n);
 	}
-	if (/\.\d{5,}$/.test(n.toString())) {
-		var n_str = n.toFixed(4);
+	var temp_str = n.toString();
+	if (/^-?\d(?:\.\d+)?e-?\d+/.test(temp_str)) {
+		var n_str = temp_str.replace(/^(-?\d\.\d{4})\d*/, "$1");
+		var e_index = n_str.indexOf("e");
+		return new MultiplyGroup({
+			text: n_str.substr(0, e_index) + "*10^" +
+				n_str.substr(e_index + 1)
+		}).element().outerHTML;
+	} else if (/\.\d{5,}$/.test(temp_str)) {
+		if (/\.0{4,}/.test(temp_str)) {
+			var digits = temp_str.match(/\.0+/)[0].length;
+			return new MultiplyGroup({
+				text: (Math.pow(10, digits) * n).toFixed(4) + "*10^-" +
+					digits
+			}).element().outerHTML;
+		} else {
+			var n_str = n.toFixed(4);
+		}
 	} else {
 		var n_str = n.toString();
 	}
