@@ -916,7 +916,7 @@ ExpressionGroup = function(json) {
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
 	this.text = this.text.replace(new RegExp("\\((" +
-		NEG_FRACTION_REGEX + ")\\)", "g"), "$1");
+		FRACTION_REGEX + ")\\)", "g"), "$1");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1307,7 +1307,7 @@ MultiplyGroup = function(json) {
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + NEG_FRACTION_REGEX + ")\\^"), "-1*$1^");
 	temp_text = temp_text.replace(new RegExp("\\((" +
-		NEG_FRACTION_REGEX + ")\\)", "g"), "$1");
+		FRACTION_REGEX + ")\\)", "g"), "$1");
 	// console.log(temp_text);
 	
 	// console.log(temp_text);
@@ -2754,8 +2754,8 @@ AlgebraGroup.prototype.factorOut = function(factor, showSteps) {
 	// Actually factor - THIS HASN'T BEEN TESTED <!>
 	var coefficient = factor.match("^" + NEG_FRACTION_REGEX);
 	if (coefficient != null) {
-		var c_val = new Fraction(coefficient[0]);
-		this.coefficient.multiply(c_val.reciprocal());
+		var c_val = coefficient[0];
+		this.coefficient.factorOut(c_val);
 		console.log(this.coefficient);
 	}
 	var factors = factor.match(new RegExp("[a-zA-Z](?:\\^" +

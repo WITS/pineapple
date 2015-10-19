@@ -184,20 +184,24 @@ body.homepage #nav {
 	opacity: 0.5;
 }
 
-.render *:not(.radicand):not(.right-side):not(.left-side):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::before,
+.render *:not(.radicand):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::before,
 .render .fraction.base::before {
 	content: "(";
 }
 
-.render *:not(.radicand):not(.right-side):not(.left-side):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::after,
+.render *:not(.radicand):not(.numerator):not(.denominator) > .parentheses:not(.exponent)::after,
 .render .fraction.base::after {
 	content: ")";
 }
 
 /* Cancel out parenthesis */
 .render .fraction > * > .parentheses:only-child::before,
-.render .fraction > * > .parentheses:only-child::after {
-	content: "";
+.render .fraction > * > .parentheses:only-child::after,
+.render.equation > .right-side:not(.exponent-wrapper):not(.multiply-group) > .parentheses::before,
+.render.equation > .right-side:not(.exponent-wrapper):not(.multiply-group) > .parentheses::after,
+.render.equation > .left-side:not(.exponent-wrapper):not(.multiply-group) > .parentheses::before,
+.render.equation > .left-side:not(.exponent-wrapper):not(.multiply-group) > .parentheses::after {
+	content: "" !important;
 }
 
 .render .negative:first-child::before,
@@ -286,7 +290,9 @@ body.homepage #nav {
 }
 
 .render .fraction > .numerator {
-	border-bottom: 1px solid black;
+	position: relative;
+	top: -0.04em;
+	border-bottom: 0.08em solid black;
 	vertical-align: bottom;
 }
 
