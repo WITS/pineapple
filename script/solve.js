@@ -3025,6 +3025,29 @@ Fraction.prototype.highlight = function(part) {
 Fraction.prototype.add = function(n) {
 	// Fractions
 	if (n instanceof Fraction) {
+		// Convert decimal to fraction
+		if (this.numerator % 1 &&
+			this.denominator % 1 == 0) {
+			var val = this.numerator.toString();
+			console.log(val);
+			if (/\.\d{1,5}$/.test(val.toString())) {
+				var ratio = Math.pow(10,
+					val.match(/\.\d+/)[0].length - 1);
+				this.numerator *= ratio;
+				this.denominator *= ratio;
+			}
+		}
+		if (n.numerator % 1 &&
+			n.denominator % 1 == 0) {
+			var val = n.numerator.toString();
+			console.log(val);
+			if (/\.\d{1,5}$/.test(val.toString())) {
+				var ratio = Math.pow(10,
+					val.match(/\.\d+/)[0].length - 1);
+				n.numerator *= ratio;
+				n.denominator *= ratio;
+			}
+		}
 		// Match denominators
 		var this_d = this.denominator;
 		var n_d = n.denominator;
