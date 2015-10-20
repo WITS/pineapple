@@ -5,7 +5,10 @@
 	border-radius: 1px;
 	box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2),
 		0px 0px 2px 0px rgba(0, 0, 0, 0.2);
+	transition: margin-top 0.3s;
 	-webkit-transition: margin-top 0.3s;
+	-moz-transition: margin-top 0.3s;
+	-o-transition: margin-top 0.3s;
 }
 
 .card.joined-bottom:not(.expanded) + .card.joined-top:not(.expanded),
@@ -162,7 +165,10 @@
 	font-size: 2.0em;
 	padding: 12px;
 	cursor: pointer;
+	transition: font-size 0.2s;
 	-webkit-transition: font-size 0.2s;
+	-moz-transition: font-size 0.2s;
+	-o-transition: font-size 0.2s;
 }
 
 .suggestion {
@@ -201,12 +207,27 @@ body:not(.mobile) .module:not(.expanded) >
 }
 
 .module-step {
+	transition: padding 0.3s,
+		max-height 0.3s, opacity 0.3s;
 	-webkit-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.3s;
+	-moz-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.3s;
+	-o-transition: padding 0.3s,
 		max-height 0.3s, opacity 0.3s;
 }
 
 .embedded-module {
+	transition: padding 0.3s,
+		max-height 0.3s, opacity 0.5s,
+		bottom 0.5s;
 	-webkit-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.5s,
+		bottom 0.5s;
+	-moz-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.5s,
+		bottom 0.5s;
+	-o-transition: padding 0.3s,
 		max-height 0.3s, opacity 0.5s,
 		bottom 0.5s;
 }
@@ -232,7 +253,13 @@ body:not(.mobile) .module:not(.expanded) >
 	border-top: 0px;
 	max-height: 0px;
 	opacity: 0;
+	transition: padding 0.3s,
+		max-height 0.3s, opacity 0.2s;
 	-webkit-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.2s;
+	-moz-transition: padding 0.3s,
+		max-height 0.3s, opacity 0.2s;
+	-o-transition: padding 0.3s,
 		max-height 0.3s, opacity 0.2s;
 }
 
@@ -367,7 +394,10 @@ body:not(.mobile) .module:not(.expanded) >
 	background-color: white;
 	color: #ccc;
 	content: "Show less";
+	transition: bottom 0.3s;
 	-webkit-transition: bottom 0.3s;
+	-moz-transition: bottom 0.3s;
+	-o-transition: bottom 0.3s;
 }
 
 .expanded > .hidden.embedded-module::after {
@@ -433,12 +463,18 @@ body:not(.mobile) .module:not(.expanded) >
 
 .expanded + .reference-module > .module-step > .content > .title {
 	max-height: 40px;
+	transition-timing-function: ease-in;
 	-webkit-transition-timing-function: ease-in;
+	-moz-transition-timing-function: ease-in;
+	-o-transition-timing-function: ease-in;
 }
 
 :not(.expanded) + .reference-module > .module-step > .content > .title {
 	max-height: 0;
+	transition-timing-function: ease-out;
 	-webkit-transition-timing-function: ease-out;
+	-moz-transition-timing-function: ease-out;
+	-o-transition-timing-function: ease-out;
 }
 
 }

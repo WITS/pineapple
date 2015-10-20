@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<svg width="120" height="120"
+	  viewport="0 0 120 120" version="1.1"
+     baseProfile="full"
+     xmlns="http://www.w3.org/2000/svg">
+
+     <polygon points="30,60 18,48 60,6 102,48 90,60" fill="rgb(129, 179, 66)" />
+
+     <polygon points="30,60 18,72 60,114 102,72 90,60" fill="rgb(203, 80, 39)"/>
+
+     <polygon points="30,60 60,30 90,60 60,90" fill="rgb(229, 203, 94)"/>
+
+</svg>
