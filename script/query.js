@@ -454,7 +454,7 @@ function handle_hash_query() {
 	if (hash.indexOf("%") === -1) {
 		hash = hash.substr(0, 3) + encodeURIComponent(hash.substr(3));
 	}
-	var query = /^#\!\/([a-zA-Z0-9%*\-!()<>\[\].]+)$/.exec(hash);
+	var query = /^#\!\/([a-zA-Z0-9%*+\-!=()<>\[\].]+)$/.exec(hash);
 	if (query == null) { // Invalid location
 		// Return to homepage
 		handle_query("");
