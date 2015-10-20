@@ -2259,6 +2259,7 @@ FractionGroup.prototype.simplify = function() {
 			}
 		}
 	}
+	if (this.value != null) return true; // Already simplified
 	// Complex factor simplification
 	var factors = this.factors();
 	factors = sort_factors(sanitize_factors(factors));

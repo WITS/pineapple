@@ -5,6 +5,8 @@
  * http://pineapple.pub/LICENSE.txt
  */
 
+last_query = "";
+
 function handle_query(f, e) {
 	if (e != null) {
 		if (IS_MOBILE) f.text.blur();
@@ -41,6 +43,7 @@ function handle_query(f, e) {
 			if (elem.innerHTML != "NaN") return;
 			elem.innerHTML = "<i class='fa fa-square'></i>";
 		});
+		// Create the result card
 		var error_child = document.createElement("div");
 		error_child.addClass("error-result");
 		error_child.appendTextNode("Sorry, something went wrong");
@@ -49,15 +52,24 @@ function handle_query(f, e) {
 			color: "skin",
 			children: error_child
 		})).element());
+		// Show the error to the user
 		var output_element = document.getElementById("output");
 		output_element.empty();
 		output_element.appendChild(output);
+		// Update the hash
+		last_query = text;
+		location.hash = "#!/" + encodeURIComponent(text);
 	}
 
 	// Return to the homepage?
 	if (!text.length) {
+		// Get rid of old results
 		document.getElementById("output").empty();
+		// Show the homepage
 		document.body.addClass("homepage");
+		// Update the hash
+		last_query = text;
+		location.hash = "#!/";
 		return;
 	} else {
 		document.body.removeClass("homepage");
@@ -423,6 +435,10 @@ function handle_query(f, e) {
 	output_element.empty();
 	output_element.appendChild(output);
 
+	// Update the hash
+	last_query = text;
+	location.hash = "#!/" + encodeURIComponent(text);
+
 	// Clear the modules array so that the
 	// garbage collector can remove module objects
 	modules.splice(0);
@@ -432,6 +448,24 @@ function handle_query_suggestion() {
 	handle_query(this.getAttribute("data-query"));
 }
 
+function handle_hash_query() {
+	var hash = location.hash;
+	// Fix Firefox's inconsistent hash behavior
+	if (hash.indexOf("%") === -1) {
+		hash = hash.substr(0, 3) + encodeURIComponent(hash.substr(3));
+	}
+	var query = /^#\!\/([a-zA-Z0-9%*\-!()<>\[\].]+)$/.exec(hash);
+	if (query == null) { // Invalid location
+		// Return to homepage
+		handle_query("");
+	} else {
+		var query_text = decodeURIComponent(query[1]);
+		if (last_query != query_text) {
+			handle_query(query_text);
+		}
+	}
+}
+
 // Page load
 window.addEventListener("load", function() {
 	document.querySelectorAll("#homepage-text code").forEach(
@@ -439,4 +473,8 @@ window.addEventListener("load", function() {
 			elem.setAttribute("data-query", elem.innerHTML);
 			elem.addEventListener("click", handle_query_suggestion);
 		});
+	handle_hash_query();
 });
+
+// Hash change
+window.addEventListener("hashchange", handle_hash_query);
