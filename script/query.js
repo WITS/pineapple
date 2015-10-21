@@ -6,6 +6,7 @@
  */
 
 last_query = "";
+new_results_timeout = null;
 
 function handle_query(f, e) {
 	if (e != null) {
@@ -34,6 +35,70 @@ function handle_query(f, e) {
 		return true;
 	}
 
+	function update_results() {
+		if (new_results_timeout != null) clearTimeout(new_results_timeout);
+		// Animation stagger
+		var children;
+		if (output.children != null) {
+ 			children = output.children;
+		} else { // Thanks, Microsoft
+			children = output.childNodes;
+		}
+		child_count = children.length;
+		for (var i = child_count; i --; ) {
+			var card = children[i];
+			var style_text = (0.5 + 0.2 * i).toFixed(1) + "s";
+			card.style.animationDuration = style_text;
+			if (IS_WEBKIT) {
+				card.style.webkitAnimationDuration = style_text;
+			}
+			if (IS_FIREFOX) {
+				card.style.mozAnimationDuration = style_text;
+			}
+		}
+
+		// Swap results
+		var output_element = document.getElementById("output");
+		var replace_results;
+		if (child_count) {
+			replace_results = function() {
+				output_element.empty();
+				output_element.removeClass("out");
+				output_element.appendChild(output);
+			};
+		} else {
+			replace_results = function() {
+				output_element.empty();
+				output_element.removeClass("out");
+				document.body.addClass("homepage");
+			}
+		}
+		if (last_query == "") { // From homepage
+			new_results_timeout = setTimeout(replace_results, 250);
+		} else { // Animate out old results
+			var old_result_count = output_element.children.length;
+			output_element.addClass("out");
+			for (var i = old_result_count; i --; ) {
+				var card = output_element.children[i];
+				var style_text = (0.2 * (old_result_count - i)).toFixed(1) + "s";
+				card.style.animationDuration = style_text;
+				if (IS_WEBKIT) {
+					card.style.webkitAnimationDuration = style_text;
+				}
+				if (IS_FIREFOX) {
+					card.style.mozAnimationDuration = style_text;
+				}
+				card.removeClass("expanded");
+			}
+			var delay = Math.max(0.005, old_result_count - 2) * 200;
+			new_results_timeout = setTimeout(replace_results, delay);
+		}
+
+		// Update the hash
+		last_query = text;
+		location.hash = "#!/" + encodeURIComponent(text);
+	}
+
 	function show_error() {
 		console.log(equation);
 		// Convert NaN to icon representation
@@ -53,23 +118,12 @@ function handle_query(f, e) {
 			children: error_child
 		})).element());
 		// Show the error to the user
-		var output_element = document.getElementById("output");
-		output_element.empty();
-		output_element.appendChild(output);
-		// Update the hash
-		last_query = text;
-		location.hash = "#!/" + encodeURIComponent(text);
+		update_results();
 	}
 
 	// Return to the homepage?
 	if (!text.length) {
-		// Get rid of old results
-		document.getElementById("output").empty();
-		// Show the homepage
-		document.body.addClass("homepage");
-		// Update the hash
-		last_query = text;
-		location.hash = "#!/";
+		update_results();
 		return;
 	} else {
 		document.body.removeClass("homepage");
@@ -431,13 +485,7 @@ function handle_query(f, e) {
 		sug_wrapper.appendChild(suggestion);
 	}
 
-	var output_element = document.getElementById("output");
-	output_element.empty();
-	output_element.appendChild(output);
-
-	// Update the hash
-	last_query = text;
-	location.hash = "#!/" + encodeURIComponent(text);
+	update_results();
 
 	// Clear the modules array so that the
 	// garbage collector can remove module objects

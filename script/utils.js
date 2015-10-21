@@ -113,19 +113,20 @@ IS_MOBILE = /(iPhone|iPod|iPad|Android|BlackBerry)/i.test(userAgent);
 IS_FIREFOX = (/\bfirefox\//i.test(userAgent) &&
 	!/\bseamonkey\//i.test(userAgent));
 IS_CHROME = (/\bchrome\//i.test(userAgent) &&
-	!/\bchromium\//i.test(userAgent));
+	!/\b(?:chromium|edge)\//i.test(userAgent));
 IS_SAFARI = (/\bsafari\//i.test(userAgent) &&
 	!/\b(?:chrome|chromium)\//i.test(userAgent));
 IS_OPERA = (/\b(?:opera|opr)\//i.test(userAgent));
 IS_WEBKIT = (IS_CHROME || IS_SAFARI || IS_OPERA);
-IS_MSIE = (/\bMSIE\b/i.test(userAgent));
+IS_MSIE = (/\b(?:MSIE|Trident)\b/i.test(userAgent));
 IS_MSIE_9 = (userAgent.indexOf("MSIE 9") != -1);
+IS_EDGE = (userAgent.indexOf("Edge") != -1);
 
 // Check HTML on load
 window.addEventListener("load", function() {
 	// Add classes to the body
 	var userAgentList = ["touch-device", "mobile", "firefox", "chrome", "safari", "opera",
-		"webkit", "msie", "msie-9"];
+		"webkit", "msie", "msie-9", "edge"];
 	for (var i = userAgentList.length; i --; ) {
 		var className = userAgentList[i];
 		if (window["IS_" + className.toUpperCase().replace(/-/g, '_')]) {

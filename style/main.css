@@ -2,12 +2,13 @@ html {
 	font-family: "Roboto Slab", Times New Roman,
 		serif;
 	font-size: 10px;
+	overflow-x: hidden;
+	overflow-y: scroll;
 }
 
 body {
 	background-color: whitesmoke;
 	color: rgba(0, 0, 0, 0.90);
-	overflow-y: scroll;
 }
 
 * {
@@ -173,6 +174,11 @@ body.homepage #homepage {
 
 body.homepage #page-wrapper {
 	top: calc(50% - 32px);
+}
+
+body.homepage.msie #page-wrapper,
+body.homepage.edge #page-wrapper {
+	top: 45%;
 }
 
 body.homepage #nav #logo {
@@ -437,6 +443,10 @@ body.homepage #homepage-text {
 	-o-transform: skewX(30deg);
 }
 
+.card:not(.white) .render .radicand > .radical {
+	width: 2px;
+}
+
 .render .radical-wrapper > .radicand {
 	position: relative;
 	display: inline-block;
@@ -449,6 +459,10 @@ body.homepage #homepage-text {
 	-webkit-transform: skewX(-15deg);
 	-moz-transform: skewX(-15deg);
 	-o-transform: skewX(-15deg);
+}
+
+.card:not(.white) .render .radical-wrapper > .radicand {
+	border-width: 2px;
 }
 
 .render .radical-wrapper >
@@ -468,6 +482,10 @@ body.homepage #homepage-text {
 	-o-transform: skewX(15deg);
 }
 
+#output {
+	z-index: 30;
+}
+
 #output:empty ~ #footer {
 	font-size: 1.2em;
 	opacity: 0;
@@ -478,7 +496,21 @@ body.homepage #homepage-text {
 	font-family: "Roboto", Arial, sans-serif;
 	font-weight: 300;
 	font-size: 1.8em;
+	opacity: 1;
 	color: rgba(0, 0, 0, 0.85);
+	z-index: 0;
+	transition: opacity 0.2s ease 0.8s;
+	-webkit-transition: opacity 0.2s ease 0.8s;
+	-moz-transition: opacity 0.2s ease 0.8s;
+	-o-transition: opacity 0.2s ease 0.8s;
+}
+
+.out#output ~ #footer {
+	opacity: 0;
+	transition: opacity 0.2s;
+	-webkit-transition: opacity 0.2s;
+	-moz-transition: opacity 0.2s;
+	-o-transition: opacity 0.2s;
 }
 
 /* Large displays */
