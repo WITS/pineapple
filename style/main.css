@@ -85,7 +85,8 @@ body {
 	content: "";
 }
 
-#logo:hover::before {
+#logo:active::before,
+#logo:focus::before {
 	animation: logo-hover 0.5s ease;
 	-webkit-animation: logo-hover 0.5s ease;
 	-moz-animation: logo-hover 0.5s ease;

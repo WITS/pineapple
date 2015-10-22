@@ -59,19 +59,24 @@ function handle_query(f, e) {
 
 		// Swap results
 		var output_element = document.getElementById("output");
-		var replace_results;
+		var replace_results_action;
 		if (child_count) {
-			replace_results = function() {
-				output_element.empty();
-				output_element.removeClass("out");
+			replace_results_action = function() {
 				output_element.appendChild(output);
 			};
 		} else {
-			replace_results = function() {
-				output_element.empty();
-				output_element.removeClass("out");
+			replace_results_action = function() { 
 				document.body.addClass("homepage");
 			}
+		}
+		var replace_results = function() {
+			var logo = document.getElementById("logo");
+			if (document.activeElement == logo) {
+				logo.blur();
+			}
+			output_element.empty();
+			output_element.removeClass("out");
+			replace_results_action();
 		}
 		if (last_query == "") { // From homepage
 			new_results_timeout = setTimeout(replace_results, 250);
