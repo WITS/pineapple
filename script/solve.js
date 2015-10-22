@@ -1715,7 +1715,8 @@ MultiplyGroup.prototype.simplify = function() {
 			title: describe_operation({
 				operation: "*+",
 				n1: n1,
-				n2: n2
+				n2: n2,
+				abs: false
 			}),
 			visual: this.equation.element()
 		});
