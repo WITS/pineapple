@@ -258,8 +258,11 @@ body:not(.mobile) .module:not(.expanded) >
 
 .module-step {
 	display: flex;
+	display: -webkit-flex;
 	flex-flow: row nowrap;
+	-webkit-flex-flow: row nowrap;
 	align-items: center;
+	-webkit-align-items: center;
 	position: relative;
 	border-top: 1px solid #E8E8E8;
 	margin: 0px 6px;
@@ -340,13 +343,17 @@ body:not(.mobile) .module:not(.expanded) >
 
 .module-step > .content {
 	flex: 1 1 auto;
+	-webkit-flex: 1 1 auto;
 	display: inline-flex;
+	display: -webkit-inline-flex;
 	flex-flow: row nowrap;
+	-webkit-flex-flow: row nowrap;
 	align-items: center;
 }
 
 .module-step > .content > .title {
 	flex: 1 1 auto;
+	-webkit-flex: 1 1 auto;
 	display: inline-block;
 	text-align: left;
 }
@@ -356,7 +363,8 @@ body:not(.mobile) .module:not(.expanded) >
 }
 
 .module-step > .content > .render {
-	flex: 1 1 auto;
+	flex: 1 0 auto;
+	-webkit-flex: 1 0 auto;
 	font-size: 1.5em;
 	font-weight: 300;
 	text-align: right;
@@ -573,7 +581,9 @@ body:not(.mobile) .module:not(.expanded) >
 
 .module-step > .content {
 	flex-flow: column nowrap;
+	-webkit-flex-flow: column nowrap;
 	align-items: flex-start;
+	-webkit-align-items: flex-start;
 }
 
 .module-step > .content > .title,

@@ -38,8 +38,11 @@ body {
 #nav {
 	display: inline-block;
 	display: flex;
+	display: -webkit-flex;
 	flex-direction: row;
+	-webkit-flex-direction: row;
 	flex-wrap: nowrap;
+	-webkit-flex-wrap: nowrap;
 	align-items: center;
 	position: absolute;
 	top: 0px;
@@ -57,6 +60,7 @@ body {
 
 #logo {
 	flex: 0 0 auto;
+	-webkit-flex: 0 0 auto;
 	display: inline-block;
 	font-size: 3.2em;
 	font-weight: 600;
@@ -94,15 +98,21 @@ body {
 
 #nav form {
 	flex: 1 1 auto;
+	-webkit-flex: 1 1 auto;
 	display: inline-block;
 	display: inline-flex;
+	display: -webkit-inline-flex;
 	flex-direction: row;
+	-webkit-flex-direction: row;
 	flex-wrap: nowrap;
+	-webkit-flex-wrap: nowrap;
 	align-items: center;
+	-webkit-align-items: center;
 }
 
 input[type='text'] {
 	flex: 1 1 auto;
+	-webkit-flex: 1 1 auto;
 	font-family: "Roboto", Arial, sans-serif;
 	font-size: 2.0em;
 	background-color: transparent;
@@ -124,6 +134,7 @@ input[type='text']:focus {
 
 #nav button {
 	flex: 0 0 auto;
+	-webkit-flex: 0 0 auto;
 	margin-left: 12px;
 	border: none;
 	border-radius: 50%;
@@ -592,7 +603,9 @@ body.homepage #homepage-text {
 
 #nav {
 	flex-direction: column;
+	-webkit-flex-direction: column;
 	align-items: initial;
+	-webkit-align-items: initial;
 	width: 100%;
 	height: 96px;
 	padding-top: 12px;
@@ -612,6 +625,7 @@ body.homepage #homepage-text {
 
 #nav > form {
 	display: flex;
+	display: -webkit-flex;
 	padding-top: 12px;
 	width: 100%;
 }

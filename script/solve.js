@@ -1023,6 +1023,22 @@ ExpressionGroup.prototype.push = function(group) {
 	group.equation = this.equation;
 }
 
+ExpressionGroup.prototype.duplicate = function() {
+	var result = new ExpressionGroup();
+	for (var x = 0, y = this.groups.length; x < y; ++ x) {
+		result.push(this.groups[x].duplicate());
+	}
+	return result;
+}
+
+ExpressionGroup.prototype.multiply = function(group) {
+	for (var x = 0, y = this.groups.length; x < y; ++ x) {
+		var n2 = group.duplicate();
+		this.groups[x].multiply(n2);
+		this.groups[x] = this.groups[x].valueOf();
+	}
+}
+
 ExpressionGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
@@ -1037,8 +1053,10 @@ ExpressionGroup.prototype.insertBefore = function(g1, g2) {
 	// g1 = The group used to find location
 	// g2 = The group being inserted
 
-	var temp_groups = this.groups.splice(
-		this.groups.indexOf(g1));
+	if (typeof g1 !== 'number') {
+		g1 = this.groups.indexOf(g1);
+	}
+	var temp_groups = this.groups.splice(g1);
 	this.groups.push(g2);
 	this.groups = this.groups.concat(temp_groups);
 	g2.parent = this;
@@ -1108,6 +1126,17 @@ ExpressionGroup.prototype.simplify = function() {
 		x < y; ++ x) {
 		var group = this.groups[x];
 		group.simplify();
+		if (group instanceof MultiplyGroup &&
+			group.value instanceof ExpressionGroup) {
+			this.remove(group);
+			var g = group.valueOf();
+			for (var i = 0, y = g.groups.length; i < y; ++ i) {
+				this.insertBefore(x + i, g.groups[i]);
+			}
+			-- x;
+			y = this.groups.length;
+			continue;
+		}
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
 		if (group instanceof Fraction) {
@@ -1583,6 +1612,7 @@ MultiplyGroup = function(json) {
 
 MultiplyGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
+	var expression_groups = new Array();
 	var constants = new Array();
 	var strings = new Array();
 	var denominators = new Object();
@@ -1598,7 +1628,9 @@ MultiplyGroup.prototype.simplify = function() {
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
 
-		if (group instanceof Fraction ||
+		if (group instanceof ExpressionGroup) {
+			expression_groups.push(group);
+		} if (group instanceof Fraction ||
 			group instanceof AlgebraGroup ||
 			group instanceof FractionGroup) {
 			constants.push(x);
@@ -1663,6 +1695,40 @@ MultiplyGroup.prototype.simplify = function() {
 			}
 		}
 	}
+	// Distribution
+	if (expression_groups.length == 1 &&
+		constants.length == 1 &&
+		this.groups.length == 2) {
+		var n1, n2;
+		if (this.groups[0] instanceof ExpressionGroup) {
+			n2 = this.groups[0];
+			n1 = this.groups[1];
+		} else {
+			n1 = this.groups[0];
+			n2 = this.groups[1];
+		}
+		n1.highlighted = true;
+		n2.highlighted = true;
+		// ModuleStep: Distribute
+		push_module_step({
+			type: "simplify",
+			title: describe_operation({
+				operation: "*+",
+				n1: n1,
+				n2: n2
+			}),
+			visual: this.equation.element()
+		});
+		n1.highlighted = false;
+		n2.highlighted = false;
+		n2.multiply(n1);
+		this.remove(n1);
+		this.value = n2.valueOf();
+		n2.parent = this.parent;
+		if (this == this.top_parent) n2.top_parent = n2;
+		n2.simplify();
+		this.value = n2.valueOf();
+	}
 	// Single group?
 	if (this.groups.length == 1) {
 		this.value = this.groups[0].valueOf();
@@ -1679,6 +1745,14 @@ MultiplyGroup.prototype.push = function(group) {
 	group.parent = this;
 	group.side = this.side;
 	group.equation = this.equation;
+}
+
+MultiplyGroup.prototype.duplicate = function() {
+	var result = new MultiplyGroup();
+	for (var x = 0, y = this.groups.length; x < y; ++ x) {
+		result.push(this.groups[x].duplicate());
+	}
+	return result;
 }
 
 MultiplyGroup.prototype.multiply = function(n) {
@@ -1913,6 +1987,18 @@ FractionGroup = function(json) {
 			});
 		}
 	}
+}
+
+FractionGroup.prototype.duplicate = function() {
+	var num = this.numerator.duplicate();
+	var den = this.denominator.duplicate();
+	var copy = new FractionGroup({
+		numerator: num,
+		denominator: den
+	});
+	num.parent = copy;
+	den.parent = copy;
+	return copy;
 }
 
 FractionGroup.prototype.replace = function(g1, g2) {
@@ -2381,6 +2467,18 @@ ExponentGroup = function(json) {
 	}
 }
 
+ExponentGroup.prototype.duplicate = function() {
+	var base = this.base.duplicate();
+	var exp = this.exponent.duplicate();
+	var copy = new ExponentGroup({
+		base: base,
+		exponent: exp
+	});
+	base.parent = copy;
+	exp.parent = copy;
+	return copy;
+}
+
 ExponentGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
@@ -2659,11 +2757,11 @@ AlgebraGroup.prototype.variableText = function() {
 }
 AlgebraGroup.prototype.updateFromText = function(text) {
 	var variables;
-	var coefficient = new RegExp("^-?(?:" +
-		FRACTION_REGEX + ")?").exec(text);
+	var coefficient = new RegExp("^(?:" +
+		NEG_FRACTION_REGEX + ")?").exec(text);
 	if (coefficient != null) {
 		this.coefficient = new Fraction({
-			text: coefficient,
+			text: coefficient[0],
 			parent: this,
 			equation: this.equation,
 			side: this.side
@@ -2725,6 +2823,12 @@ AlgebraGroup.prototype.multiply = function(n) {
 	}
 	// FractionGroup
 	if (n instanceof FractionGroup) {
+		n.multiply(this);
+		this.value = n.valueOf();
+		return;
+	}
+	// ExpressionGroup
+	if (n instanceof ExpressionGroup) {
 		n.multiply(this);
 		this.value = n.valueOf();
 		return;
@@ -3364,6 +3468,12 @@ PlusMinusGroup = function(json) {
 	this.value = this;
 }
 
+PlusMinusGroup.prototype.duplicate = function() {
+	var copy = new PlusMinusGroup({
+		group: this.group.duplicate()
+	});
+}
+
 PlusMinusGroup.prototype.multiply = function(n) {
 	this.group.multiply(n);
 	this.group = this.group.valueOf();
@@ -3525,6 +3635,10 @@ function describe_operation(json) {
 		case "*r":
 			start = "Multiply";
 			middle = "by the reciprocal of";
+			break;
+		case "*+":
+			start = "Distribute";
+			middle = "to everything inside";
 			break;
 		case "/":
 			start = "Divide";

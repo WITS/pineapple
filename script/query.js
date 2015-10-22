@@ -76,6 +76,7 @@ function handle_query(f, e) {
 			}
 			output_element.empty();
 			output_element.removeClass("out");
+			window.scrollTo(0, 0);
 			replace_results_action();
 		}
 		if (last_query == "") { // From homepage
@@ -109,7 +110,6 @@ function handle_query(f, e) {
 		// Convert NaN to icon representation
 		output.querySelectorAll(".card .render .number"
 			).forEach(function(elem) {
-			console.log(elem);
 			if (elem.innerHTML != "NaN") return;
 			elem.innerHTML = "<i class='fa fa-square'></i>";
 		});
