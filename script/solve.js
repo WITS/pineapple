@@ -155,6 +155,15 @@ Equation.prototype.replace = function(v, value) {
 			right = true;
 		}
 	}
+
+	// Check if sides are equal
+	if (this.left != null && this.left.valueOf() instanceof Fraction &&
+		this.right.valueOf() instanceof Fraction &&
+		this.left.valueOf().toNumber() != this.right.valueOf().toNumber()) {
+		console.log("Oh dear...");
+		this.comparison = "&ne;";
+		return;
+	}
 }
 
 Equation.prototype.isolate = function(v) {
@@ -953,8 +962,8 @@ ExpressionGroup = function(json) {
 		/(^|[^\+\*\/\^\(])(-|\u00B1)/g, "$1+$2");
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
-	this.text = this.text.replace(new RegExp("\\((" +
-		FRACTION_REGEX + ")\\)", "g"), "$1");
+	this.text = this.text.replace(new RegExp("(^|[^\\/])\\((" +
+		FRACTION_REGEX + ")\\)(?!\\/)", "g"), "$1$2");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1373,8 +1382,10 @@ MultiplyGroup = function(json) {
 		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + NEG_FRACTION_REGEX + ")\\^"), "-1*$1^");
-	temp_text = temp_text.replace(new RegExp("\\((" +
-		FRACTION_REGEX + ")\\)", "g"), "$1");
+	// temp_text = temp_text.replace(new RegExp("\\((" +
+	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
+	temp_text = temp_text.replace(new RegExp("(^|[^\\/])\\((" +
+		FRACTION_REGEX + ")\\)(?!\\/)", "g"), "$1$2");
 	// console.log(temp_text);
 	
 	// console.log(temp_text);
