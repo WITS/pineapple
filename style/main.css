@@ -307,10 +307,11 @@ body.homepage #homepage-text {
 	content: "" !important;
 }
 
-.render .negative:first-child::before,
-.render .multiply-group > .negative::before,
+.render .negative:not(.fraction):first-child::before,
+.render .multiply-group > .negative:not(.fraction)::before,
 .render .brackets > .negative::before,
 .render .exponent.negative::before,
+.render .fraction.negative > .numerator::before,
 .render > .negative::before,
 .render .denominator.negative::before {
 	content: "-";

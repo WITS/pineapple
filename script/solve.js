@@ -604,6 +604,9 @@ Equation.prototype.factor = function(v, solve) {
 			"right");
 		var a = b = c = 0; // Coefficients
 		var d; // Discriminant
+		this[side] = this[side].valueOf();
+		this[side].top_parent = this[side];
+		this[side].parent = null;
 		if (this[side] instanceof AlgebraGroup) {
 			console.log("Factoring is pointless");
 			return true;
@@ -622,8 +625,39 @@ Equation.prototype.factor = function(v, solve) {
 					c = group.toNumber();
 				}
 			}
+		} else if (this[side] instanceof FractionGroup &&
+			new RegExp("\\/\\(" + NEG_FRACTION_REGEX +
+				"\\)$").test(this[side].toString())) {
+			if (this[side].numerator instanceof AlgebraGroup) {
+				console.log("Factoring is pointless");
+				return true;
+			}
+			if (this[side].numerator instanceof ExpressionGroup) {
+				var g = this[side].numerator;
+				for (var i = g.groups.length; i --; ) {
+					var group = g.groups[i];
+					if (group instanceof AlgebraGroup) {
+						if (group.getVar(v) == 2) {
+							a = group.coefficient.toNumber();
+						} else {
+							b = group.coefficient.toNumber();
+						}
+					} else if (group instanceof Fraction) {
+						c = group.toNumber();
+					}
+				}
+				var d = this[side].denominator.toNumber();
+				a /= d;
+				b /= d;
+				c /= d;
+			}
 		}
 		d = Math.pow(b, 2) - (4 * a * c);
+		/*console.log({
+			a: a,
+			b: b,
+			c: c
+		});*/
 		if (d < 0) {
 			// console.warn("No real solution");
 			this.result = new ResultText({
@@ -2064,11 +2098,16 @@ FractionGroup.prototype.factorOut = function(factor, showSteps) {
 	// Actually factor
 	this.numerator.valueOf().factorOut(factor);
 	this.denominator.valueOf().factorOut(factor);
+	if (this.denominator.toString() == "1") {
+		this.value = this.numerator;
+		this.value.parent = this.parent;
+		if (!this.parent) this.value.top_parent = this.value;
+	}
 }
 
 FractionGroup.prototype.toString = function() {
-	return this.numerator.toString() + "/" +
-		this.denominator.toString();
+	return "(" + this.numerator.toString() + ")/(" +
+		this.denominator.toString() + ")";
 }
 
 FractionGroup.prototype.factors = function() {
@@ -2351,13 +2390,51 @@ FractionGroup.prototype.simplify = function() {
 	var factors = this.factors();
 	factors = sort_factors(sanitize_factors(factors));
 	// console.log(factors);
-	if (factors.length) {
-		if (factors[0] != "1") {
-			// TODO: Divide out the first of each category
-			// e.g. divide out 4 and x^3 and y if they are
-			// all in the factors array
-			this.factorOut(factors[0], true);
+	// Get rid of all useless numbers
+	var removed_n = false;
+	var removed_d = false;
+	var removed_vars = [];
+	// console.log(factors);
+	for (var x = 0, y = factors.length; x < y; ++ x) {
+		var f = factors[x];
+		if (/[a-zA-Z]/.test(f)) { // Variable
+			var v = f.replace(/[^a-zA-Z]/g, "");
+			if (removed_vars.indexOf(v) !== -1) continue;
+			removed.push(v);
+			this.factorOut(f, true);
+		} else if (f.indexOf("1/") === 0) { // Reciprocal
+			if (x != y - 1) continue;
+			this.factorOut(f, true);
+		} else if (f == "-1") {
+			this.factorOut(f, true);
+		} else if (f != "1") {
+			if (removed_n) continue;
+			removed_n = true;
+			this.factorOut(f, true);
 		}
+	}
+	// Move things from the top to the bottom
+	// when appropriate
+	var n_factors = this.numerator.factors();
+	n_factors = sort_factors(n_factors);
+	// console.log(n_factors);
+	var n_factor = n_factors[n_factors.length - 1];
+	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
+		NEG_FRACTION_REGEX).test(n_factor)) {
+		var divisor = n_factor.substr(n_factor.indexOf("/") + 1);
+		this.highlighted = true;
+		push_module_step({
+			type: "simplify",
+			title: describe_operation({
+				operation: "/n",
+				n1: new Fraction(divisor),
+				n2: this.valueOf()
+			}),
+			visual: this.valueOf().element()
+		});
+		this.highlighted = false;
+		this.numerator.factorOut("1/" + divisor);
+		this.denominator.multiply(new Fraction(divisor));
 	}
 }
 FractionGroup.prototype.valueOf = function() {
@@ -2386,7 +2463,6 @@ ExponentGroup = function(json) {
 		this.top_parent = this.parent.top_parent;
 	}
 	if (json.text) {
-		console.log(json.text);
 		var caret_pos = json.text.indexOf("^");
 		if (caret_pos != -1) {
 			json.base =
@@ -2555,11 +2631,11 @@ ExponentGroup.prototype.simplify = function() {
 		}
 
 		this.highlighted = true;
-		if (radical) { // Radical
+		if (radical && b_val.numerator > 0) { // Radical
 			var b = b_val.toNumber();
 			var factor = 1;
 			var factor_root;
-			for (var i = b; i >= 4; -- i) {
+			for (var i = b; i >= 2; -- i) {
 				// Can divide base by i?
 				if (b % i) continue;
 				var root = Math.pow(i, 1 / r_index);
@@ -2569,6 +2645,13 @@ ExponentGroup.prototype.simplify = function() {
 				factor = i;
 				factor_root = Math.round(root);
 				break;
+			}
+			var b_root_n, b_root_d, b_root_n_r, b_root_d_r;
+			if (factor == 1 && b_val.denominator != 1) {
+				b_root_n = Math.pow(b_val.numerator, 1 / r_index);
+				b_root_d = Math.pow(b_val.denominator, 1 / r_index);
+				b_root_n_r = b_root_n % 1;
+				b_root_d_r = b_root_d % 1;
 			}
 			// console.log("Simplify radical: " + factor + ", " + factor_root);
 			if (factor != 1) { // Can be simplified
@@ -2636,6 +2719,13 @@ ExponentGroup.prototype.simplify = function() {
 						console.log(m_group.groups);
 					}
 				}
+			} else if (b_val.denominator != 1 &&
+				Math.min(b_root_n_r, 1 - b_root_n_r) < 2e-8 &&
+				Math.min(b_root_d_r, 1 - b_root_d_r) < 2e-8) {
+				// Simplify fraction base
+				b_val.numerator = Math.round(b_root_n);
+				b_val.denominator = Math.round(b_root_d);
+				this.value = b_val;
 			} else { // Still update the value
 				this.value = this;
 			}
@@ -3374,18 +3464,28 @@ Fraction.prototype.toString = function () {
 		this.denominator;
 }
 Fraction.prototype.factors = function() {
-	var n_val = this.toNumber();
+	var n_val = this.numerator;
+	var d_val = this.denominator;
 	var factors;
 	if (n_val % 1) {
 		factors = new Array();
-		factors.push(this.toString().replace(/-/g, ""));
+		factors.push(n_val.toString().replace("-", ""));
 	} else {
 		factors = get_factors(Math.abs(n_val));
+	}
+	if (d_val % 1) {
+		factors.push(d_val.toString().replace("-", ""));
+	} else {
+		var new_factors = get_factors(Math.abs(d_val));
+		for (var i = new_factors.length; i --; ) {
+			if (new_factors[i] == "1") continue;
+			factors.push("1/" + new_factors[i]);
+		}
 	}
 	for (var i = factors.length; i --; ) {
 		factors[i] = factors[i].toString();
 	}
-	if (n_val < 0) factors.push("-1");
+	if (this.toNumber() < 0) factors.push("-1");
 	return factors;
 }
 Fraction.prototype.element = function() {
@@ -3645,6 +3745,10 @@ function describe_operation(json) {
 			start = "Divide";
 			middle = "by";
 			break;
+		case "/n":
+			start = "Move";
+			middle = "to the bottom of";
+			break;
 		case "/f":
 			start = "Factor";
 			middle = "out of";
@@ -3813,7 +3917,7 @@ function sanitize_factors(factors) {
 
 function sort_factors(factors) {
 	// Don't change the original array
-	var sorted = factors;
+	var sorted = factors.concat([]);
 	sorted.sort(function(a, b) {
 		var a_vars = /[a-zA-Z]/.test(a);
 		var b_vars = /[a-zA-Z]/.test(b);
@@ -3824,7 +3928,8 @@ function sort_factors(factors) {
 		} else if (!a_vars && !b_vars) {
 			var a_val = get_number(a);
 			var b_val = get_number(b);
-			return b_val - a_val;
+			var dif = Math.abs(b_val) - Math.abs(a_val);
+			return dif != 0 ? dif : a_val - b_val;
 		}
 		// Algebra
 		var a_letter = a[a.search(/[a-zA-Z]/)];
