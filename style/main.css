@@ -208,9 +208,11 @@ body.homepage #nav {
 }
 
 #homepage-text {
-	display: none;
+	opacity: 0;
+	max-height: 0;
 	padding: 0 24px;
 	font-size: 1.6em;
+	transition: opacity 0.3s, max-height 0s linear 0.3s;
 }
 
 #homepage-text h2 {
@@ -228,7 +230,8 @@ body.homepage #nav {
 }
 
 body.homepage #homepage-text {
-	display: block;
+	opacity: 1;
+	transition: opacity 0.5s;
 }
 
 /* Rendering */

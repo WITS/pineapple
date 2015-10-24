@@ -336,7 +336,7 @@ function handle_query(f, e) {
 			if (query_info.value != null) {
 				equation.replace(query_info.variable,
 					query_info.value);
-				console.log(equation);
+				// console.log(equation);
 				// Simplify again
 				if (equation.left) {
 					equation.left.simplify();

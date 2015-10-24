@@ -1791,6 +1791,16 @@ MultiplyGroup.prototype.push = function(group) {
 	group.parent = this;
 	group.side = this.side;
 	group.equation = this.equation;
+	// Single group?
+	if (this.groups.length == 1) {
+		this.value = this.groups[0].valueOf();
+		this.value.parent = this.parent;
+		if (this.parent == null) {
+			this.value.top_parent = this.value;
+		}
+	} else {
+		this.value = null;
+	}
 }
 
 MultiplyGroup.prototype.duplicate = function() {
