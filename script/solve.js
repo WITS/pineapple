@@ -74,7 +74,7 @@ Equation.prototype.replace = function(v, value) {
 				group.highlighted_temp.splice(0);
 				var e = group.getVar(v);
 				group.removeVar(v);
-				if (group.parent != null) group.parent = group.parent.valueOf();
+				// if (group.parent != null) group.parent = group.parent.valueOf();
 				var m_group = group.parent;
 				// Remove if replacing with 0
 				if (String(value) == "0") {
@@ -125,6 +125,8 @@ Equation.prototype.replace = function(v, value) {
 						group.coefficient.denominator != 1) {
 						m_group.push(group);
 					}
+				} else {
+					m_group.value = null;
 				}
 				if (e != 1) {
 					m_group.push(new ExponentGroup({
@@ -1675,7 +1677,7 @@ MultiplyGroup.prototype.simplify = function() {
 
 		if (group instanceof ExpressionGroup) {
 			expression_groups.push(group);
-		} if (group instanceof Fraction ||
+		} else if (group instanceof Fraction ||
 			group instanceof AlgebraGroup ||
 			group instanceof FractionGroup) {
 			constants.push(x);
@@ -1770,10 +1772,10 @@ MultiplyGroup.prototype.simplify = function() {
 		n2.multiply(n1);
 		this.remove(n1);
 		this.value = n2.valueOf();
-		n2.parent = this.parent;
-		if (this == this.top_parent) n2.top_parent = n2;
-		n2.simplify();
-		this.value = n2.valueOf();
+		this.value.parent = this.parent;
+		if (this == this.top_parent) this.value.top_parent = this.value;
+		this.value.simplify();
+		this.value = this.value.valueOf();
 	}
 	// Single group?
 	if (this.groups.length == 1) {
@@ -1791,16 +1793,6 @@ MultiplyGroup.prototype.push = function(group) {
 	group.parent = this;
 	group.side = this.side;
 	group.equation = this.equation;
-	// Single group?
-	if (this.groups.length == 1) {
-		this.value = this.groups[0].valueOf();
-		this.value.parent = this.parent;
-		if (this.parent == null) {
-			this.value.top_parent = this.value;
-		}
-	} else {
-		this.value = null;
-	}
 }
 
 MultiplyGroup.prototype.duplicate = function() {
@@ -2064,9 +2056,13 @@ FractionGroup.prototype.replace = function(g1, g2) {
 	if (this.numerator == g1) {
 		this.numerator = g2;
 		g2.parent = this;
+		g2.top_parent = this.top_parent;
+		g2.equation = this.equation;
 	} else if (this.denominator == g1) {
 		this.denominator = g2;
 		g2.parent = this;
+		g2.top_parent = this.top_parent;
+		g2.equation = this.equation;
 	}
 }
 
@@ -2931,9 +2927,11 @@ AlgebraGroup.prototype.variableText = function() {
 }
 AlgebraGroup.prototype.updateFromText = function(text) {
 	var variables;
-	var coefficient = new RegExp("^(?:" +
-		NEG_FRACTION_REGEX + ")?").exec(text);
+	var coefficient = new RegExp("^-?(?:" +
+		FRACTION_REGEX + ")?").exec(text);
 	if (coefficient != null) {
+		if (coefficient[0] == "-") coefficient[0] += "1"
+		console.log(coefficient[0]);
 		this.coefficient = new Fraction({
 			text: coefficient[0],
 			parent: this,
@@ -3390,7 +3388,7 @@ Fraction.prototype.multiply = function(n) {
 	if (n instanceof AlgebraGroup ||
 		n instanceof FractionGroup) {
 		n.multiply(this);
-		this.value = n;
+		this.value = n.valueOf();
 	}
 }
 Fraction.prototype.factorOut = function(factor, showSteps) {
