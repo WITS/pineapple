@@ -217,7 +217,7 @@ body.homepage #nav {
 
 #homepage-text h2 {
 	font-size: 2.0em;
-	margin-bottom: 8px;
+	margin: 0;
 }
 
 #homepage-text code {
@@ -232,6 +232,10 @@ body.homepage #nav {
 body.homepage #homepage-text {
 	opacity: 1;
 	transition: opacity 0.5s;
+}
+
+body.homepage #homepage-text h2 {
+	margin: 0 0 8px;
 }
 
 /* Rendering */
