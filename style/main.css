@@ -317,7 +317,7 @@ body.homepage #homepage-text h2 {
 .render .negative:not(.fraction):first-child::before,
 .render .multiply-group > .negative:not(.fraction)::before,
 .render .brackets > .negative::before,
-.render .exponent.negative::before,
+.render .exponent.negative:not(.fraction)::before,
 .render .fraction.negative > .numerator::before,
 .render > .negative::before,
 .render .denominator.negative::before {
@@ -390,7 +390,7 @@ body.homepage #homepage-text h2 {
 	font-size: 0.7em;
 }
 
-.render .fraction {
+.render .fraction:not(.exponent) {
 	vertical-align: middle;
 }
 
@@ -402,15 +402,59 @@ body.homepage #homepage-text h2 {
 
 .render .fraction > .numerator {
 	position: relative;
-	top: -0.04em;
-	border-bottom: 0.08em solid black;
+	border-bottom: 1px solid black;
 	vertical-align: bottom;
 }
 
-.card:not(.white) .render
-	.fraction > .numerator {
+.card.white .render .fraction > .denominator,
+.card:not(.white) .render .fraction .fraction > .numerator {
+	padding-top: 1px;
+}
+
+.card:not(.white) .render .fraction > .numerator {
 	border-bottom-color:
 		rgba(255, 255, 255, 0.9);
+}
+
+.card:not(.white) .render > .fraction > .numerator {
+	border-width: 2px;
+}
+
+.card:not(.white) .render .fraction .fraction > .numerator {
+	border-width: 1px;
+}
+
+.render .exponent.fraction {
+	white-space: nowrap;
+}
+
+.render .exponent.fraction .numerator,
+.render .exponent.fraction .denominator {
+	display: inline-block;
+	position: relative;
+}
+
+.render .exponent.fraction .numerator {
+	top: -0.2em;
+	border-bottom: none;
+}
+
+.render .exponent.fraction .numerator::after {
+	position: absolute;
+	left: 100%;
+	bottom: -0.2em;
+	display: block;
+	width: 0;
+	height: 100%;
+	padding-left: 0.3em;
+	border-right: 1px solid currentColor;
+	transform: rotate(30deg);
+	content: "";
+}
+
+.render .exponent.fraction .denominator {
+	top: 0.4em;
+	padding-left: 0.5em;
 }
 
 .render .operation[data-operation='-'

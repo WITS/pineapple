@@ -1340,7 +1340,7 @@ ExpressionGroup.prototype.element = function() {
 			}
 			wrapper.appendChild(o_elem);
 		} else if (group_elem.hasClass("negative")) {
-			if (group.groups != null) {
+			if (group.groups != null && group_elem.children.length) {
 				group_elem.children[0].addClass(
 					"negative");
 				group_elem.removeClass("negative");
