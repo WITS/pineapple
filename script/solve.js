@@ -39,7 +39,7 @@ Equation.prototype.right_degree = 0;
 
 Equation.prototype.replace = function() {
 	var json = replace_factor_json(arguments);
-	
+
 	// Replace in both sides
 	if (this.left != null) {
 		this.left.replaceFactor(json);
@@ -705,9 +705,14 @@ Equation.prototype.factor = function(v, solve) {
 						text: a + "," + b + "," + c
 					}).element()
 				});
-				quad_equation.replace("a", a);
+				quad_equation.replace({
+					"a": a,
+					"b": b,
+					"c": c
+				});
+				/*quad_equation.replace("a", a);
 				quad_equation.replace("b", b);
-				quad_equation.replace("c", c);
+				quad_equation.replace("c", c);*/
 				this[pref_side] = quad_equation.right;
 				this[other_side] = new AlgebraGroup({
 					text: v,
@@ -2984,7 +2989,11 @@ AlgebraGroup.prototype.setVar = function(name, degree) {
 			text: degree
 		});
 	}
-	this.variable[name] = degree;
+	if (degree.toNumber() != 0) {
+		this.variable[name] = degree;
+	} else {
+		delete this.variable[name];
+	}
 	return degree;
 }
 AlgebraGroup.prototype.incrementVar = function(name, degree) {
@@ -3026,7 +3035,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		"[a-z](?:\\^" + NEG_FRACTION_REGEX + ")?",
 		"gi"));
 	if (variables == null) {
-		console.error("No variables!");
+		// console.error("No variables!");
 		return;
 	}
 	variables.reverse();
@@ -3037,7 +3046,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		}
 		var var_letter = variables[i][0];
 		var var_exp = variables[i].substr(2);
-		this.temp_variables.push(var_letter + var_exp);
+		if (this.temp_variables) this.temp_variables.push(var_letter + var_exp);
 		this.incrementVar(var_letter, var_exp);
 	}
 	this.text = text;
@@ -3183,14 +3192,15 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 	var json = replace_factor_json(arguments);
 	// Check each factor separately
 	for (var n in json) {
-		// Make sure the factor exists in this group
+		// Break down the factor being tested
 		var n_factors = n.match(new RegExp("(?:^" + NEG_FRACTION_REGEX +
 			"|[a-zA-Z](?:\\^" + NEG_FRACTION_REGEX + ")?)", "g"));
 		if (!n_factors.length) continue;
 		// How many times the factor was removed
 		var exp = 0;
+		var copy = this.duplicate();
 		while (true) {
-			var factors = this.factors();
+			var factors = copy.factors();
 			var okay = true;
 			for (var i = n_factors.length; i --; ) {
 				if (factors.indexOf(n_factors[i]) === -1) {
@@ -3201,22 +3211,51 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 			if (!okay) break;
 			// Increment the count of the times this factor was removed
 			++ exp;
-			// Remove factors in children
+			// Remove factors in copies of children
 			var coefficient = !/[a-zA-Z]/.test(n_factors[0]);
 			if (coefficient) {
 				var c_val = n_factors[0];
 				var c_fraction = new Fraction(c_val).reciprocal();
-				this.coefficient.multiply(c_fraction);
+				copy.coefficient.multiply(c_fraction);
 			}
 			var vars = n_factors.slice(coefficient);
 			for (var i = vars.length; i --; ) {
 				var v = vars[i][0];
-				if (!this.hasVar(v)) continue;
-				this.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
+				if (!copy.hasVar(v)) continue;
+				copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
 					"-" + vars[i].substr(2));
 			}
+			// Prevent an infinite loop from occurring here
+			if (coefficient && n_factors[0] == "1") break;
 		}
+		// If nothing can be replaced, skip to the next factor
 		if (!exp) continue;
+		// Create visuals for the title
+		var n1 = new MultiplyGroup({
+			text: exp == 1 ? n : "(" + n + ")^" + exp
+		});
+		var n2 = new ExpressionGroup({
+			text: exp == 1 ? json[n] : "(" + json[n] + ")^" + exp
+		});
+		// Highlight this
+		this.highlighted = true;
+		// Show the steps
+		push_module_step({
+			type: "simplify",
+			title: describe_operation({
+				operation: "rf",
+				n1: n1,
+				n2: n2
+			}),
+			visual: this.top_parent.element()
+		});
+		this.highlighted = false;
+		// Actually remove factors in children
+		this.coefficient.numerator = copy.coefficient.numerator;
+		this.coefficient.denominator = copy.coefficient.denominator;
+		for (var name in this.variable) {
+			this.setVar(name, copy.variable[name].toString());
+		}
 		var replace_val = json[n];
 		// Add in the replacement values
 		if (exp == 1) {
@@ -4132,6 +4171,10 @@ function describe_operation(json) {
 		case "^/":
 			start = "Divide";
 			middle = "out of";
+			break;
+		case "rf":
+			start = "Replace";
+			middle = "with";
 			break;
 		default:
 			break;
