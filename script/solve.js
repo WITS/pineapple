@@ -37,126 +37,18 @@ Equation.prototype.comparison = "=";
 Equation.prototype.left_degree = 0;
 Equation.prototype.right_degree = 0;
 
-Equation.prototype.replace = function(v, value) {
-	var groups = new Array();
-	var right = false;
+Equation.prototype.replace = function() {
+	var json = replace_factor_json(arguments);
+
+	// Replace in both sides
 	if (this.left != null) {
-		groups.push(this.left);
-	} else {
-		groups.push(this.right);
-		right = true;
+		this.left.replaceFactor(json);
+		this.left = this.left.valueOf();
+		this.left.fixLinks();
 	}
-
-	var visual_value = new Fraction({
-		text: value
-	});
-
-	while (groups.length) {
-		var group = groups[0];
-		groups.splice(0, 1);
-		// console.log(group);
-		if (group.groups != null) {
-			for (var x = 0, y = group.groups.length;
-				x < y; ++ x) {
-				groups.push(group.groups[x]);
-			}
-		} else if (group.variable != null) {
-			if (group.hasVar(v)) {
-				// console.log("Replacing " + v);
-				// ModuleStep Replace Var
-				group.highlighted_temp.push(v);
-				push_module_step({
-					type: "simplify",
-					title: "Replace " + v + " with " +
-						truncate_number(visual_value),
-					visual: this.element()
-				});
-				group.highlighted_temp.splice(0);
-				var e = group.getVar(v);
-				group.removeVar(v);
-				// if (group.parent != null) group.parent = group.parent.valueOf();
-				var m_group = group.parent;
-				// Remove if replacing with 0
-				if (String(value) == "0") {
-					if (m_group != null &&
-						m_group.valueOf() instanceof MultiplyGroup) {
-						m_group.value = new Fraction(0);
-					} else if (m_group == null) {
-						this[group.side] = new Fraction({
-							numerator: 0,
-							equation: this,
-							side: group.side
-						});
-					} else {
-						group.coefficient.numerator = 0;
-						group.coefficient.denominator = 1;
-					}
-					continue;
-				}
-				var val = value;
-				// Else
-				if (!(m_group instanceof MultiplyGroup)) {
-					m_group = new MultiplyGroup({
-						parent: group.parent
-					});
-					if (group.parent != null) {
-						group.parent.replace(group,
-							m_group);
-					} else {
-						this[group.side] = m_group;
-						m_group.equation = this;
-						m_group.side = group.side;
-					}
-					var remove = !(Object.keys(group.variable).length);
-					if (remove &&
-						group.coefficient.numerator == -1 &&
-						group.coefficient.denominator == 1) {
-						group.coefficient.numerator = 1;
-						if (typeof val === 'number') {
-							val *= -1;
-						} else if (val[0] != "-") {
-							val = "-" + val;
-						} else {
-							val = val.substr(1);
-						}
-					}
-					if (!remove ||
-						group.coefficient.numerator != 1 ||
-						group.coefficient.denominator != 1) {
-						m_group.push(group);
-					}
-				} else {
-					m_group.value = null;
-				}
-				if (e != 1) {
-					m_group.push(new ExponentGroup({
-						base: val.toString(),
-						exponent: e.toString(),
-						parent: group.parent
-					}));
-				} else {
-					m_group.push(new Fraction({
-						text: val.toString(),
-						parent: group.parent
-					}));
-				}
-				// console.log(m_group);
-			}
-		} else if (group.base != null) {
-			groups.push(group.base);
-			groups.push(group.exponent);
-		} else if (group instanceof FractionGroup) {
-			groups.push(group.numerator);
-			groups.push(group.denominator);
-		} else if (group.group) {
-			groups.push(group.group);
-		}
-
-		if (!right && !groups.length) {
-			groups.push(this.right);
-			right = true;
-		}
-	}
+	this.right.replaceFactor(json);
+	this.right = this.right.valueOf();
+	this.right.fixLinks();
 
 	// Check if sides are equal
 	if (this.left != null && this.left.valueOf() instanceof Fraction &&
@@ -813,9 +705,14 @@ Equation.prototype.factor = function(v, solve) {
 						text: a + "," + b + "," + c
 					}).element()
 				});
-				quad_equation.replace("a", a);
+				quad_equation.replace({
+					"a": a,
+					"b": b,
+					"c": c
+				});
+				/*quad_equation.replace("a", a);
 				quad_equation.replace("b", b);
-				quad_equation.replace("c", c);
+				quad_equation.replace("c", c);*/
 				this[pref_side] = quad_equation.right;
 				this[other_side] = new AlgebraGroup({
 					text: v,
@@ -964,8 +861,8 @@ ExpressionGroup = function(json) {
 		/(^|[^\+\*\/\^\(])(-|\u00B1)/g, "$1+$2");
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
-	this.text = this.text.replace(new RegExp("(^|[^\\/])\\((" +
-		FRACTION_REGEX + ")\\)(?!\\/)", "g"), "$1$2");
+	this.text = this.text.replace(new RegExp("(^|[^\\/0-9])\\((" +
+		FRACTION_REGEX + ")\\)(?![\\/0-9])", "g"), "$1$2");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1064,6 +961,7 @@ ExpressionGroup = function(json) {
 ExpressionGroup.prototype.push = function(group) {
 	this.groups.push(group);
 	group.parent = this;
+	group.top_parent = this.top_parent;
 	group.side = this.side;
 	group.equation = this.equation;
 }
@@ -1088,8 +986,17 @@ ExpressionGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
 
-	this.groups[this.groups.indexOf(g1)] = g2;
+	var index = this.groups.indexOf(g1);
+	if (index == -1) {
+		for (var i = this.groups.length; i --; ) {
+			if (this.groups[i].valueOf() != g1) continue;
+			index = i;
+			break;
+		}
+	}
+	this.groups[index] = g2;
 	g2.parent = this;
+	g2.top_parent = this.top_parent;
 	g2.side = this.side;
 	g2.equation = this.equation;
 }
@@ -1161,6 +1068,27 @@ ExpressionGroup.prototype.factors = function() {
 		result.push(factors[0][i]);
 	}
 	return result;
+}
+
+ExpressionGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// TODO: Make it possible to replace expressions?
+	// 	(e.g. "2x+1")
+	// Replace factors in children
+	for (var x = 0, y = this.groups.length; x < y; ++ x) {
+		this.groups[x].valueOf().replaceFactor(json);
+	}
+}
+
+ExpressionGroup.prototype.fixLinks = function() {
+	for (var i = this.groups.length; i --; ) {
+		// Fix links between this and this.groups[i]
+		this.groups[i] = this.groups[i].valueOf();
+		this.groups[i].parent = this;
+		this.groups[i].top_parent = this.top_parent;
+		// Fix the links within this.groups[i]
+		this.groups[i].fixLinks();
+	}
 }
 
 ExpressionGroup.prototype.simplify = function() {
@@ -1286,6 +1214,30 @@ ExpressionGroup.prototype.simplify = function() {
 	}
 }
 
+ExpressionGroup.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
+}
+
 ExpressionGroup.prototype.valueOf = function() {
 	if (this.value != null) {
 		return this.value;
@@ -1386,8 +1338,8 @@ MultiplyGroup = function(json) {
 		"-(" + NEG_FRACTION_REGEX + ")\\^"), "-1*$1^");
 	// temp_text = temp_text.replace(new RegExp("\\((" +
 	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
-	temp_text = temp_text.replace(new RegExp("(^|[^\\/])\\((" +
-		FRACTION_REGEX + ")\\)(?!\\/)", "g"), "$1$2");
+	temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9])\\((" +
+		FRACTION_REGEX + ")\\)(?![\\/0-9])", "g"), "$1$2");
 	// console.log(temp_text);
 	
 	// console.log(temp_text);
@@ -1657,6 +1609,17 @@ MultiplyGroup = function(json) {
 	}
 }
 
+MultiplyGroup.prototype.fixLinks = function() {
+	for (var i = this.groups.length; i --; ) {
+		// Fix links between this and this.groups[i]
+		this.groups[i] = this.groups[i].valueOf();
+		this.groups[i].parent = this;
+		this.groups[i].top_parent = this.top_parent;
+		// Fix the links within this.groups[i]
+		this.groups[i].fixLinks();
+	}
+}
+
 MultiplyGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var expression_groups = new Array();
@@ -1791,6 +1754,7 @@ MultiplyGroup.prototype.simplify = function() {
 MultiplyGroup.prototype.push = function(group) {
 	this.groups.push(group);
 	group.parent = this;
+	group.top_parent = this.top_parent;
 	group.side = this.side;
 	group.equation = this.equation;
 }
@@ -1863,8 +1827,17 @@ MultiplyGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
 
-	this.groups[this.groups.indexOf(g1)] = g2;
-	g2.parent = g1.parent;
+	var index = this.groups.indexOf(g1);
+	if (index == -1) {
+		for (var i = this.groups.length; i --; ) {
+			if (this.groups[i].valueOf() != g1) continue;
+			index = i;
+			break;
+		}
+	}
+	this.groups[index] = g2;
+	g2.parent = this;
+	g2.top_parent = this.top_parent;
 	g2.side = this.side;
 	g2.equation = this.equation;
 }
@@ -1902,6 +1875,27 @@ MultiplyGroup.prototype.factors = function() {
 		factors = factors.concat(this.groups[i].factors());
 	}
 	return factors;
+}
+
+MultiplyGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// TODO: Make it possible to replace expressions?
+	// 	(e.g. "2√2")
+	// Replace factors in children
+	for (var x = 0, y = this.groups.length; x < y; ++ x) {
+		this.groups[x].valueOf().replaceFactor(json);
+		this.groups[x] = this.groups[x].valueOf();
+	}
+	// Set the value if this has been simplified to one group already
+	if (this.groups.length == 1) {
+		this.value = this.groups[0].valueOf();
+		this.value.parent = this.parent;
+	}
+}
+
+MultiplyGroup.prototype.multiplyGroup = function(n) {
+	if (n) this.push(n);
+	return this;
 }
 
 MultiplyGroup.prototype.valueOf = function() {
@@ -2053,12 +2047,14 @@ FractionGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
 
-	if (this.numerator == g1) {
+	if (this.numerator == g1 ||
+		this.numerator.valueOf() == g1) {
 		this.numerator = g2;
 		g2.parent = this;
 		g2.top_parent = this.top_parent;
 		g2.equation = this.equation;
-	} else if (this.denominator == g1) {
+	} else if (this.denominator == g1 ||
+		this.denominator.valueOf() == g1) {
 		this.denominator = g2;
 		g2.parent = this;
 		g2.top_parent = this.top_parent;
@@ -2162,6 +2158,30 @@ FractionGroup.prototype.localFactors = function() {
 		result.push(factors[0][i]);
 	}
 	return result;
+}
+
+FractionGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// TODO: Make it possible to replace expressions?
+	// 	(e.g. "x/2")
+	// Replace factors in children
+	this.numerator.valueOf().replaceFactor(json);
+	this.denominator.valueOf().replaceFactor(json);
+}
+
+FractionGroup.prototype.fixLinks = function() {
+	// Fix links between this and this.numerator
+	this.numerator = this.numerator.valueOf();
+	this.numerator.parent = this;
+	this.numerator.top_parent = this.top_parent;
+	// Fix the links within this.numerator
+	this.numerator.fixLinks();
+	// Fix links between this and this.denominator
+	this.denominator = this.denominator.valueOf();
+	this.denominator.parent = this;
+	this.denominator.top_parent = this.top_parent;
+	// Fix the links within this.denominator
+	this.denominator.fixLinks();
 }
 
 FractionGroup.prototype.simplify = function(hideSteps) {
@@ -2491,7 +2511,6 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	// when appropriate
 	var d_factors = this.denominator.valueOf().factors();
 	d_factors = sort_factors(d_factors);
-	console.log(d_factors);
 	var d_factor = d_factors[d_factors.length - 1];
 	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
 		NEG_FRACTION_REGEX).test(d_factor)) {
@@ -2515,6 +2534,29 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	// Re-simplify children, just in case
 	this.numerator.valueOf().simplify();
 	this.denominator.valueOf().simplify();
+}
+FractionGroup.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
 }
 FractionGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -2639,10 +2681,10 @@ ExponentGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
 
-	if (this.base == g1) {
+	if (this.base == g1 || this.base.valueOf() == g1) {
 		this.base = g2;
 		g2.parent = this;
-	} else if (this.exponent == g1) {
+	} else if (this.exponent == g1 || this.exponent.valueOf() == g1) {
 		this.exponent = g2;
 		g2.parent = this;
 	}
@@ -2683,6 +2725,30 @@ ExponentGroup.prototype.factors = function() {
 		}
 	}
 	return [];
+}
+
+ExponentGroup.prototype.replaceFactor = function(n) {
+	var json = replace_factor_json(arguments);
+	// TODO: Make it possible to replace expressions?
+	// 	(e.g. "y^x")
+	// Replace factors in children
+	this.base.valueOf().replaceFactor(json);
+	this.exponent.valueOf().replaceFactor(json);
+}
+
+ExponentGroup.prototype.fixLinks = function() {
+	// Fix links between this and this.base
+	this.base = this.base.valueOf();
+	this.base.parent = this;
+	this.base.top_parent = this.top_parent;
+	// Fix the links within this.base
+	this.base.fixLinks();
+	// Fix links between this and this.exponent
+	this.exponent = this.exponent.valueOf();
+	this.exponent.parent = this;
+	this.exponent.top_parent = this.top_parent;
+	// Fix the links within this.exponent
+	this.exponent.fixLinks();
 }
 
 ExponentGroup.prototype.simplify = function() {
@@ -2832,6 +2898,29 @@ ExponentGroup.prototype.simplify = function() {
 		this.highlighted = false;
 	}
 }
+ExponentGroup.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
+}
 ExponentGroup.prototype.valueOf = function() {
 	if (this.value != null) {
 		return this.value;
@@ -2900,7 +2989,11 @@ AlgebraGroup.prototype.setVar = function(name, degree) {
 			text: degree
 		});
 	}
-	this.variable[name] = degree;
+	if (degree.toNumber() != 0) {
+		this.variable[name] = degree;
+	} else {
+		delete this.variable[name];
+	}
 	return degree;
 }
 AlgebraGroup.prototype.incrementVar = function(name, degree) {
@@ -2931,7 +3024,6 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		FRACTION_REGEX + ")?").exec(text);
 	if (coefficient != null) {
 		if (coefficient[0] == "-") coefficient[0] += "1"
-		console.log(coefficient[0]);
 		this.coefficient = new Fraction({
 			text: coefficient[0],
 			parent: this,
@@ -2943,7 +3035,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		"[a-z](?:\\^" + NEG_FRACTION_REGEX + ")?",
 		"gi"));
 	if (variables == null) {
-		console.error("No variables!");
+		// console.error("No variables!");
 		return;
 	}
 	variables.reverse();
@@ -2954,7 +3046,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		}
 		var var_letter = variables[i][0];
 		var var_exp = variables[i].substr(2);
-		this.temp_variables.push(var_letter + var_exp);
+		if (this.temp_variables) this.temp_variables.push(var_letter + var_exp);
 		this.incrementVar(var_letter, var_exp);
 	}
 	this.text = text;
@@ -3083,18 +3175,138 @@ AlgebraGroup.prototype.factors = function() {
 	factors = factors.concat(this.coefficient.factors());
 	// Variable factors
 	for (var name in this.variable) {
-		factors.push(name);
 		var power = this.getVar(name);
+		if (power > 0) factors.push(name);
 		if (power < 0) factors.push(name + "^-1");
 		// All possible higher factors
 		if (power % 1 == 0) {
 			for (var s = sign(power), i = Math.abs(power) + 1;
 				-- i >= 2; ) {
-				factors.push(name + "^" + i);
+				factors.push(name + "^" + s * i);
 			}
 		}
 	}
 	return factors;
+}
+AlgebraGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// Check each factor separately
+	for (var n in json) {
+		// Break down the factor being tested
+		var n_factors = n.match(new RegExp("(?:^" + NEG_FRACTION_REGEX +
+			"|[a-zA-Z](?:\\^" + NEG_FRACTION_REGEX + ")?)", "g"));
+		if (!n_factors.length) continue;
+		// How many times the factor was removed
+		var exp = 0;
+		var copy = this.duplicate();
+		while (true) {
+			var factors = copy.factors();
+			var okay = true;
+			for (var i = n_factors.length; i --; ) {
+				if (factors.indexOf(n_factors[i]) === -1) {
+					okay = false;
+					break;
+				}
+			}
+			if (!okay) break;
+			// Increment the count of the times this factor was removed
+			++ exp;
+			// Remove factors in copies of children
+			var coefficient = !/[a-zA-Z]/.test(n_factors[0]);
+			if (coefficient) {
+				var c_val = n_factors[0];
+				var c_fraction = new Fraction(c_val).reciprocal();
+				copy.coefficient.multiply(c_fraction);
+			}
+			var vars = n_factors.slice(coefficient);
+			for (var i = vars.length; i --; ) {
+				var v = vars[i][0];
+				if (!copy.hasVar(v)) continue;
+				copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
+					"-" + vars[i].substr(2));
+			}
+			// Prevent an infinite loop from occurring here
+			if (coefficient && n_factors[0] == "1") break;
+		}
+		// If nothing can be replaced, skip to the next factor
+		if (!exp) continue;
+		// Create visuals for the title
+		var n1 = new MultiplyGroup({
+			text: exp == 1 ? n : "(" + n + ")^" + exp
+		});
+		var n2 = new ExpressionGroup({
+			text: exp == 1 ? json[n] : "(" + json[n] + ")^" + exp
+		});
+		// Highlight this
+		this.highlighted = true;
+		// Show the steps
+		push_module_step({
+			type: "simplify",
+			title: describe_operation({
+				operation: "rf",
+				n1: n1,
+				n2: n2
+			}),
+			visual: this.top_parent.element()
+		});
+		this.highlighted = false;
+		// Actually remove factors in children
+		this.coefficient.numerator = copy.coefficient.numerator;
+		this.coefficient.denominator = copy.coefficient.denominator;
+		for (var name in this.variable) {
+			this.setVar(name, copy.variable[name].toString());
+		}
+		var replace_val = json[n];
+		// Add in the replacement values
+		if (exp == 1) {
+			var m_group = this.multiplyGroup();
+			if (m_group.groups.length == 1 && replace_val[0] == "-" &&
+				!/[a-zA-Z](?!\^0)/.test(this.toString()) &&
+				this.coefficient.toNumber() == -1) {
+				this.coefficient.multiply(-1);
+				replace_val = replace_val.substr(1);
+			}
+			m_group.push(new ExpressionGroup({
+				text: replace_val,
+				parent: m_group
+			}));
+		} else if (exp >= 2) {
+			var m_group = this.multiplyGroup();
+			m_group.push(new ExpressionGroup({
+				text: "(" + replace_val + ")^" + exp,
+				parent: m_group
+			}));
+		}
+	}
+	// Check whether there are any variables left
+	if (!/[a-zA-Z](?!\^0)/.test(this.toString())) {
+		if (this.coefficient.toNumber() == 1) {
+			this.multiplyGroup().remove(this);
+		} else {
+			this.value = this.coefficient;
+			this.fixLinks();
+		}
+	}
+}
+AlgebraGroup.prototype.fixLinks = function() {
+	if (this.value != this.coefficient) {
+		// Fix links between this and this.coefficient
+		this.coefficient = this.coefficient.valueOf();
+		this.coefficient.parent = this;
+		this.coefficient.top_parent = this.top_parent;
+		// Fix the links within this.coefficient
+		this.coefficient.fixLinks();
+	} else {
+		// Fix links between this and this.coefficient
+		this.coefficient.parent = this.parent;
+		if (this.parent != null) {
+			this.value.top_parent = this.top_parent;
+		} else {
+			this.value.top_parent = this.value;
+		}
+		// Fix the links within this.coefficient
+		this.coefficient.fixLinks();
+	}
 }
 AlgebraGroup.prototype.simplify = function(hideSteps) {
 	var hideSteps = hideSteps || false;
@@ -3186,6 +3398,29 @@ AlgebraGroup.prototype.simplify = function(hideSteps) {
 		var_letters.push(temp_var[0]);
 	}
 	this.temp_variables = null;
+}
+AlgebraGroup.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
 }
 AlgebraGroup.prototype.valueOf = function() {
 	if (this.value != null) {
@@ -3432,6 +3667,9 @@ Fraction.prototype.reciprocal = function() {
 		parent: this.parent
 	});
 }
+Fraction.prototype.fixLinks = function() {
+	// Don't think there's really anything to be done here
+}
 Fraction.prototype.simplify = function(visibleGroup) {
 	// visibleGroup is used to indicate
 	// that another group should be used for
@@ -3533,6 +3771,29 @@ Fraction.prototype.simplify = function(visibleGroup) {
 	}
 	return false;
 }
+Fraction.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
+}
 Fraction.prototype.valueOf = function() {
 	return this.value;
 }
@@ -3571,6 +3832,25 @@ Fraction.prototype.factors = function() {
 	}
 	if (this.toNumber() < 0) factors.push("-1");
 	return factors;
+}
+Fraction.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// Check each factor separately
+	for (var n in json) {
+		var factors = this.factors();
+		if (factors.indexOf(n) === -1) {
+			continue;
+		}
+		// Remove factors in children
+		var n_fraction = new Fraction(n).reciprocal();
+		console.log(n_fraction);
+		this.multiply(n_fraction);
+		// Add in the replacement values
+		var m_group = this.multiplyGroup();
+		m_group.push(new ExpressionGroup({
+			text: json[n]
+		}));
+	}
 }
 Fraction.prototype.element = function() {
 	var elem = fraction_element(this.numerator,
@@ -3692,7 +3972,8 @@ PlusMinusGroup.prototype.replace = function(g1, g2) {
 	// g1 = The old group
 	// g2 = The new group
 
-	if (this.group == g1) {
+	if (this.group == g1 ||
+		this.group.valueOf() == g1) {
 		this.group = g2;
 		g2.parent = this;
 	} else {
@@ -3712,6 +3993,23 @@ PlusMinusGroup.prototype.factors = function() {
 	return factors;
 }
 
+PlusMinusGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	// TODO: Make it possible to replace expressions?
+	// Replace factors in child
+	this.group.valueOf().replaceFactor(json);
+	this.group = this.group.valueOf();
+}
+
+PlusMinusGroup.prototype.fixLinks = function() {
+	// Fix links between this and this.group
+	this.group = this.group.valueOf();
+	this.group.parent = this;
+	this.group.top_parent = this.top_parent;
+	// Fix the links within this.group
+	this.group.fixLinks();
+}
+
 PlusMinusGroup.prototype.simplify = function() {
 	// Simplify group
 	this.group.simplify();
@@ -3723,6 +4021,30 @@ PlusMinusGroup.prototype.simplify = function() {
 			this.value = this.group;
 		}
 	}
+}
+
+PlusMinusGroup.prototype.multiplyGroup = function(n) {
+	var m_group;
+	if (this.parent != null && this.parent.valueOf() instanceof MultiplyGroup) {
+		m_group = this.parent.valueOf();
+	} else {
+		var par = this.parent;
+		if (par != null) par = par.valueOf();
+		m_group = new MultiplyGroup({
+			parent: par,
+			side: this.side,
+			equation: this.equation
+		});
+		m_group.push(this);
+		if (par == null) {
+			this.top_parent = m_group.top_parent = m_group;
+			if (this.equation != null) this.equation[this.side] = m_group;
+		} else {
+			par.valueOf().replace(this, m_group);
+		}
+	}
+	if (n) m_group.push(n);
+	return m_group;
 }
 
 PlusMinusGroup.prototype.valueOf = function() {
@@ -3849,6 +4171,10 @@ function describe_operation(json) {
 		case "^/":
 			start = "Divide";
 			middle = "out of";
+			break;
+		case "rf":
+			start = "Replace";
+			middle = "with";
 			break;
 		default:
 			break;
@@ -4041,6 +4367,16 @@ function sort_factors(factors) {
 		return b_exp - a_exp;
 	});
 	return sorted;
+}
+
+function replace_factor_json(args) {
+	if (!args.length) return new Object();
+	if (args.length == 2) {
+		var result = new Object();
+		result[String(args[0])] = String(args[1]);
+		return result;
+	}
+	return args[0];
 }
 
 function get_fraction(x, plain) {
