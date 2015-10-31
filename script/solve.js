@@ -2768,11 +2768,13 @@ ExponentGroup.prototype.simplify = function() {
 		// Radical? (e.g. e = 1/2)
 		var radical = false;
 		var r_index = 0;
-		var e_fraction = get_fraction(e_val);
-		if (e_fraction.numerator == 1 &&
-			e_fraction.denominator != 1) {
-			radical = true;
-			r_index = e_fraction.denominator;
+		if (Config.preferences.radical) {
+			var e_fraction = get_fraction(e_val);
+			if (e_fraction.numerator == 1 &&
+				e_fraction.denominator != 1) {
+				radical = true;
+				r_index = e_fraction.denominator;
+			}
 		}
 
 		this.highlighted = true;
@@ -4597,7 +4599,13 @@ function fraction_element(n, d, simple, marked) {
 		fraction.addClass("highlighted");
 	}
 
-	if (simple && d == 1) {
+	if (!Config.preferences.fraction &&
+		typeof n !== 'object' &&
+		typeof d !== 'object') {
+		var numerator = fraction;
+		n = +n / +d;
+		d = 1;
+	} else if (simple && d == 1) {
 		var numerator = fraction;
 	} else {
 		fraction.addClass("operation");
