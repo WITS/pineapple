@@ -212,6 +212,9 @@ body.homepage #nav {
 	padding: 0 24px;
 	font-size: 1.6em;
 	transition: opacity 0.3s, max-height 0s linear 0.3s;
+	-webkit-transition: opacity 0.3s, max-height 0s linear 0.3s;
+	-moz-transition: opacity 0.3s, max-height 0s linear 0.3s;
+	-o-transition: opacity 0.3s, max-height 0s linear 0.3s;
 }
 
 #homepage-text h2 {
@@ -230,7 +233,12 @@ body.homepage #nav {
 
 body.homepage #homepage-text {
 	opacity: 1;
-	transition: opacity 0.5s;
+	max-height: 256px;
+	padding-bottom: 12px;
+	transition: opacity 0.5s, max-height 0.4s, padding-bottom 0.1s;
+	-webkit-transition: opacity 0.5s, max-height 0.4s, padding-bottom 0.1s;
+	-moz-transition: opacity 0.5s, max-height 0.4s, padding-bottom 0.1s;
+	-o-transition: opacity 0.5s, max-height 0.4s, padding-bottom 0.1s;
 }
 
 body.homepage #homepage-text h2 {

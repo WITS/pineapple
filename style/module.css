@@ -465,7 +465,7 @@ body:not(.mobile) .module:not(.expanded) >
 	margin: 0px 6px;
 	padding: 12px;
 	font-size: 2.0em;
-	max-height: 200px;
+	max-height: 256px;
 	overflow: hidden;
 	opacity: 1;
 }
