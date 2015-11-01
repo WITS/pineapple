@@ -71,9 +71,7 @@ Module.prototype.push = function(step) {
 Module.prototype.element = function() {
 	if (this.elementObj == null) {
 		var elem = document.createElement("div");
-		elem.addClass("card");
-		elem.addClass("no-padding");
-		elem.addClass("module");
+		elem.addClass("card no-padding module");
 		elem.addClass(this.type + "-module");
 		elem.addEventListener("click",
 			function(event) {
