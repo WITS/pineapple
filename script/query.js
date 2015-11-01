@@ -96,7 +96,7 @@ function handle_query(f, e) {
 				}
 				card.removeClass("expanded");
 			}
-			var delay = Math.max(0.005, old_result_count - 2) * 200;
+			var delay = Math.max(0.005, Math.min(old_result_count - 2, 3)) * 200;
 			new_results_timeout = setTimeout(replace_results, delay);
 		}
 
@@ -133,6 +133,9 @@ function handle_query(f, e) {
 	} else {
 		document.body.removeClass("homepage");
 	}
+
+	// Pre-Module
+	config_used = new ConfigUsed();
 
 	// Pre-Processing
 	var equation_text = text;
@@ -431,6 +434,10 @@ function handle_query(f, e) {
 		color: "skin",
 		children: result_elem
 	})).element());
+
+	// Configuration
+	console.log(config_used);
+	output.appendChild(config_used.element());
 
 	// Suggestions
 	var suggestions = new Array();

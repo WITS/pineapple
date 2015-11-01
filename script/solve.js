@@ -2768,13 +2768,16 @@ ExponentGroup.prototype.simplify = function() {
 		// Radical? (e.g. e = 1/2)
 		var radical = false;
 		var r_index = 0;
-		if (Config.preferences.radical) {
-			var e_fraction = get_fraction(e_val);
-			if (e_fraction.numerator == 1 &&
-				e_fraction.denominator != 1) {
+		
+		var e_fraction = get_fraction(e_val);
+		if (e_fraction.numerator == 1 &&
+			e_fraction.denominator != 1) {
+			if (Config.preferences.radical) {
 				radical = true;
-				r_index = e_fraction.denominator;
+				r_index = e_fraction.denominator;	
 			}
+			// The radical preference affected the output
+			config_used.preferences.radical = true;
 		}
 
 		this.highlighted = true;
@@ -4599,11 +4602,23 @@ function fraction_element(n, d, simple, marked) {
 		fraction.addClass("highlighted");
 	}
 
+	if (typeof n !== 'object' &&
+		typeof d !== 'object' && d != 1) {
+		// The fraction preference affected the output
+		config_used.preferences.fraction = true;
+	}
+
 	if (!Config.preferences.fraction &&
 		typeof n !== 'object' &&
 		typeof d !== 'object') {
 		var numerator = fraction;
 		n = +n / +d;
+		d = 1;
+	} else if (!Config.preferences.fraction &&
+		n instanceof Fraction && d instanceof Fraction &&
+		n.denominator == 1 && d.denominator == 1) {
+		var numerator = fraction;
+		n = n.numerator / d.numerator;
 		d = 1;
 	} else if (simple && d == 1) {
 		var numerator = fraction;
@@ -4630,8 +4645,7 @@ function fraction_element(n, d, simple, marked) {
 	}
 
 	if (!simple || d != 1) {
-		var denominator = document.createElement(
-			"span");
+		var denominator = document.createElement("span");
 		denominator.addClass("denominator");
 		if (typeof d !== 'object') {
 			denominator.addClass("number");

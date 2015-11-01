@@ -230,7 +230,8 @@ body:not(.mobile) .module:not(.expanded) >
 	content: "\f00d";
 }
 
-.module-step {
+.module-step,
+.config-group {
 	transition: padding 0.3s,
 		max-height 0.3s, opacity 0.3s;
 	-webkit-transition: padding 0.3s,
@@ -275,7 +276,8 @@ body:not(.mobile) .module:not(.expanded) >
 
 .module:not(.expanded) > .module-step,
 .module:not(.expanded) > .embedded-module,
-.hidden.embedded-module > .module-step {
+.hidden.embedded-module > .module-step,
+.config-module:not(.expanded) > .config-group {
 	padding: 0px 12px;
 	border-top: 0px;
 	max-height: 0px;
@@ -454,6 +456,107 @@ body:not(.mobile) .module:not(.expanded) >
 /*.embedded-module > .module-step:first-child,*/
 .hidden.embedded-module + .module-step {
 	border-top-color: transparent;
+}
+
+/* Config Modules */
+.config-group {
+	position: relative;
+	border-top: 1px solid #E8E8E8;
+	margin: 0px 6px;
+	padding: 12px;
+	font-size: 2.0em;
+	max-height: 200px;
+	overflow: hidden;
+	opacity: 1;
+}
+
+/* Preferences */
+.config-preference > .title {
+	margin-bottom: 6px;
+}
+
+.config-preference > .description {
+	font-size: 0.75em;
+	margin-bottom: 12px;
+}
+
+.config-preference > .options {
+	padding-left: 36px;
+}
+
+.config-preference .option {
+	position: relative;
+	padding: 18px 6px 18px;
+	font-family: Roboto, Arial, sans-serif;
+	font-size: 0.85em;
+	font-weight: 500;
+	border-top: 1px solid #E8E8E8;
+	cursor: pointer;
+}
+
+.config-preference .option::before {
+	position: absolute;
+	left: -29px;
+	top: 18px;
+	display: block;
+	width: 16px;
+	height: 16px;
+	line-height: 16px;
+	border-radius: 50%;
+	border: 1px solid gray;
+	/*font: normal normal normal 14px/1 FontAwesome;
+	font-size: 0;
+	text-align: center;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transform: translate(0, 0);
+	content: "\f111";*/
+	content: "";
+}
+
+.config-preference .option::after {
+	position: absolute;
+	left: -26px;
+	top: 21px;
+	display: block;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	/*background-color: rgb(129, 179, 66);*/
+	background-color: rgb(203, 80, 39);
+	transform: scale(0);
+	-webkit-transform: scale(0);
+	-moz-transform: scale(0);
+	-o-transform: scale(0);
+	transition: transform 0.1s;
+	-webkit-transition: -webkit-transform 0.1s;
+	-webkit-transition: -webkit-transform 0.1s;
+	-moz-transition: -moz-transform 0.1s;
+	-o-transition: -o-transform 0.1s;
+	content: "";
+}
+
+.config-preference .option.selected::after {
+	transform: scale(1);
+	-webkit-transform: scale(1);
+	-moz-transform: scale(1);
+	-o-transform: scale(1);
+}
+
+.config-preference .option.selected::before {
+	font-size: 14px;
+}
+
+.config-preference .option > .render {
+	display: inline-block;
+	float: right;
+	opacity: 0.6;
+}
+
+.config-preference .option > .render .fraction {
+	position: relative;
+	top: -0.4em;
 }
 
 /* Animations */
