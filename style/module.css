@@ -470,6 +470,10 @@ body:not(.mobile) .module:not(.expanded) >
 	opacity: 1;
 }
 
+.config-module > .title::before {
+	content: "\f085";
+}
+
 /* Preferences */
 .config-preference > .title {
 	margin-bottom: 6px;
