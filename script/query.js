@@ -533,6 +533,7 @@ window.addEventListener("load", function() {
 			elem.setAttribute("data-query", elem.innerHTML);
 			elem.addEventListener("click", handle_query_suggestion);
 		});
+	Config.loadLocalStorage();
 	handle_hash_query();
 });
 

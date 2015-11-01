@@ -12,7 +12,6 @@ Config = function() {
 	};
 	this.constants = new Object();
 	this.functions = new Object();
-	this.loadLocalStorage();
 }
 
 Config.prototype = new Card();
@@ -27,12 +26,29 @@ Config.prototype.setPreference = function(key, value) {
 }
 
 Config.prototype.updateLocalStorage = function() {
-	// TODO: Save a JSON version of this object to
-	// localStorage
+	// TODO: Maybe make this more fancy in the future
+	// Create a simple JSON version of the relevant data
+	var json = {
+		preferences: this.preferences,
+		constants: this.constants,
+		functions: this.functions
+	};
+	var json_string = JSON.stringify(json);
+	// Save the relevant data in localStorage
+	localStorage.setItem("pineapple-config", json_string);
 }
 
 Config.prototype.loadLocalStorage = function() {
-
+	// Load the relevant data from localStorage, if it exists
+	var data = localStorage.getItem("pineapple-config");
+	if (data == null) return false;
+	var json = eval('(' + data + ')');
+	for (var type in json) {
+		var group = json[type];
+		for (var key in group) {
+			this[type][key] = group[key];
+		}
+	}
 }
 
 Config.prototype.element = function(json) {
@@ -201,3 +217,7 @@ ConfigPreferences = {
 		]
 	}
 };
+
+window.addEventListener("focus", function() {
+	Config.loadLocalStorage();
+});

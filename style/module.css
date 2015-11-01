@@ -551,6 +551,7 @@ body:not(.mobile) .module:not(.expanded) >
 .config-preference .option > .render {
 	display: inline-block;
 	float: right;
+	font-family: "Roboto Slab", Times New Roman, serif;
 	opacity: 0.6;
 }
 
