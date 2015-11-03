@@ -2644,7 +2644,8 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	// console.log(n_factors);
 	var n_factor = n_factors[n_factors.length - 1];
 	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
-		NEG_FRACTION_REGEX).test(n_factor)) {
+		NEG_FRACTION_REGEX).test(n_factor) &&
+		n_factor.substr(-1) != "1") {
 		var divisor = n_factor.substr(n_factor.indexOf("/") + 1);
 		if (!hideSteps) {
 			this.highlighted = true;
@@ -2668,7 +2669,8 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	d_factors = sort_factors(d_factors);
 	var d_factor = d_factors[d_factors.length - 1];
 	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
-		NEG_FRACTION_REGEX).test(d_factor)) {
+		NEG_FRACTION_REGEX).test(d_factor) &&
+		n_factor.substr(-1) != "1") {
 		var divisor = d_factor.substr(d_factor.indexOf("/") + 1);
 		if (!hideSteps) {
 			this.highlighted = true;
@@ -3672,7 +3674,8 @@ Fraction = function(json) {
 	}
 	this.numerator = json.numerator != null ?
 		json.numerator : 1;
-	this.denominator = json.denominator || 1;
+	this.denominator = json.denominator != null ?
+		json.denominator : 1;
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
