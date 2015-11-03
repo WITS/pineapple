@@ -331,7 +331,8 @@ body.homepage #homepage-text h2 {
 	content: "-";
 }
 
-.render .negative > .negative:first-child::before {
+.render .negative > .negative:first-child::before,
+.render .operation[data-operation="-"] + .fraction.negative > .numerator::before {
 	content: "";
 }
 

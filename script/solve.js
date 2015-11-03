@@ -813,9 +813,87 @@ Equation.prototype.getVarInfo = function() {
 	return return_val;
 }
 
+Equation.prototype.factorOut = function(factor, showSteps) {
+	// TODO: Implement a highlightFactor method in all components
+	var showSteps = showSteps || false;
+	if (showSteps) {
+		if (this.left != null) this.left.valueOf().highlighted = true;
+		this.right.highlighted = true;
+		push_module_step({
+			type: "simplify",
+			title: "Factor " + truncate_number(new ExpressionGroup({
+					text: factor
+				})) + " out of the equation",
+			visual: this.element()
+		});
+		if (this.left != null) this.left.valueOf().highlighted = false;
+		this.right.highlighted = false;
+	}
+	// Actually factor
+	if (this.left != null) {
+		this.left.factorOut(factor);
+		this.left = this.left.valueOf();
+		this.left.fixLinks();
+	}
+	this.right.factorOut(factor);
+	this.right = this.right.valueOf();
+	this.right.fixLinks();
+}
+
 Equation.prototype.toString = function() {
 	return (this.left != null ? this.left.toString()
 		+ this.comparison : "") + this.right.toString();
+}
+
+Equation.prototype.simplify = function() {
+	// Simplify both sides (if applicable)
+	if (this.left != null) {
+		this.left.simplify();
+		this.left = this.left.valueOf();
+		this.left.fixLinks();
+	}
+	this.right.simplify();
+	this.right = this.right.valueOf();
+	this.right.fixLinks();
+
+	// Factor out common factors between both sides
+	if (this.left != null) {
+		var left_factors = this.left.factors();
+		left_factors = sort_factors(left_factors);
+		var right_factors = this.right.factors();
+		// Get rid of all useless numbers
+		var removed_n = false;
+		var removed_d = false;
+		var removed_vars = [];
+		for (var x = 0, y = left_factors.length; x < y; ++ x) {
+			var f = left_factors[x];
+			// If this isn't in both, skip it
+			if (right_factors.indexOf(f) === -1) continue;
+			if (/[a-zA-Z]/.test(f)) { // Variable
+				// Ignore variables for now
+				continue;
+				var v = f.replace(/[^a-zA-Z]/g, "");
+				if (removed_vars.indexOf(v) !== -1) continue;
+				removed_vars.push(v);
+				this.factorOut(f, true);
+			} else if (f.indexOf("1/") === 0) { // Reciprocal
+				if (x != y - 1) continue;
+				removed_d = true;
+				this.factorOut(f, true);
+			} else if (f == "-1") {
+				removed_d = true;
+				this.factorOut(f, true);
+			} else if (f != "1") {
+				if (removed_n) continue;
+				removed_n = true;
+				this.factorOut(f, true);
+			}
+		}
+		// If anything was factored out, re-simplify
+		if (removed_n || removed_d || removed_vars.length) {
+			this.simplify();
+		}
+	}
 }
 
 Equation.prototype.element = function() {
@@ -862,7 +940,7 @@ ExpressionGroup = function(json) {
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
 	this.text = this.text.replace(new RegExp("(^|[^\\/0-9])\\((" +
-		FRACTION_REGEX + ")\\)(?![\\/0-9])", "g"), "$1$2");
+		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1339,7 +1417,7 @@ MultiplyGroup = function(json) {
 	// temp_text = temp_text.replace(new RegExp("\\((" +
 	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
 	temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9])\\((" +
-		FRACTION_REGEX + ")\\)(?![\\/0-9])", "g"), "$1$2");
+		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
 	// console.log(temp_text);
 	
 	// console.log(temp_text);
@@ -1674,7 +1752,13 @@ MultiplyGroup.prototype.simplify = function() {
 			if (!(n1.numerator == -1 &&
 				n1.denominator == 1 &&
 				constants[0] == 0 &&
-				constants[1] == 1)) {
+				constants[1] == 1) && !(
+				(n1 instanceof AlgebraGroup &&
+				n1.coefficient.toNumber() == 1 &&
+				n2 instanceof Fraction) ||
+				(n2 instanceof AlgebraGroup &&
+				n2.coefficient.toNumber() == 1 &&
+				n1 instanceof Fraction))) {
 				n2.highlighted = true;
 				push_module_step({
 					type: "simplify",
@@ -2469,7 +2553,7 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 		if (/[a-zA-Z]/.test(f)) { // Variable
 			var v = f.replace(/[^a-zA-Z]/g, "");
 			if (removed_vars.indexOf(v) !== -1) continue;
-			removed.push(v);
+			removed_vars.push(v);
 			this.factorOut(f, true, true);
 		} else if (f.indexOf("1/") === 0) { // Reciprocal
 			if (x != y - 1) continue;

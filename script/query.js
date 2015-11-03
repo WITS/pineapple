@@ -305,18 +305,19 @@ function handle_query(f, e) {
 		}
 	}
 
-	if (equation.left != null) {
-		var left = equation.left;
-		left.simplify();
-		left = equation.left = left.valueOf();
-		left.parent = null;
-		left.top_parent = left;
-	}
-	var right = equation.right;
-	right.simplify();
-	right = equation.right = right.valueOf();
-	right.parent = null;
-	right.top_parent = right;
+	equation.simplify();
+	// if (equation.left != null) {
+	// 	var left = equation.left;
+	// 	left.simplify();
+	// 	left = equation.left = left.valueOf();
+	// 	left.parent = null;
+	// 	left.top_parent = left;
+	// }
+	// var right = equation.right;
+	// right.simplify();
+	// right = equation.right = right.valueOf();
+	// right.parent = null;
+	// right.top_parent = right;
 
 	equation.updateVarInfo();
 	var v_info = equation.getVarInfo();
