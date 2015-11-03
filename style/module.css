@@ -39,6 +39,11 @@ body.msie .out#output .card {
 .card.joined-bottom.reference-module + .card.joined-top:not(.expanded),
 .card.joined-bottom:not(.expanded) + .card.joined-top.reference-module {
 	box-shadow: 0 3px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.card.joined-bottom.white:not(.expanded) + .card.joined-top:not(.expanded),
+.card.joined-bottom.reference-module + .card.joined-top:not(.expanded),
+.card.joined-bottom:not(.expanded) + .card.joined-top.reference-module {
 	border-top: 1px solid #E8E8E8;
 }
 
