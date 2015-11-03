@@ -113,10 +113,16 @@ function handle_query(f, e) {
 			if (elem.innerHTML != "NaN") return;
 			elem.innerHTML = "<i class='fa fa-square'></i>";
 		});
+		// Check whether division by zero
+		var zero = (/\/0\.?0*(?:[^0-9]|$)/.test(equation.toString()));
 		// Create the result card
 		var error_child = document.createElement("div");
 		error_child.addClass("error-result");
-		error_child.appendTextNode("Sorry, something went wrong");
+		if (!zero) { // Who knows?
+			error_child.appendTextNode("Sorry, something went wrong");
+		} else { // Seriously? Dividing by zero? Amateur.
+			error_child.appendTextNode("Division by zero");
+		}
 		output.appendChild((new Card({
 			label: "Result",
 			color: "skin",
@@ -374,6 +380,17 @@ function handle_query(f, e) {
 			}
 		}
 	}
+
+	{
+		var equation_str = equation.toString();
+		console.log(equation_str);
+		if (!validate_equation_string(equation_str)) {
+			// ABORT! SOMETHING DUN GOOFED
+			show_error();
+			return false;
+		}
+	}
+
 	// Factors of a constant
 	if (v_info.max_degree == 0 &&
 		equation.left == null &&
