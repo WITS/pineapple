@@ -2124,7 +2124,21 @@ FractionGroup.prototype.duplicate = function() {
 	});
 	num.parent = copy;
 	den.parent = copy;
+	copy.fixLinks();
 	return copy;
+}
+
+FractionGroup.prototype.reciprocal = function() {
+	var num = this.numerator.duplicate();
+	var den = this.denominator.duplicate();
+	var rec = new FractionGroup({
+		numerator: den,
+		denominator: num
+	});
+	num.parent = rec;
+	den.parent = rec;
+	rec.fixLinks();
+	return rec;
 }
 
 FractionGroup.prototype.replace = function(g1, g2) {
@@ -2170,6 +2184,8 @@ FractionGroup.prototype.multiply = function(n) {
 		this.numerator.multiply(n);
 		this.numerator = this.numerator.valueOf();
 	} else {
+		// Make sure n is a fraction
+		if (typeof n !== 'object') var n = new Fraction(n);
 		this.numerator.multiply(n.numerator);
 		this.numerator = this.numerator.valueOf();
 		this.denominator.multiply(n.denominator);
@@ -2287,30 +2303,56 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	var d_val = this.denominator;
 
 	// Join fractions in numerator/denominator
-	if (n_val instanceof Fraction &&
-		(d_val instanceof Fraction ||
-		d_val instanceof MultiplyGroup ||
-		d_val instanceof AlgebraGroup ||
-		d_val instanceof FractionGroup)) {
-		if (Math.abs(n_val.denominator) != 1) {
-			d_val.multiply(
-				n_val.denominator);
-			this.denominator = d_val =
-				d_val.valueOf();
-			n_val.denominator = 1;
-		}
-	}
 	if (d_val instanceof Fraction &&
 		(n_val instanceof Fraction ||
 		n_val instanceof MultiplyGroup ||
 		n_val instanceof AlgebraGroup ||
 		n_val instanceof FractionGroup)) {
 		if (Math.abs(d_val.denominator) != 1) {
+			this.highlighted = true;
+			// ModuleStep: Reciprocal Multiplication
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "*r",
+					n1: n_val,
+					n2: d_val
+				}),
+				visual: this.equation.element()
+			});
+			this.highlighted = false;
 			n_val.multiply(
 				d_val.denominator);
 			this.numerator = n_val =
 				n_val.valueOf();
 			d_val.denominator = 1;
+		}
+	}
+	if (n_val instanceof Fraction &&
+		(d_val instanceof Fraction ||
+		d_val instanceof MultiplyGroup ||
+		d_val instanceof AlgebraGroup ||
+		d_val instanceof FractionGroup)) {
+		if (Math.abs(n_val.denominator) != 1) {
+			if (d_val.toString() != "1") {
+				this.highlighted = true;
+				// ModuleStep: Reciprocal Multiplication
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "*r",
+						n1: n_val,
+						n2: d_val
+					}),
+					visual: this.equation.element()
+				});
+				this.highlighted = false;
+			}
+			d_val.multiply(
+				n_val.denominator);
+			this.denominator = d_val =
+				d_val.valueOf();
+			n_val.denominator = 1;
 		}
 	}
 
@@ -2540,6 +2582,8 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	}
 	if (this.value != null) return true; // Already simplified
 	// Complex factor simplification
+	this.numerator = this.numerator.valueOf();
+	this.denominator = this.denominator.valueOf();
 	var factors = this.localFactors();
 	factors = sort_factors(sanitize_factors(factors));
 	// console.log(factors);
@@ -2565,6 +2609,33 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 			removed_n = true;
 			this.factorOut(f, true, true);
 		}
+	}
+	n_val = this.numerator = this.numerator.valueOf();
+	d_val = this.denominator = this.denominator.valueOf();
+	// Multiply by the reciprocal when appropriate
+	if ((n_val instanceof FractionGroup ||
+		n_val instanceof Fraction) &&
+		(d_val instanceof FractionGroup ||
+		d_val instanceof Fraction) &&
+		(n_val.toString().indexOf("/") != -1 ||
+		d_val.toString().indexOf("/") != -1)) {
+		var m_group = n_val.multiplyGroup();
+		if (m_group.toString() == "1") {
+			m_group.remove(0);
+		}
+		var d_reciprocal = d_val.reciprocal();
+		if (d_reciprocal.toString() != "1") {
+			m_group.push(d_reciprocal);
+		}
+		this.value = m_group;
+		if (this.parent) {
+			this.parent.valueOf().replace(this, m_group);
+		} else {
+			m_group.top_parent = m_group;
+			this.equation[this.side] = m_group;
+		}
+		m_group.simplify();
+		return;
 	}
 	// Move things from the top to the bottom
 	// when appropriate

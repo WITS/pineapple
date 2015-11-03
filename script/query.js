@@ -437,7 +437,6 @@ function handle_query(f, e) {
 	})).element());
 
 	// Configuration
-	console.log(config_used);
 	output.appendChild(config_used.element());
 
 	// Suggestions
