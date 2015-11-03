@@ -140,3 +140,5 @@ FRACTION_REGEX = FLOAT_NUM_REGEX + "(?:/" +
 	FLOAT_NUM_REGEX + ")?";
 NEG_FRACTION_REGEX = "-?" + FLOAT_NUM_REGEX +
 	"(?:/-?" + FLOAT_NUM_REGEX + ")?";
+RADICAL_FACTOR_REGEX = "\\(?" + NEG_FRACTION_REGEX +
+	"\\)?\\^\\(?1\\/" + FLOAT_NUM_REGEX + "\\)?"
