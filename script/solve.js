@@ -1173,6 +1173,7 @@ ExpressionGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var constants = new Array();
 	var algebra = new Object();
+	var radical = null;
 	for (var x = 0, y = this.groups.length;
 		x < y; ++ x) {
 		var group = this.groups[x];
@@ -1190,6 +1191,38 @@ ExpressionGroup.prototype.simplify = function() {
 		}
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
+		// Radicals
+		if (group instanceof MultiplyGroup) {
+			var m_radical = null;
+			for (var i = group.groups.length; i --; ) {
+				if (group.groups[i] instanceof ExponentGroup) {
+					if (/1\/\d+/.test(group.groups[i].exponent.toString())) {
+						m_radical = group.groups[i].toString();
+					}
+				}
+			}
+			if (m_radical) {
+				if (x == 0) {
+					radical = m_radical;
+				} else if (radical != m_radical) {
+					radical = null;
+				}
+			} else {
+				radical = null;
+			}
+		} else if (group instanceof ExponentGroup) {
+			if (/1\/\d+/.test(group.exponent.toString())) {
+				m_radical = group.toString();
+				if (x == 0) {
+					radical = m_radical;
+				} else if (radical != m_radical) {
+					radical = null;
+				}
+			}
+		} else {
+			radical = null;
+		}
+		// Constants / Variables
 		if (group instanceof Fraction) {
 			constants.push(x);
 		} else if (group instanceof AlgebraGroup) {
@@ -1281,6 +1314,33 @@ ExpressionGroup.prototype.simplify = function() {
 			n1.toString() == "0") {
 			this.remove(n1);
 		}
+	}
+	// Take out common radical (if applicable)
+	if (radical) {
+		this.highlighted = true;
+		// ModuleStep: Factor out radical
+		push_module_step({
+			type: "simplify",
+			title: describe_operation({
+				operation: "/f",
+				n1: radical,
+				n2: this
+			}),
+			visual: this.equation.element()
+		});
+		this.highlighted = false;
+		this.factorOut(radical);
+		var m_group = this.multiplyGroup();
+		var parts = radical.split("^");
+		m_group.push(new ExponentGroup({
+			equation: this.equation,
+			side: this.side,
+			base: parts[0].replace(/[()]/g, ""),
+			exponent: parts[1].replace(/[()]/g, "")
+		}));
+		m_group.fixLinks();
+		m_group.simplify();
+		return;
 	}
 	// Single group?
 	if (this.groups.length == 1) {
@@ -1876,7 +1936,11 @@ MultiplyGroup.prototype.factorOut = function(factor, showSteps) {
 		this.highlighted = false;
 	}
 	// Actually factor
-	var constant = factor.match(new RegExp("^" + NEG_FRACTION_REGEX));
+	var radical = factor.match(new RegExp("^" + RADICAL_FACTOR_REGEX));
+	var constant = null;
+	if (!radical) {
+		constant = factor.match(new RegExp("^" + NEG_FRACTION_REGEX));
+	}
 	if (constant != null) constant = constant[0];
 	for (var i = this.groups.length; i --; ) {
 		var group = this.groups[i];
@@ -1890,6 +1954,20 @@ MultiplyGroup.prototype.factorOut = function(factor, showSteps) {
 					}
 				}
 				break;
+			}
+		} else if (radical != null && group instanceof ExponentGroup &&
+			group.value != null) {
+			if (group.factors().indexOf(factor) != -1) {
+				group.factorOut(factor);
+				if (group.valueOf() instanceof Fraction) {
+					if (group.valueOf().toString() == "1" &&
+						this.groups.length > 1) {
+						this.remove(group);
+					}
+				}
+				radical = null;
+				factor = factor.replace(new RegExp("^" + RADICAL_FACTOR_REGEX),
+					"");
 			}
 		} else if (constant != null) {
 			if (group.factors().indexOf(constant) != -1) {
@@ -2599,6 +2677,9 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 			if (removed_vars.indexOf(v) !== -1) continue;
 			removed_vars.push(v);
 			this.factorOut(f, true, true);
+		} else if (new RegExp("^" + RADICAL_FACTOR_REGEX
+			).test(f)) { // Radical
+			this.factorOut(f, true, true);
 		} else if (f.indexOf("1/") === 0) { // Reciprocal
 			if (x != y - 1) continue;
 			this.factorOut(f, true, true);
@@ -2643,9 +2724,9 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	n_factors = sort_factors(n_factors);
 	// console.log(n_factors);
 	var n_factor = n_factors[n_factors.length - 1];
-	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
-		NEG_FRACTION_REGEX).test(n_factor) &&
-		n_factor.substr(-1) != "1") {
+	if (new RegExp("^" + FLOAT_NUM_REGEX + "\\/" +
+		FLOAT_NUM_REGEX + "(?!\\^)").test(n_factor) &&
+		n_factor.substr(-2) != "/1") {
 		var divisor = n_factor.substr(n_factor.indexOf("/") + 1);
 		if (!hideSteps) {
 			this.highlighted = true;
@@ -2668,9 +2749,9 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	var d_factors = this.denominator.valueOf().factors();
 	d_factors = sort_factors(d_factors);
 	var d_factor = d_factors[d_factors.length - 1];
-	if (new RegExp(NEG_FRACTION_REGEX + "\\/" +
-		NEG_FRACTION_REGEX).test(d_factor) &&
-		n_factor.substr(-1) != "1") {
+	if (new RegExp("^" + FLOAT_NUM_REGEX + "\\/" +
+		FLOAT_NUM_REGEX + "(?!\\^)").test(n_factor) &&
+		n_factor.substr(-2) != "/1") {
 		var divisor = d_factor.substr(d_factor.indexOf("/") + 1);
 		if (!hideSteps) {
 			this.highlighted = true;
@@ -2863,9 +2944,18 @@ ExponentGroup.prototype.factorOut = function(factor, showSteps) {
 		this.highlighted = false;
 	}
 	// Actually factor
-	var delta = new Fraction(factor);
-	delta.multiply(new Fraction(-1));
-	this.exponent.numerator.add(delta);
+	console.log(factor);
+	if (new RegExp("^" + RADICAL_FACTOR_REGEX + "$").test(factor)) {
+		// Make sure this actually has the factor
+		if (this.factors().indexOf(factor) == -1) return;
+		this.value = new Fraction(1);
+		return;
+	} else if (this.factors().indexOf(factor) != -1) {
+		console.log(this.factors().indexOf(factor));
+		var delta = new Fraction(factor);
+		delta.multiply(-1);
+		this.exponent.numerator.add(delta);
+	}
 }
 
 ExponentGroup.prototype.toString = function() {
@@ -2879,6 +2969,12 @@ ExponentGroup.prototype.factors = function() {
 	if (b_val instanceof Fraction && e_val instanceof Fraction) {
 		if (e_val.toNumber() % 1 == 0) {
 			return [b_val.toString()];
+		} else if (this.value != null) {
+			if (this.value == this) {
+				return [this.value.toString()];
+			} else {
+				return this.value.factors();
+			}
 		}
 	}
 	return [];
