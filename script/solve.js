@@ -4773,6 +4773,10 @@ function exponent_element(b, e, simple, marked) {
 			b.groups.length > 1) {
 			base.addClass("parentheses");
 		}
+		if (b instanceof AlgebraGroup &&
+			b.coefficient.toNumber() != 1) {
+			base.addClass("parentheses");
+		}
 	}
 
 	if (wrapper == null) {
