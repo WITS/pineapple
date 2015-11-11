@@ -228,10 +228,13 @@ function handle_query(f, e) {
 	if (query_info.type == "solve-for") {
 		if (query_info.value != null) {
 			post_input.push("where ");
-			post_input.push("_" + query_info.variable);
+			post_input.push("_" + truncate_number(
+				new ExpressionGroup({
+					text: query_info.variable
+				})));
 			post_input.push("=");
 			post_input.push("_" + truncate_number(
-				new Fraction({
+				new ExpressionGroup({
 					text: query_info.value
 				})
 			));
