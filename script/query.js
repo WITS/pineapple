@@ -22,6 +22,9 @@ function handle_query(f, e) {
 		f.text.value = text;
 	}
 
+	var text_parts = split_query(text);
+	console.log(text_parts);
+
 	var output = document.createDocumentFragment();
 
 	// In case something goes wrong
@@ -157,58 +160,57 @@ function handle_query(f, e) {
 	query_info.type = "simplify";
 	var result;
 
-	result = new RegExp("^solve (.*) for ([a-z](?!\\^))",
-		"i").exec(text);
-	if (result == null) {
-		result = new RegExp("^solve (.*([a-z]).*)",
-			"i").exec(text);
+	// Simplifying (a bit redundant, because this is the default)
+	if (test_query(text, "simplify EQTN")) {
+		result = true;
+		equation_text = last_query_vars[0];
 	}
-	if (result != null) {
-		console.log(result);
-		equation_text = result[1];
-		query_info.type = "solve-for";
-		query_info.variable = result[2];
-	}
-	
 
-	if (result == null) {
-		result = new RegExp("(?:find |(?:find )?whe(?:re|n)" +
-		"(?: does| is)? |solve(?: for)?(?: whe(?:re|n))? )" +
-		"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
-		NEG_FRACTION_REGEX + "))?" +
-		"(?: for| in| when| where)?",
-		"i").exec(text);
-	}
-	if (result == null) {
-		result = new RegExp("(?:find|(?:find )?where|,\\s?)" +
-			"([a-z](?!\\^))(?:\\s?(?:=|is)?\\s?(-?" +
-			NEG_FRACTION_REGEX + "))?",
-			"i").exec(text);
-	}
-	if (query_info.type == "simplify" &&
-		result != null) {
-		equation_text = text.replace(result[0], "");
-		equation_text = equation_text.replace(
-			/^\s*(?:for|in|when|where)/i, "");
-		query_info.type = "solve-for";
-		query_info.variable = result[1];
-		if (result[2] != null) {
-			query_info.value = result[2];
+	// Solving for a variable
+	if (!result && (test_query(text, "solve EQTN for FACTOR") ||
+		test_query(text, "solve EQTN"))) {
+		query_info.variable = last_query_vars[1] || null;
+		if (!is_algebra(last_query_vars[1])) query_info.variable = null;
+		if (query_info.variable == null) {
+			var v = last_query_vars[0].match(/[a-zA-Z]/);
+			if (v != null) query_info.variable = v[0];
+		}
+		if (query_info.variable != null) {
+			result = true;
+			query_info.type = "solve-for";
+			equation_text = last_query_vars[0];
 		}
 	}
 
-	if (result == null) {
-		result = new RegExp("\\b(?:what are the )?("+
-			"(?:factor|root)s?\\b(?: of)?" +
-			"(?: ([a-z])(?!\\s?[=+*/^-])\\s?" +
-			"(?:for|in|when|where)?)?)",
-			"i").exec(text);
-		if (result != null) {
-			equation_text = text.replace(result[0], "");
-			query_info.type = "factor";
-			query_info.phrasing = result[1];
-			query_info.variable = result[2];
+	// Replacing factors
+	if (!result) {
+		if (test_query(text, "EQTN where|when FACTOR is EXPR")) {
+			console.log("SUCCESS: EQTN where|when FACTOR is EXPR");
+			console.log(last_query_vars);
+			equation_text = last_query_vars[0];
+			query_info.type = "solve-for";
+			query_info.variable = last_query_vars[1];
+			query_info.value = last_query_vars[2];
+			result = true;
+		} else if (test_query(text, "replace FACTOR with EXPR in|when|where EQTN")) { 
+			console.log("SUCCESS: replace FACTOR with EXPR in|when|where EQTN");
+			console.log(last_query_vars);
+			equation_text = last_query_vars[2];
+			query_info.type = "solve-for";
+			query_info.variable = last_query_vars[0];
+			query_info.value = last_query_vars[1];
+			result = true;
 		}
+	}
+
+	// Factoring
+	if (!result && test_query(text, "what? is? find? the? factor|root of? EXPR")) {
+		console.log("SUCCESS: factor|root of? EXPR");
+		console.log(last_query_vars);
+		if (last_query_vars.length) equation_text = last_query_vars[0];
+		query_info.type = "factor";
+		query_info.phrasing = "factor";
+		query_info.variable = null;
 	}
 
 	// Pre-Module
@@ -226,10 +228,13 @@ function handle_query(f, e) {
 	if (query_info.type == "solve-for") {
 		if (query_info.value != null) {
 			post_input.push("where ");
-			post_input.push("_" + query_info.variable);
+			post_input.push("_" + truncate_number(
+				new ExpressionGroup({
+					text: query_info.variable
+				})));
 			post_input.push("=");
 			post_input.push("_" + truncate_number(
-				new Fraction({
+				new ExpressionGroup({
 					text: query_info.value
 				})
 			));
@@ -363,20 +368,20 @@ function handle_query(f, e) {
 				v_info = equation.getVarInfo();
 			} else {
 				query_info.other = query_info.variable;
-			}
-			// What degree is the equation now?
-			if (v_info.max_degree == 1) {
-				if (modules.length) {
-					// Output reference visual
-					push_module_step({
-						type: "reference",
-						visual: equation.element()
-					});
+				// What degree is the equation now?
+				if (v_info.max_degree == 1) {
+					if (modules.length) {
+						// Output reference visual
+						push_module_step({
+							type: "reference",
+							visual: equation.element()
+						});
+					}
+					equation.isolate(query_info.other);
+				} else if (v_info.max_degree == 2) {
+					equation.factor(query_info.other,
+						true);
 				}
-				equation.isolate(query_info.other);
-			} else if (v_info.max_degree == 2) {
-				equation.factor(query_info.other,
-					true);
 			}
 		}
 	}
@@ -542,6 +547,149 @@ function handle_hash_query() {
 		}
 	}
 }
+
+// Keywords (Used for breaking up queries)
+KEYWORDS_STR = "simplify where when solve for with replace equals is in factors? roots? of ; are the find";
+KEYWORDS_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + ")\\b";
+QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR|=)\\b";
+
+// Splits a query on keywords and removed unnecessary spaces
+function split_query(text) {
+	var regex = new RegExp(KEYWORDS_REGEX, "gi");
+	var result = text.split(regex);
+	for (var i = result.length; i --; ) {
+		// Get rid of spaces before/after the item
+		result[i] = result[i].trim();
+		if (regex.test(result[i])) result[i] = result[i].toLowerCase();
+		// If the item is not blank, skip to the next one
+		if (result[i]) continue;
+		result.splice(i, 1);
+	}
+	return result;
+}
+
+// Tests to make sure a string is an equation
+function is_equation(str) {
+	if (!str.length) return false;
+	if ((new RegExp(KEYWORDS_REGEX, "gi")).test()) return false;
+	return true;
+}
+
+// Tests to make sure a string is an expression
+// (Really just makes sure it's not keywords)
+function is_expression(str) {
+	if (!is_equation(str)) return false;
+	// TODO: Test for characters that are not allowed in expressions
+	if (/=/.test(str)) return false;
+	return true;
+}
+
+// Tests to make sure a string is a valid factor
+function is_factor(str) {
+	return new RegExp("^(?:-1|" + FLOAT_NUM_REGEX + "|" +
+		"1\\/" + FLOAT_NUM_REGEX + "|(?:" + NEG_FRACTION_REGEX +
+		")?[a-z](?:\\^-?\\d+)?|\\(?" + NEG_FRACTION_REGEX +
+		"\\)?\\^\\(?1\\/\\d+\\)?)$", "gi").test(str);
+}
+
+// Tests to make sure a string is explicitly an AlgebraGroup
+function is_algebra(str) {
+	return new RegExp("^(?:" + NEG_FRACTION_REGEX +
+		")?[a-z](?:\\^-?\\d+)?$", "i").test(str);
+}
+
+function test_query(str, query) {
+	var keyword_regex = new RegExp(KEYWORDS_REGEX, "gi");
+	var query_regex = new RegExp(QUERY_FN_REGEX, "gi");
+	// Get all the parts and sanitize them
+	var safe_str = str.replace(/^(?:wh(?:at)\s+(?:is|are)(?:\s+the)?)/, "");
+	var original_parts = safe_str.split(query_regex);
+	var parts = original_parts.slice();
+	for (var i = parts.length; i --; ) {
+		// Get rid of spaces before/after the item
+		original_parts[i] = parts[i] = parts[i].trim();
+		if (keyword_regex.test(parts[i].replace(/\?$/, ""))) {
+			parts[i] = parts[i].toLowerCase();
+			if (/(?:factor|root)s/.test(parts[i])) {
+				parts[i] = parts[i].substr(0, parts[i].length - 1);
+			}
+		} else if (is_factor(parts[i])) {
+			parts[i] = "FACTOR";
+		} else if (is_expression(parts[i])) {
+			parts[i] = "EXPR";
+		} else if (is_equation(parts[i])) {
+			parts[i] = "EQTN";
+		} else if (parts[i] != "=" && parts[i].length) {
+			parts[i] = "UNKNOWN";
+		}
+		// If the item is not blank, skip to the next one
+		if (parts[i]) continue;
+		parts.splice(i, 1);
+		original_parts.splice(i, 1);
+	}
+	// Test query
+	// console.log(parts.join(" "));
+	var query_parts = query.split(" ");
+	var variable_parts = new Array();
+	for (var x = 0, y = query_parts.length; x < y; ++ x) {
+		// Can't possibly match
+		if (parts[x] == null) return false;
+		// Clean up optional queries
+		var query_part = query_parts[x];
+		var optional = query_part.substr(-1) == "?";
+		if (optional) query_part = query_part.replace(/\?$/, "");
+		// Perfect match
+		if (parts[x] == query_part) {
+			if (/(?:EQTN|EXPR|FACTOR)/.test(parts[x])) {
+				variable_parts.push(original_parts[x]);
+			}
+			continue;
+		}
+		// Near matches (variable text)
+		if (query_part == "EQTN" &&
+			(["EXPR", "FACTOR"].indexOf(parts[x]) != -1)) {
+			variable_parts.push(original_parts[x]);
+			continue;
+		}
+		if (query_part == "EXPR" && parts[x] == "FACTOR") {
+			variable_parts.push(original_parts[x]);
+			continue;
+		}
+		// Near matches (multiple allowed keywords)
+		if (query_part.split("|").indexOf(parts[x]) != -1) {
+			continue;
+		}
+		// Near matches (equals/is)
+		if (["FACTOR", "EXPR"].indexOf(query_parts[x]) != -1 &&
+			query_parts[x + 1] == "is" && parts[x] == "EQTN") {
+			parts = parts.slice(0, x).concat(
+				["EXPR", "is", "EXPR"].concat(parts.slice(x + 1)));
+			var original_str = original_parts[x];
+			var equals_index = original_str.indexOf("=");
+			original_parts = parts.slice(0, x).concat(
+				[original_str.substr(0, equals_index).trim(), "is", 
+				original_str.substr(equals_index + 1).trim()
+				].concat(parts.slice(x + 1)));
+			variable_parts.push(original_parts[x]);
+			if (is_factor(original_parts[x]) ||
+				(query_parts[x] == "EXPR" &&
+				is_expression(original_parts[x]))) continue;
+		}
+		// Optional
+		if (query_parts[x].substr(-1) == "?") {
+			parts = parts.slice(0, x).concat(
+				[null].concat(parts.slice(x)));
+			original_parts = original_parts.slice(0, x).concat(
+				[null].concat(original_parts.slice(x)));
+			continue;
+		}
+		return false;
+	}
+	last_query_vars = variable_parts.slice();
+	return variable_parts;
+}
+
+last_query_vars = null;
 
 // Page load
 window.addEventListener("load", function() {
