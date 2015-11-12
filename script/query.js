@@ -168,6 +168,7 @@ function handle_query(f, e) {
 
 	// Solving for a variable
 	if (!result && (test_query(text, "solve EQTN for FACTOR") ||
+		test_query(text, "EQTN solve for? FACTOR") ||
 		test_query(text, "solve EQTN"))) {
 		query_info.variable = last_query_vars[1] || null;
 		if (!is_algebra(last_query_vars[1])) query_info.variable = null;
@@ -179,6 +180,19 @@ function handle_query(f, e) {
 			result = true;
 			query_info.type = "solve-for";
 			equation_text = last_query_vars[0];
+		}
+	} else if (!result &&
+		test_query(text, "solve for? FACTOR in|when|where EQTN")) {
+		query_info.variable = last_query_vars[0] || null;
+		if (!is_algebra(last_query_vars[0])) query_info.variable = null;
+		if (query_info.variable == null) {
+			var v = last_query_vars[1].match(/[a-zA-Z]/);
+			if (v != null) query_info.variable = v[0];
+		}
+		if (query_info.variable != null) {
+			result = true;
+			query_info.type = "solve-for";
+			equation_text = last_query_vars[1];
 		}
 	}
 
