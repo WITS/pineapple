@@ -941,7 +941,7 @@ ExpressionGroup = function(json) {
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
 	this.text = this.text.replace(new RegExp("(^|[^\\/0-9])\\((" +
 		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
-	this.text = this.text.replace(/pi/, "\u03C0");
+	this.text = this.text.replace(/pi/gi, "\u03C0");
 	this.text = this.text.replace(/([a-z\u03C0])\^([a-z\u03C0])/gi, "$1^($2)");
 	console.log(this.text);
 	this.highlighted = json.highlighted || false;
