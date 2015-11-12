@@ -361,6 +361,8 @@ function handle_query(f, e) {
 	if (equation.all_vars.length) {
 		if (query_info.type == "solve-for") {
 			console.log(query_info);
+			query_info.variable = query_info.variable.replace(
+				/pi/g, "\u03C0");
 			// Put in the first variable where appropriate
 			if (query_info.value != null) {
 				equation.replace(query_info.variable,
@@ -602,7 +604,7 @@ function is_expression(str) {
 function is_factor(str) {
 	return new RegExp("^(?:-1|" + FLOAT_NUM_REGEX + "|" +
 		"1\\/" + FLOAT_NUM_REGEX + "|(?:" + NEG_FRACTION_REGEX +
-		")?[a-z](?:\\^-?\\d+)?|\\(?" + NEG_FRACTION_REGEX +
+		")?(?:[a-z\u03C0]|pi)(?:\\^-?\\d+)?|\\(?" + NEG_FRACTION_REGEX +
 		"\\)?\\^\\(?1\\/\\d+\\)?)$", "gi").test(str);
 }
 
