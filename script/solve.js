@@ -4774,7 +4774,8 @@ function exponent_element(b, e, simple, marked) {
 			base.addClass("parentheses");
 		}
 		if (b instanceof AlgebraGroup &&
-			b.coefficient.toNumber() != 1) {
+			(b.coefficient.toNumber() != 1 ||
+			/[a-zA-Z]\^(?:\d{2,}|[2-9])/.test(b.toString()))) {
 			base.addClass("parentheses");
 		}
 	}

@@ -551,7 +551,7 @@ function handle_hash_query() {
 // Keywords (Used for breaking up queries)
 KEYWORDS_STR = "simplify where when solve for with replace equals is in factors? roots? of ; are the find";
 KEYWORDS_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + ")\\b";
-QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR|=)\\b";
+QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR)\\b";
 
 // Splits a query on keywords and removed unnecessary spaces
 function split_query(text) {
@@ -628,7 +628,7 @@ function test_query(str, query) {
 		original_parts.splice(i, 1);
 	}
 	// Test query
-	// console.log(parts.join(" "));
+	// console.log("Tested. " + parts.join(" "));
 	var query_parts = query.split(" ");
 	var variable_parts = new Array();
 	for (var x = 0, y = query_parts.length; x < y; ++ x) {
