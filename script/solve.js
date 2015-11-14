@@ -943,7 +943,6 @@ ExpressionGroup = function(json) {
 		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
 	this.text = this.text.replace(/pi/gi, "\u03C0");
 	this.text = this.text.replace(/([a-z\u03C0])\^([a-z\u03C0])/gi, "$1^($2)");
-	console.log(this.text);
 	this.highlighted = json.highlighted || false;
 	this.top_parent = this;
 	this.parent = json.parent || null;
@@ -1785,7 +1784,6 @@ MultiplyGroup = function(json) {
 			var algebra_str = group.replace(
 				new RegExp("(?:^" + NEG_FRACTION_REGEX + "|[ie\u03C0](?:\\^" +
 					NEG_FRACTION_REGEX + ")?)", "g"), "");
-			console.log("Constant: " + constant_str + "\nAlgebra: " + algebra_str);
 			this.groups[x] = new ConstantGroup({
 				text: constant_str,
 				parent: this
@@ -1797,7 +1795,6 @@ MultiplyGroup = function(json) {
 						text: algebra_str,
 						parent: this
 					})].concat(this.groups.slice(x + 1)));
-				console.log(this.groups);
 			}
 		} else if (/[a-z]/i.test(group)) { // AlgebraGroup
 			this.groups[x] = new AlgebraGroup({
@@ -3565,7 +3562,6 @@ AlgebraGroup.prototype.duplicate = function() {
 	});
 	result.coefficient = this.coefficient.duplicate();
 	result.fixLinks();
-	console.log(result);
 	return result;
 }
 AlgebraGroup.prototype.toString = function() {

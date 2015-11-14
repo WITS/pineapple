@@ -22,9 +22,6 @@ function handle_query(f, e) {
 		f.text.value = text;
 	}
 
-	var text_parts = split_query(text);
-	console.log(text_parts);
-
 	var output = document.createDocumentFragment();
 
 	// In case something goes wrong
