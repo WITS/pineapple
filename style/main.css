@@ -233,6 +233,11 @@ body.homepage #nav {
 	cursor: pointer;
 }
 
+body:not(.homepage) #homepage-text,
+body:not(.homepage) #homepage-text code {
+	cursor: default;
+}
+
 body.homepage #homepage-text {
 	opacity: 1;
 	max-height: 256px;
