@@ -2026,7 +2026,8 @@ MultiplyGroup.prototype.factorOut = function(factor, showSteps) {
 	if (constant != null) constant = constant[0];
 	for (var i = this.groups.length; i --; ) {
 		var group = this.groups[i];
-		if (group instanceof AlgebraGroup) {
+		if (group instanceof AlgebraGroup ||
+			group instanceof ConstantGroup) {
 			if (group.factors().indexOf(factor) != -1) {
 				group.factorOut(factor);
 				if (group.valueOf() instanceof Fraction) {
@@ -2242,7 +2243,7 @@ FractionGroup = function(json) {
 
 	// Numerator
 	if (typeof this.numerator === 'string') {
-		if (/[a-z]/i.test(this.numerator)) {
+		if (/[a-z\u03C0]/i.test(this.numerator)) {
 			// AlgebraGroup
 			this.numerator = new AlgebraGroup({
 				text: this.numerator,
@@ -2251,7 +2252,7 @@ FractionGroup = function(json) {
 		} else {
 			// Fraction
 			this.numerator = new Fraction({
-				numerator: +this.numerator,
+				text: this.numerator,
 				parent: this
 			});
 		}
@@ -2259,7 +2260,7 @@ FractionGroup = function(json) {
 
 	// Denominator
 	if (typeof this.denominator === 'string') {
-		if (/[a-z]/i.test(this.denominator)) {
+		if (/[a-z\u03C0]/i.test(this.denominator)) {
 			// AlgebraGroup
 			this.denominator = new AlgebraGroup({
 				text: this.denominator,
@@ -2268,7 +2269,7 @@ FractionGroup = function(json) {
 		} else {
 			// Fraction
 			this.denominator = new Fraction({
-				numerator: +this.denominator,
+				text: this.denominator,
 				parent: this
 			});
 		}
@@ -2435,12 +2436,19 @@ FractionGroup.prototype.fixLinks = function() {
 	this.numerator.parent = this;
 	this.numerator.top_parent = this.top_parent;
 	// Fix the links within this.numerator
+	// console.log("Numerator");
+	// console.log(this.numerator);
+	// console.log(typeof this.numerator);
 	this.numerator.fixLinks();
 	// Fix links between this and this.denominator
 	this.denominator = this.denominator.valueOf();
 	this.denominator.parent = this;
 	this.denominator.top_parent = this.top_parent;
 	// Fix the links within this.denominator
+	// console.log("Denominator");
+	// console.log(typeof this.denominator);
+	// console.log(this.denominator);
+	// console.log(typeof this.denominator);
 	this.denominator.fixLinks();
 }
 
@@ -2464,6 +2472,7 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 
 	// Join fractions in numerator/denominator
 	if (d_val instanceof Fraction &&
+		!(d_val instanceof ConstantGroup) &&
 		(n_val instanceof Fraction ||
 		n_val instanceof MultiplyGroup ||
 		n_val instanceof AlgebraGroup ||
@@ -2489,6 +2498,7 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 		}
 	}
 	if (n_val instanceof Fraction &&
+		!(n_val instanceof ConstantGroup) &&
 		(d_val instanceof Fraction ||
 		d_val instanceof MultiplyGroup ||
 		d_val instanceof AlgebraGroup ||
@@ -2573,7 +2583,9 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	}
 
 	if (n_val instanceof Fraction &&
-		d_val instanceof Fraction) {
+		!(n_val instanceof ConstantGroup) &&
+		d_val instanceof Fraction &&
+		!(d_val instanceof ConstantGroup)) {
 		this.value = new Fraction({
 			numerator: n_val.numerator *
 				d_val.denominator,
@@ -2588,19 +2600,22 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 		if (this.parent == null) {
 			this.value.top_parent = this.value;
 		}
-	} else if ((n_val instanceof AlgebraGroup ||
+	} /*else if ((n_val instanceof AlgebraGroup ||
 		n_val instanceof Fraction) && (d_val
 		instanceof AlgebraGroup || d_val
 		instanceof Fraction)) {
+		console.log("Hello");
 		this.value = this;
 
-		if (n_val instanceof Fraction) {
+		if (n_val instanceof Fraction &&
+			!(n_val instanceof ConstantGroup)) {
 			var n_fraction = n_val;
 		} else {
 			var n_fraction = n_val.coefficient;
 		}
 
-		if (d_val instanceof Fraction) {
+		if (d_val instanceof Fraction &&
+			!(d_val instanceof ConstantGroup)) {
 			var d_fraction = d_val;
 		} else {
 			var d_fraction = d_val.coefficient;
@@ -2675,14 +2690,15 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 			n_fraction.multiply(-1);
 			d_fraction.multiply(-1);
 		}
-		if (this.denominator instanceof Fraction &&
+		if (d_val instanceof Fraction &&
+			!(d_val instanceof ConstantGroup) &&
 			d_fraction.numerator == 1 &&
 			d_fraction.denominator == 1) {
 			this.value = this.numerator;
 			return;
 		}
 		if (abs_n == 1 || abs_d == 1) {
-			return false;
+			// return false;
 		}
 		if (abs_n % abs_d == 0 || abs_d % abs_n == 0) {
 			if (!hideSteps) {
@@ -2702,8 +2718,8 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 			if (abs_n % abs_d == 0) {
 				n_fraction.numerator /= abs_d;
 				d_fraction.numerator = 1;
-				if (this.denominator instanceof
-					Fraction &&
+				if (d_val instanceof Fraction &&
+					!(d_val instanceof ConstantGroup) &&
 					d_fraction.denominator == 1) {
 					this.value = this.numerator;
 				}
@@ -2711,7 +2727,7 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 				d_fraction.numerator /= abs_n;
 				n_fraction.numerator = 1;
 			}
-			return true;
+			// return true;
 		}
 		var n_factors = get_factors(abs_n).slice(1);
 		var d_factors = get_factors(abs_d).slice(1);
@@ -2736,11 +2752,14 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 				}
 				n_fraction.numerator /= x;
 				d_fraction.numerator /= x;
-				return true;
+				// return true;
+				break;
 			}
 		}
-	}
+	}*/
+	console.log(this.value);
 	if (this.value != null) return true; // Already simplified
+	console.log("Started from the top, now we're here.");
 	// Complex factor simplification
 	this.numerator = this.numerator.valueOf();
 	this.denominator = this.denominator.valueOf();
@@ -2754,8 +2773,9 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	// console.log(factors);
 	for (var x = 0, y = factors.length; x < y; ++ x) {
 		var f = factors[x];
-		if (/[a-zA-Z]/.test(f)) { // Variable
-			var v = f.replace(/[^a-zA-Z]/g, "");
+		if (/[a-zA-Z\u03C0]/.test(f)) { // Variable
+			var v = f.replace(/[^a-zA-Z\u03C0]/g, "");
+			console.log(v);
 			if (removed_vars.indexOf(v) !== -1) continue;
 			removed_vars.push(v);
 			this.factorOut(f, true, true);
@@ -2778,8 +2798,10 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 	// Multiply by the reciprocal when appropriate
 	if ((n_val instanceof FractionGroup ||
 		n_val instanceof Fraction) &&
+		!(n_val instanceof ConstantGroup) &&
 		(d_val instanceof FractionGroup ||
 		d_val instanceof Fraction) &&
+		!(d_val instanceof ConstantGroup) &&
 		(n_val.toString().indexOf("/") != -1 ||
 		d_val.toString().indexOf("/") != -1)) {
 		var m_group = n_val.multiplyGroup();
@@ -2941,15 +2963,15 @@ ExponentGroup = function(json) {
 
 	// Base
 	if (typeof this.base === 'string') {
-		if (this.base.indexOf("^") != -1) {
-			// ExponentGroup
-			this.base = new ExponentGroup({
+		 if (/[a-z\u03C0]/i.test(this.base)) {
+			// AlgebraGroup
+			this.base = new AlgebraGroup({
 				text: this.base,
 				parent: this
 			});
-		} else if (/[a-z]/i.test(this.base)) {
-			// AlgebraGroup
-			this.base = new AlgebraGroup({
+		} else if (this.base.indexOf("^") != -1) {
+			// ExponentGroup
+			this.base = new ExponentGroup({
 				text: this.base,
 				parent: this
 			});
@@ -2963,15 +2985,15 @@ ExponentGroup = function(json) {
 	}
 	// Exponent
 	if (typeof this.exponent === 'string') {
-		if (this.exponent.indexOf("^") != -1) {
-			// ExponentGroup
-			this.exponent = new ExponentGroup({
+		if (/[a-z\u03C0]/i.test(this.exponent)) {
+			// AlgebraGroup
+			this.exponent = new AlgebraGroup({
 				text: this.exponent,
 				parent: this
 			});
-		} else if (/[a-z]/i.test(this.exponent)) {
-			// AlgebraGroup
-			this.exponent = new AlgebraGroup({
+		} else if (this.exponent.indexOf("^") != -1) {
+			// ExponentGroup
+			this.exponent = new ExponentGroup({
 				text: this.exponent,
 				parent: this
 			});
@@ -3372,15 +3394,21 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		});
 	}
 	variables = text.match(new RegExp(
-		"[a-z](?:\\^" + NEG_FRACTION_REGEX + ")?",
+		"[a-z\u03C0](?:\\^" + NEG_FRACTION_REGEX + ")?",
 		"gi"));
 	if (variables == null) {
 		// console.error("No variables!");
 		return;
 	}
 	variables.reverse();
+	var constant_str = "";
 	var i = variables.length;
 	while (i --) {
+		// Constants ?
+		if (/^[ei\u03C0]/.test(variables[i])) {
+			constant_str = variables[i] + constant_str;
+			continue;
+		}
 		if (variables[i].length == 1) {
 			variables[i] += "^1";
 		}
@@ -3388,6 +3416,31 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 		var var_exp = variables[i].substr(2);
 		if (this.temp_variables) this.temp_variables.push(var_letter + var_exp);
 		this.incrementVar(var_letter, var_exp);
+	}
+	// Constants?
+	if (constant_str.length) {
+		var coefficient = new ConstantGroup({
+			text: constant_str,
+			parent: this,
+			equation: this.equation,
+			side: this.side
+		});
+		coefficient.coefficient = this.coefficient;
+		this.coefficient.parent = coefficient;
+		this.coefficient = coefficient;
+	}
+	// No variables ?
+	if (!this.temp_variables.length) {
+		console.log("No variables!");
+		this.value = this.coefficient;
+		if (this.parent != null) {
+			this.parent.replace(this, this.value);
+		} else {
+			this.equation[this.side] = this.value;
+			this.value.top_parent = this.value;
+			this.value.parent = null;
+			this.value.fixLinks();
+		}
 	}
 	this.text = text;
 }
@@ -3473,20 +3526,25 @@ AlgebraGroup.prototype.factorOut = function(factor, showSteps) {
 		this.highlighted = false;
 	}
 	// Actually factor - THIS HASN'T BEEN TESTED <!>
-	var coefficient = factor.match(new RegExp("^" + NEG_FRACTION_REGEX));
+	var coefficient;
+	if (this.coefficient instanceof ConstantGroup) {
+		coefficient = coefficient = factor;
+	} else {
+		coefficient = factor.match(new RegExp("^" + NEG_FRACTION_REGEX));
+	}
 	if (coefficient != null) {
 		var c_val = coefficient[0];
 		this.coefficient.factorOut(c_val);
 		console.log(this.coefficient);
 	}
-	var factors = factor.match(new RegExp("[a-zA-Z](?:\\^" +
+	var factors = factor.match(new RegExp("[a-df-hj-zA-Z](?:\\^" +
 		NEG_FRACTION_REGEX + ")?", "g"));
 	if (factors == null) {
 		this.simplify(true);
 		return;
 	}
-	console.log("AlegbraGroup:");
-	console.log(factors);
+	// console.log("AlegbraGroup:");
+	// console.log(factors);
 	for (var i = factors.length; i --; ) {
 		var letter = factors[i][0];
 		var exp = factors[i].substr(2) || "1";
@@ -3546,7 +3604,7 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 	for (var n in json) {
 		// Break down the factor being tested
 		var n_factors = n.match(new RegExp("(?:^" + NEG_FRACTION_REGEX +
-			"|[a-zA-Z](?:\\^" + NEG_FRACTION_REGEX + ")?)", "g"));
+			"|[a-zA-Z\u03C0](?:\\^" + NEG_FRACTION_REGEX + ")?)", "g"));
 		if (!n_factors) continue;
 		// How many times the factor was removed
 		var exp = 0;
@@ -3564,7 +3622,7 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 			// Increment the count of the times this factor was removed
 			++ exp;
 			// Remove factors in copies of children
-			var coefficient = !/[a-zA-Z]/.test(n_factors[0]);
+			var coefficient = !/[a-zA-Z\u03C0]/.test(n_factors[0]);
 			if (coefficient) {
 				var c_val = n_factors[0];
 				var c_fraction = new Fraction(c_val).reciprocal();
@@ -3573,9 +3631,19 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 			var vars = n_factors.slice(coefficient);
 			for (var i = vars.length; i --; ) {
 				var v = vars[i][0];
-				if (!copy.hasVar(v)) continue;
-				copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
-					"-" + vars[i].substr(2));
+				if (/[ei\u03C0]/.test(v)) {
+					if (copy.coefficient instanceof ConstantGroup) {
+						if (!copy.coefficient.hasConst(v)) break;
+						copy.coefficient.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
+							"-" + vars[i].substr(2));
+					} else {
+						break;
+					}
+				} else {
+					if (!copy.hasVar(v)) break;
+					copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
+						"-" + vars[i].substr(2));
+				}
 			}
 			// Prevent an infinite loop from occurring here
 			if (coefficient && n_factors[0] == "1") break;
@@ -3603,8 +3671,20 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 		});
 		this.highlighted = false;
 		// Actually remove factors in children
-		this.coefficient.numerator = copy.coefficient.numerator;
-		this.coefficient.denominator = copy.coefficient.denominator;
+		if (this.coefficient instanceof ConstantGroup) {
+			var this_co = this.coefficient;
+			var copy_co = copy.coefficient;
+			this_co.coefficient.numerator =
+				copy_co.coefficient.numerator;
+			this_co.coefficient.denominator =
+				copy_co.coefficient.denominator;
+			for (var name in this_co.constant) {
+				this_co.setConst(name, copy_co.constant[name].toString());
+			}
+		} else {
+			this.coefficient.numerator = copy.coefficient.numerator;
+			this.coefficient.denominator = copy.coefficient.denominator;
+		}
 		for (var name in this.variable) {
 			this.setVar(name, copy.variable[name].toString());
 		}
@@ -4254,16 +4334,16 @@ ConstantGroup = function(json) {
 
 ConstantGroup.prototype = new Fraction();
 
-ConstantGroup.prototype.hasVar = function(name) {
+ConstantGroup.prototype.hasConst = function(name) {
 	return (this.constant[name] != null);
 }
-ConstantGroup.prototype.getVar = function(name) {
+ConstantGroup.prototype.getConst = function(name) {
 	return this.constant[name];
 }
-ConstantGroup.prototype.removeVar = function(name) {
+ConstantGroup.prototype.removeConst = function(name) {
 	delete this.constant[name];
 }
-ConstantGroup.prototype.setVar = function(name, degree) {
+ConstantGroup.prototype.setConst = function(name, degree) {
 	if (!(degree instanceof Fraction)) {
 		degree = new Fraction({
 			text: degree
@@ -4276,14 +4356,14 @@ ConstantGroup.prototype.setVar = function(name, degree) {
 	}
 	return degree;
 }
-ConstantGroup.prototype.incrementVar = function(name, degree) {
+ConstantGroup.prototype.incrementConst = function(name, degree) {
 	if (!(degree instanceof Fraction)) {
 		degree = new Fraction({
 			text: degree
 		});
 	}
-	if (!this.hasVar(name)) {
-		return this.setVar(name, degree);
+	if (!this.hasConst(name)) {
+		return this.setConst(name, degree);
 	} else {
 		this.constant[name].add(degree);
 		return (this.constant[name]);
@@ -4327,7 +4407,7 @@ ConstantGroup.prototype.updateFromText = function(text) {
 		var var_letter = constants[i][0];
 		var var_exp = constants[i].substr(2);
 		if (this.temp_constants) this.temp_constants.push(var_letter + var_exp);
-		this.incrementVar(var_letter, var_exp);
+		this.incrementConst(var_letter, var_exp);
 	}
 	this.text = text;
 }
@@ -4393,7 +4473,7 @@ ConstantGroup.prototype.multiply = function(n) {
 	// Multiply everything
 	this.coefficient.multiply(n.coefficient);
 	for (var name in n.constant) {
-		this.incrementVar(name, n.constant[name]);
+		this.incrementConst(name, n.constant[name]);
 	}
 }
 ConstantGroup.prototype.factorOut = function(factor, showSteps) {
@@ -4418,7 +4498,7 @@ ConstantGroup.prototype.factorOut = function(factor, showSteps) {
 		this.coefficient.factorOut(c_val);
 		console.log(this.coefficient);
 	}
-	var factors = factor.match(new RegExp("[a-zA-Z](?:\\^" +
+	var factors = factor.match(new RegExp("[ei\u03C0](?:\\^" +
 		NEG_FRACTION_REGEX + ")?", "g"));
 	if (factors == null) {
 		this.simplify(true);
@@ -4429,7 +4509,7 @@ ConstantGroup.prototype.factorOut = function(factor, showSteps) {
 	for (var i = factors.length; i --; ) {
 		var letter = factors[i][0];
 		var exp = factors[i].substr(2) || "1";
-		this.incrementVar(letter, "-" + exp);
+		this.incrementConst(letter, "-" + exp);
 	}
 	this.simplify(true);
 }
@@ -4483,7 +4563,7 @@ ConstantGroup.prototype.factors = function() {
 	factors = factors.concat(this.coefficient.factors());
 	// constant factors
 	for (var name in this.constant) {
-		var power = this.getVar(name);
+		var power = this.getConst(name);
 		if (power > 0) factors.push(name);
 		if (power < 0) factors.push(name + "^-1");
 		// All possible higher factors
@@ -4529,8 +4609,8 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 			var vars = n_factors.slice(coefficient);
 			for (var i = vars.length; i --; ) {
 				var v = vars[i][0];
-				if (!copy.hasVar(v)) continue;
-				copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
+				if (!copy.hasConst(v)) continue;
+				copy.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
 					"-" + vars[i].substr(2));
 			}
 			// Prevent an infinite loop from occurring here
@@ -4562,14 +4642,14 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 		this.coefficient.numerator = copy.coefficient.numerator;
 		this.coefficient.denominator = copy.coefficient.denominator;
 		for (var name in this.constant) {
-			this.setVar(name, copy.constant[name].toString());
+			this.setConst(name, copy.constant[name].toString());
 		}
 		var replace_val = json[n];
 		// Add in the replacement values
 		if (exp == 1) {
 			var m_group = this.multiplyGroup();
 			if (m_group.groups.length == 1 && replace_val[0] == "-" &&
-				!/[a-zA-Z](?!\^0)/.test(this.toString()) &&
+				!/[ei\u03C0](?!\^0)/.test(this.toString()) &&
 				this.coefficient.toNumber() == -1) {
 				this.coefficient.multiply(-1);
 				replace_val = replace_val.substr(1);
@@ -4587,7 +4667,7 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 		}
 	}
 	// Check whether there are any constants left
-	if (!/[a-zA-Z](?!\^0)/.test(this.toString())) {
+	if (!/[ei\u03C0](?!\^0)/.test(this.toString())) {
 		if (this.coefficient.toNumber() == 1) {
 			this.multiplyGroup().remove(this);
 		} else {
@@ -4641,7 +4721,7 @@ ConstantGroup.prototype.simplify = function(hideSteps) {
 				});
 				this.highlighted_temp.splice(0);
 			}
-			this.removeVar(name);
+			this.removeConst(name);
 			continue;
 		}
 		constant = false;
