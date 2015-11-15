@@ -1368,7 +1368,7 @@ ExpressionGroup.prototype.simplify = function() {
 		}
 	}
 	// Take out common radical (if applicable)
-	if (radical) {
+	if (radical && this.groups.length >= 2) {
 		this.highlighted = true;
 		// ModuleStep: Factor out radical
 		push_module_step({
