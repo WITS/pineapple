@@ -711,7 +711,7 @@ window.addEventListener("load", function() {
 			elem.setAttribute("data-query", elem.innerHTML);
 			elem.addEventListener("click", function() {
 				if (last_query != "") return false;
-				handle_query_suggestion();
+				handle_query(this.getAttribute("data-query"));
 			});
 		});
 	Config.loadLocalStorage();
