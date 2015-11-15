@@ -145,6 +145,7 @@ function handle_query(f, e) {
 
 	// Pre-Processing
 	var equation_text = text;
+	text = text.replace(/^(?:what(?:'?s)?\s+(?:is|are)(?:\s+the)?)/, "")
 	text = text.replace(/\u00D7/g, "*");
 	text = text.replace(/\u00F7/g, "/");
 	text = text.replace(/\u00B2/g, "^2");
@@ -195,8 +196,8 @@ function handle_query(f, e) {
 
 	// Replacing factors
 	if (!result) {
-		if (test_query(text, "EQTN where|when FACTOR is EXPR")) {
-			console.log("SUCCESS: EQTN where|when FACTOR is EXPR");
+		if (test_query(text, "EQTN where|when FACTOR equals EXPR")) {
+			console.log("SUCCESS: EQTN where|when FACTOR equals EXPR");
 			console.log(last_query_vars);
 			equation_text = last_query_vars[0];
 			query_info.type = "solve-for";
@@ -562,7 +563,7 @@ function handle_hash_query() {
 }
 
 // Keywords (Used for breaking up queries)
-KEYWORDS_STR = "simplify where when solve for with replace equals is in factors? roots? of ; are the find";
+KEYWORDS_STR = "simplify where when solve for with replace equals? is in factors? roots? of ; are the find";
 KEYWORDS_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + ")\\b";
 QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR)\\b";
 
@@ -615,7 +616,7 @@ function test_query(str, query) {
 	var keyword_regex = new RegExp(KEYWORDS_REGEX, "gi");
 	var query_regex = new RegExp(QUERY_FN_REGEX, "gi");
 	// Get all the parts and sanitize them
-	var safe_str = str.replace(/^(?:wh(?:at)\s+(?:is|are)(?:\s+the)?)/, "");
+	var safe_str = str;
 	var original_parts = safe_str.split(query_regex);
 	var parts = original_parts.slice();
 	for (var i = parts.length; i --; ) {
@@ -672,15 +673,18 @@ function test_query(str, query) {
 		if (query_part.split("|").indexOf(parts[x]) != -1) {
 			continue;
 		}
+		if (query_part == "equals" && /(?:equals?|is)/.test(parts[x])) {
+			continue;
+		}
 		// Near matches (equals/is)
 		if (["FACTOR", "EXPR"].indexOf(query_parts[x]) != -1 &&
-			query_parts[x + 1] == "is" && parts[x] == "EQTN") {
+			query_parts[x + 1] == "equals" && parts[x] == "EQTN") {
 			parts = parts.slice(0, x).concat(
-				["EXPR", "is", "EXPR"].concat(parts.slice(x + 1)));
+				["EXPR", "equals", "EXPR"].concat(parts.slice(x + 1)));
 			var original_str = original_parts[x];
 			var equals_index = original_str.indexOf("=");
 			original_parts = parts.slice(0, x).concat(
-				[original_str.substr(0, equals_index).trim(), "is", 
+				[original_str.substr(0, equals_index).trim(), "equals", 
 				original_str.substr(equals_index + 1).trim()
 				].concat(parts.slice(x + 1)));
 			variable_parts.push(original_parts[x]);
