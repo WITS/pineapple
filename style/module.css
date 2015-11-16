@@ -464,6 +464,11 @@ body:not(.mobile) .module:not(.expanded) >
 }
 
 /* Config Modules */
+.config-module * {
+	-webkit-tap-highlight-color:
+		rgba(203, 80, 39, 0.1);
+}
+
 .config-group {
 	position: relative;
 	border-top: 1px solid #E8E8E8;

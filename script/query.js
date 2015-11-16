@@ -22,9 +22,6 @@ function handle_query(f, e) {
 		f.text.value = text;
 	}
 
-	var text_parts = split_query(text);
-	console.log(text_parts);
-
 	var output = document.createDocumentFragment();
 
 	// In case something goes wrong
@@ -148,6 +145,7 @@ function handle_query(f, e) {
 
 	// Pre-Processing
 	var equation_text = text;
+	text = text.replace(/^(?:what(?:'?s)?\s+(?:is|are)(?:\s+the)?)/, "")
 	text = text.replace(/\u00D7/g, "*");
 	text = text.replace(/\u00F7/g, "/");
 	text = text.replace(/\u00B2/g, "^2");
@@ -168,6 +166,7 @@ function handle_query(f, e) {
 
 	// Solving for a variable
 	if (!result && (test_query(text, "solve EQTN for FACTOR") ||
+		test_query(text, "EQTN solve for? FACTOR") ||
 		test_query(text, "solve EQTN"))) {
 		query_info.variable = last_query_vars[1] || null;
 		if (!is_algebra(last_query_vars[1])) query_info.variable = null;
@@ -180,12 +179,25 @@ function handle_query(f, e) {
 			query_info.type = "solve-for";
 			equation_text = last_query_vars[0];
 		}
+	} else if (!result &&
+		test_query(text, "solve for? FACTOR in|when|where EQTN")) {
+		query_info.variable = last_query_vars[0] || null;
+		if (!is_algebra(last_query_vars[0])) query_info.variable = null;
+		if (query_info.variable == null) {
+			var v = last_query_vars[1].match(/[a-zA-Z]/);
+			if (v != null) query_info.variable = v[0];
+		}
+		if (query_info.variable != null) {
+			result = true;
+			query_info.type = "solve-for";
+			equation_text = last_query_vars[1];
+		}
 	}
 
 	// Replacing factors
 	if (!result) {
-		if (test_query(text, "EQTN where|when FACTOR is EXPR")) {
-			console.log("SUCCESS: EQTN where|when FACTOR is EXPR");
+		if (test_query(text, "EQTN where|when FACTOR equals EXPR")) {
+			console.log("SUCCESS: EQTN where|when FACTOR equals EXPR");
 			console.log(last_query_vars);
 			equation_text = last_query_vars[0];
 			query_info.type = "solve-for";
@@ -347,6 +359,8 @@ function handle_query(f, e) {
 	if (equation.all_vars.length) {
 		if (query_info.type == "solve-for") {
 			console.log(query_info);
+			query_info.variable = query_info.variable.replace(
+				/pi/g, "\u03C0");
 			// Put in the first variable where appropriate
 			if (query_info.value != null) {
 				equation.replace(query_info.variable,
@@ -400,10 +414,20 @@ function handle_query(f, e) {
 	if (v_info.max_degree == 0 &&
 		equation.left == null &&
 		query_info.type == "factor") {
-		// console.log(get_factors(equation.right));
-		equation.result = new BracketGroup({
-			text: (get_factors(equation.right)).join(",")
-		});
+		var e_str = equation.right.toString();
+		if (/^\(*\d+\)*$/.test(e_str)) {
+			equation.result = new BracketGroup({
+				text: (get_factors(equation.right)).join(",")
+			});
+		} else {
+			var error = "a fraction";
+			if (e_str.indexOf(".") !== -1) error = "a decimal";
+			if (/[e\u03C0]/.test(e_str)) error = "an irrational number";
+			equation.result = new ResultText({
+				text: "Cannot factor " + error,
+				icon: "exclamation-triangle"
+			});
+		}
 	}
 	// TEMP: Limit the degree to 2 for factoring
 	if (v_info.max_degree == 2) {
@@ -468,7 +492,7 @@ function handle_query(f, e) {
 		equation.left == null) {
 		var n = equation.right.toString();
 		if (query_info.type != "factor" &&
-			!/[\/.]/.test(n)) {
+			/^\(*\d+\)*$/.test(n)) {
 			suggestions.push({
 				title: "Find the factors of " + n,
 				icon: "search-plus",
@@ -549,7 +573,7 @@ function handle_hash_query() {
 }
 
 // Keywords (Used for breaking up queries)
-KEYWORDS_STR = "simplify where when solve for with replace equals is in factors? roots? of ; are the find";
+KEYWORDS_STR = "simplify where when solve for with replace equals? is in factors? roots? of ; are the find";
 KEYWORDS_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + ")\\b";
 QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR)\\b";
 
@@ -588,7 +612,7 @@ function is_expression(str) {
 function is_factor(str) {
 	return new RegExp("^(?:-1|" + FLOAT_NUM_REGEX + "|" +
 		"1\\/" + FLOAT_NUM_REGEX + "|(?:" + NEG_FRACTION_REGEX +
-		")?[a-z](?:\\^-?\\d+)?|\\(?" + NEG_FRACTION_REGEX +
+		")?(?:[a-z\u03C0]|pi)(?:\\^-?\\d+)?|\\(?" + NEG_FRACTION_REGEX +
 		"\\)?\\^\\(?1\\/\\d+\\)?)$", "gi").test(str);
 }
 
@@ -602,7 +626,7 @@ function test_query(str, query) {
 	var keyword_regex = new RegExp(KEYWORDS_REGEX, "gi");
 	var query_regex = new RegExp(QUERY_FN_REGEX, "gi");
 	// Get all the parts and sanitize them
-	var safe_str = str.replace(/^(?:wh(?:at)\s+(?:is|are)(?:\s+the)?)/, "");
+	var safe_str = str;
 	var original_parts = safe_str.split(query_regex);
 	var parts = original_parts.slice();
 	for (var i = parts.length; i --; ) {
@@ -659,15 +683,18 @@ function test_query(str, query) {
 		if (query_part.split("|").indexOf(parts[x]) != -1) {
 			continue;
 		}
+		if (query_part == "equals" && /(?:equals?|is)/.test(parts[x])) {
+			continue;
+		}
 		// Near matches (equals/is)
 		if (["FACTOR", "EXPR"].indexOf(query_parts[x]) != -1 &&
-			query_parts[x + 1] == "is" && parts[x] == "EQTN") {
+			query_parts[x + 1] == "equals" && parts[x] == "EQTN") {
 			parts = parts.slice(0, x).concat(
-				["EXPR", "is", "EXPR"].concat(parts.slice(x + 1)));
+				["EXPR", "equals", "EXPR"].concat(parts.slice(x + 1)));
 			var original_str = original_parts[x];
 			var equals_index = original_str.indexOf("=");
 			original_parts = parts.slice(0, x).concat(
-				[original_str.substr(0, equals_index).trim(), "is", 
+				[original_str.substr(0, equals_index).trim(), "equals", 
 				original_str.substr(equals_index + 1).trim()
 				].concat(parts.slice(x + 1)));
 			variable_parts.push(original_parts[x]);
@@ -695,8 +722,11 @@ last_query_vars = null;
 window.addEventListener("load", function() {
 	document.querySelectorAll("#homepage-text code").forEach(
 		function(elem) {
-			elem.setAttribute("data-query", elem.innerHTML);
-			elem.addEventListener("click", handle_query_suggestion);
+			// elem.setAttribute("data-query", elem.innerHTML);
+			elem.addEventListener("click", function() {
+				if (last_query != "") return false;
+				handle_query(this.getAttribute("data-query"));
+			});
 		});
 	Config.loadLocalStorage();
 	handle_hash_query();
