@@ -722,7 +722,7 @@ last_query_vars = null;
 window.addEventListener("load", function() {
 	document.querySelectorAll("#homepage-text code").forEach(
 		function(elem) {
-			elem.setAttribute("data-query", elem.innerHTML);
+			// elem.setAttribute("data-query", elem.innerHTML);
 			elem.addEventListener("click", function() {
 				if (last_query != "") return false;
 				handle_query(this.getAttribute("data-query"));
