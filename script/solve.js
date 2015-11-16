@@ -2960,7 +2960,9 @@ ExponentGroup.prototype.simplify = function() {
 		this.exponent.valueOf();
 	var e_val = this.exponent;
 	if (b_val instanceof Fraction &&
-		e_val instanceof Fraction) {
+		!(b_val instanceof ConstantGroup) &&
+		e_val instanceof Fraction &&
+		!(e_val instanceof ConstantGroup)) {
 		// Radical? (e.g. e = 1/2)
 		var radical = false;
 		var r_index = 0;
@@ -3097,6 +3099,53 @@ ExponentGroup.prototype.simplify = function() {
 			}
 		}
 		this.highlighted = false;
+	} else if (e_val instanceof Fraction &&
+		!(e_val instanceof ConstantGroup) &&
+		(b_val instanceof AlgebraGroup ||
+		b_val instanceof ConstantGroup)) {
+		var f_name, o_name;
+		if (b_val instanceof AlgebraGroup) {
+			f_name = "Var";
+			o_name = "variable";
+		} else {
+			f_name = "Const";
+			o_name = "constant";
+		}
+		// Multiply exponents
+		if (/(?:[02-9]|\d{2})/.test(b_val.toString())) {
+			this.highlighted = true;
+			push_module_step({
+				type: "simplify",
+				title: describe_operation({
+					operation: "^",
+					n1: b_val,
+					n2: e_val
+				}),
+				visual: this.equation.element()
+			});
+			this.highlighted = false;
+		}
+		// Coefficients
+		var e_num = e_val.toNumber();
+		b_val.coefficient.numerator = Math.pow(
+			b_val.coefficient.numerator, e_num);
+		b_val.coefficient.denominator = Math.pow(
+			b_val.coefficient.denominator, e_num);
+		// Variables / Constants
+		for (var name in b_val[o_name]) {
+			var exp = b_val[o_name][name];
+			exp.multiply(e_val.duplicate());
+		}
+		this.value = b_val;
+		if (this.parent == null) {
+			b_val.parent = null;
+			b_val.top_parent = b_val;
+			this.equation[this.side] = b_val;
+			b_val.fixLinks();
+		} else {
+			b_val.parent = this.parent.valueOf();
+			this.parent.replace(this, b_val);
+		}
 	}
 }
 ExponentGroup.prototype.multiplyGroup = function(n) {
@@ -4185,12 +4234,10 @@ ConstantGroup.prototype.setConst = function(name, degree) {
 	if (name == "\u03C0") {
 		// The pi preference affected the output
 		config_used.preferences.pi = true;
-		console.log("Pi used");
 	}
 	if (name == "e") {
 		// The e preference affected the output
 		config_used.preferences.e = true;
-		console.log("E used");
 	}
 	if (!(degree instanceof Fraction)) {
 		degree = new Fraction({
@@ -5381,7 +5428,7 @@ function exponent_element(b, e, simple, marked) {
 		base.addClass("number");
 		if (typeof b === 'string') {
 			base.addClass("variable");
-			base.innerHTML = b;	
+			base.innerHTML = b;
 		} else {
 			base.innerHTML = truncate_number(b);
 		}
@@ -5396,7 +5443,8 @@ function exponent_element(b, e, simple, marked) {
 			b.groups.length > 1) {
 			base.addClass("parentheses");
 		}
-		if (b instanceof AlgebraGroup &&
+		if ((b instanceof AlgebraGroup ||
+			b instanceof ConstantGroup) &&
 			(b.coefficient.toNumber() != 1 ||
 			/[a-zA-Z]\^(?:\d{2,}|[2-9])/i.test(b.toString()))) {
 			base.addClass("parentheses");
