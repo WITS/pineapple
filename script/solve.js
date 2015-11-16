@@ -1719,7 +1719,7 @@ MultiplyGroup = function(json) {
 				break;
 			}
 			if (slash_pos >= 3) {
-				if (new RegExp("[a-z]\\^" +
+				if (new RegExp("[a-z\u03C0]\\^" +
 					NEG_FRACTION_REGEX +
 					"$", "i").test(group.substr(
 					0, slash_pos + 2))) {
@@ -2984,8 +2984,13 @@ ExponentGroup.prototype.simplify = function() {
 		}
 
 		this.highlighted = true;
-		if (radical && b_val.numerator > 0) { // Radical
+		if (radical) { // Radical
 			var b = b_val.toNumber();
+			var imaginary = "";
+			if (b < 0) {
+				b = -b;
+				imaginary = "i";
+			}
 			var factor = 1;
 			var factor_root;
 			for (var i = b; i >= 2; -- i) {
@@ -3019,8 +3024,8 @@ ExponentGroup.prototype.simplify = function() {
 						}),
 						visual: this.equation.element()
 					});
-					this.value = new Fraction({
-						numerator: factor_root,
+					this.value = new ConstantGroup({
+						text: factor_root + imaginary,
 						parent: this.parent
 					});
 					this.value.parent = this.parent;
@@ -3034,7 +3039,8 @@ ExponentGroup.prototype.simplify = function() {
 						title: describe_operation({
 							operation: "^/",
 							n1: new ExpressionGroup({
-								text: factor_root + "^" + r_index
+								text: (imaginary ? "-" : "") +
+									factor_root + "^" + r_index
 							}),
 							n2: this.base
 						}),
@@ -3049,8 +3055,8 @@ ExponentGroup.prototype.simplify = function() {
 							equation: this.equation,
 							side: this.side,
 							parent: m_group,
-							text: factor_root + "*(" + (b_val / factor) +
-								")^(1/" + r_index + ")"
+							text: factor_root + imaginary + "*(" +
+								(b_val / factor) + ")^(1/" + r_index + ")"
 						});
 						this.value.simplify();
 						this.value = this.value.valueOf();
@@ -3117,7 +3123,7 @@ ExponentGroup.prototype.simplify = function() {
 			o_name = "constant";
 		}
 		// Multiply exponents
-		if (/(?:[02-9]|\d{2})/.test(b_val.toString())) {
+		if (/(?:[2-9]|\d{2})/.test(b_val.toString())) {
 			this.highlighted = true;
 			push_module_step({
 				type: "simplify",
@@ -3131,6 +3137,14 @@ ExponentGroup.prototype.simplify = function() {
 			this.highlighted = false;
 		}
 		// Coefficients
+		var imaginary = false;
+		if (e_val.denominator != 1 &&
+			b_val.coefficient.toNumber() < 0) { // Imaginary?
+			imaginary = true;
+			b_val.multiply(new ConstantGroup({
+				text: "-i"
+			}));
+		}
 		var e_num = e_val.toNumber();
 		b_val.coefficient.numerator = Math.pow(
 			b_val.coefficient.numerator, e_num);
@@ -3477,7 +3491,8 @@ AlgebraGroup.prototype.factors = function() {
 	factors = factors.concat(this.coefficient.factors());
 	// Variable factors
 	for (var name in this.variable) {
-		var power = this.getVar(name);
+		var power = this.getVar(name).toNumber();
+		if (power == 0) continue;
 		if (power > 0) factors.push(name);
 		if (power < 0) factors.push(name + "^-1");
 		// All possible higher factors
@@ -3500,6 +3515,7 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 		if (!n_factors) continue;
 		// How many times the factor was removed
 		var exp = 0;
+		var partial; // Indicates that the factor was only partially removed
 		var copy = this.duplicate();
 		while (true) {
 			var factors = copy.factors();
@@ -3526,15 +3542,29 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 				if (/[ei\u03C0]/.test(v)) {
 					if (copy.coefficient instanceof ConstantGroup) {
 						if (!copy.coefficient.hasConst(v)) break;
-						copy.coefficient.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
-							"-" + vars[i].substr(2));
+						if (Math.abs(copy.coefficient.getConst(v).toNumber() < 1)) {
+							if (vars[i].substr(2) != "1" && vars[i].length >= 3) break;
+							partial = copy.coefficient.getConst(v).duplicate();
+							copy.coefficient.setConst(v, "0");
+							continue;
+						} else {
+							copy.coefficient.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
+								"-" + vars[i].substr(2));
+						}
 					} else {
 						break;
 					}
 				} else {
 					if (!copy.hasVar(v)) break;
-					copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
-						"-" + vars[i].substr(2));
+					if (Math.abs(copy.getVar(v).toNumber() < 1)) {
+						if (vars[i].substr(2) != "1" && vars[i].length >= 3) break;
+						partial = copy.getVar(v).duplicate();
+						copy.setVar(v, "0");
+						continue;
+					} else {
+						copy.incrementVar(v, vars[i][2] == "-" ? vars[i].substr(3) :
+							"-" + vars[i].substr(2));
+					}
 				}
 			}
 			// Prevent an infinite loop from occurring here
@@ -3542,6 +3572,12 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 		}
 		// If nothing can be replaced, skip to the next factor
 		if (!exp) continue;
+		// If the factor was only partially replaced, correct exp
+		if (partial) {
+			exp = new Fraction(exp);
+			exp.add(new Fraction(-1));
+			exp.add(partial);
+		}
 		// Create visuals for the title
 		var n1 = new MultiplyGroup({
 			text: exp == 1 ? n : "(" + n + ")^" + exp
@@ -3571,14 +3607,14 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 			this_co.coefficient.denominator =
 				copy_co.coefficient.denominator;
 			for (var name in this_co.constant) {
-				this_co.setConst(name, copy_co.constant[name].toString());
+				this_co.setConst(name, (copy_co.constant[name] || "0").toString());
 			}
 		} else {
 			this.coefficient.numerator = copy.coefficient.numerator;
 			this.coefficient.denominator = copy.coefficient.denominator;
 		}
 		for (var name in this.variable) {
-			this.setVar(name, copy.variable[name].toString());
+			this.setVar(name, (copy.variable[name] || "0").toString());
 		}
 		var replace_val = json[n];
 		// Add in the replacement values
@@ -3594,7 +3630,7 @@ AlgebraGroup.prototype.replaceFactor = function(json) {
 				text: replace_val,
 				parent: m_group
 			}));
-		} else if (exp >= 2) {
+		} else if (exp) {
 			var m_group = this.multiplyGroup();
 			m_group.push(new ExpressionGroup({
 				text: "(" + replace_val + ")^" + exp,
@@ -4462,7 +4498,8 @@ ConstantGroup.prototype.factors = function() {
 	factors = factors.concat(this.coefficient.factors());
 	// constant factors
 	for (var name in this.constant) {
-		var power = this.getConst(name);
+		var power = this.getConst(name).toNumber();
+		if (power == 0) continue;
 		if (power > 0) factors.push(name);
 		if (power < 0) factors.push(name + "^-1");
 		// All possible higher factors
@@ -4485,6 +4522,7 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 		if (!n_factors) continue;
 		// How many times the factor was removed
 		var exp = 0;
+		var partial;
 		var copy = this.duplicate();
 		while (true) {
 			var factors = copy.factors();
@@ -4509,14 +4547,28 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 			for (var i = vars.length; i --; ) {
 				var v = vars[i][0];
 				if (!copy.hasConst(v)) continue;
-				copy.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
-					"-" + vars[i].substr(2));
+				if (Math.abs(copy.getConst(v).toNumber()) < 1) {
+					if (vars[i].substr(2) != "1" && vars[i].length >= 3) break;
+					partial = copy.getConst(v).duplicate();
+					copy.setConst(v, "0");
+					continue;
+				} else {
+					copy.incrementConst(v, vars[i][2] == "-" ? vars[i].substr(3) :
+						"-" + vars[i].substr(2));
+				}
 			}
 			// Prevent an infinite loop from occurring here
 			if (coefficient && n_factors[0] == "1") break;
 		}
 		// If nothing can be replaced, skip to the next factor
 		if (!exp) continue;
+		// If the factor was only partially replaced, correct exp
+		if (partial) {
+			console.log("Hello");
+			exp = new Fraction(exp);
+			exp.add(new Fraction(-1));
+			exp.add(partial);
+		}
 		// Create visuals for the title
 		var n1 = new MultiplyGroup({
 			text: exp == 1 ? n : "(" + n + ")^" + exp
@@ -4541,7 +4593,7 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 		this.coefficient.numerator = copy.coefficient.numerator;
 		this.coefficient.denominator = copy.coefficient.denominator;
 		for (var name in this.constant) {
-			this.setConst(name, copy.constant[name].toString());
+			this.setConst(name, (copy.constant[name] || "0").toString());
 		}
 		var replace_val = json[n];
 		// Add in the replacement values
@@ -4557,7 +4609,7 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 				text: replace_val,
 				parent: m_group
 			}));
-		} else if (exp >= 2) {
+		} else if (exp) {
 			var m_group = this.multiplyGroup();
 			m_group.push(new ExpressionGroup({
 				text: "(" + replace_val + ")^" + exp,
