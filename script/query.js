@@ -329,18 +329,6 @@ function handle_query(f, e) {
 	}
 
 	equation.simplify();
-	// if (equation.left != null) {
-	// 	var left = equation.left;
-	// 	left.simplify();
-	// 	left = equation.left = left.valueOf();
-	// 	left.parent = null;
-	// 	left.top_parent = left;
-	// }
-	// var right = equation.right;
-	// right.simplify();
-	// right = equation.right = right.valueOf();
-	// right.parent = null;
-	// right.top_parent = right;
 
 	equation.updateVarInfo();
 	var v_info = equation.getVarInfo();
@@ -722,7 +710,6 @@ last_query_vars = null;
 window.addEventListener("load", function() {
 	document.querySelectorAll("#homepage-text code").forEach(
 		function(elem) {
-			// elem.setAttribute("data-query", elem.innerHTML);
 			elem.addEventListener("click", function() {
 				if (last_query != "") return false;
 				handle_query(this.getAttribute("data-query"));
@@ -730,6 +717,7 @@ window.addEventListener("load", function() {
 		});
 	Config.loadLocalStorage();
 	handle_hash_query();
+	if (last_query == "") document.getElementById("input").focus();
 });
 
 // Hash change
