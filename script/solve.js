@@ -4329,7 +4329,6 @@ ConstantGroup.prototype.highlight = function(part) {
 		NEG_FRACTION_REGEX, "g"), "").split("");
 	this.highlighted_temp =
 		this.highlighted_temp.concat(vars);
-	console.log(this.highlighted_temp);
 }
 ConstantGroup.prototype.multiply = function(n) {
 	// Plus/Minus?
@@ -4635,6 +4634,24 @@ ConstantGroup.prototype.simplify = function(hideSteps) {
 				this.coefficient.multiply(Math.pow(
 					Math[pref_name.toUpperCase()], this.getConst(name).toNumber()));
 				this.removeConst(name);
+				continue;
+			}
+		} else if (name == "i") {
+			var e_val = this.getConst(name).toNumber();
+			if (e_val % 2 == 0) {
+				this.highlight("i");
+				push_module_step({
+					type: "simplify",
+					title: describe_operation({
+						operation: "^",
+						n1: new ConstantGroup({text: "i"}),
+						n2: this.getConst(name).duplicate()
+					}),
+					visual: this.equation.element()
+				});
+				this.highlight(false);
+				this.removeConst(name);
+				this.coefficient.multiply(Math.pow(-1, e_val * 0.5));
 				continue;
 			}
 		}
