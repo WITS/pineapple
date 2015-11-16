@@ -2712,6 +2712,11 @@ FractionGroup.prototype.simplify = function(hideSteps) {
 		this.denominator.factorOut("1/" + divisor);
 		this.numerator.multiply(new Fraction(divisor));
 	}
+	// Negative?
+	if (d_factors.indexOf("-1") !== -1) {
+		this.denominator.valueOf().factorOut("-1");
+		this.multiply(new Fraction(-1));
+	}
 	// Re-simplify children, just in case
 	this.numerator.valueOf().simplify();
 	this.denominator.valueOf().simplify();
