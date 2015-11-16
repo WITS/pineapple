@@ -196,7 +196,8 @@ function handle_query(f, e) {
 
 	// Replacing factors
 	if (!result) {
-		if (test_query(text, "EQTN where|when FACTOR equals EXPR")) {
+		if (test_query(text, "EQTN where|when FACTOR equals EXPR") ||
+			test_query(text, "EQTN replace FACTOR with EXPR")) {
 			console.log("SUCCESS: EQTN where|when FACTOR equals EXPR");
 			console.log(last_query_vars);
 			equation_text = last_query_vars[0];
@@ -344,11 +345,11 @@ function handle_query(f, e) {
 	}
 
 	// Additional work
-	if (equation.all_vars.length) {
+	if (true /*equation.all_vars.length*/) {
 		if (query_info.type == "solve-for") {
-			console.log(query_info);
 			query_info.variable = query_info.variable.replace(
 				/pi/g, "\u03C0");
+			console.log(query_info);
 			// Put in the first variable where appropriate
 			if (query_info.value != null) {
 				equation.replace(query_info.variable,
