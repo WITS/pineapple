@@ -221,7 +221,12 @@ body.homepage #nav {
 
 #homepage-text h2 {
 	font-size: 2.0em;
+	font-weight: 400;
 	margin: 0;
+}
+
+#homepage-text h2 span {
+	font-weight: 600;
 }
 
 #homepage-text code {
@@ -262,6 +267,7 @@ body.homepage #homepage-text h2 {
 
 .result-text {
 	font-size: 2.4em;
+	font-weight: 300;
 }
 
 .result-text > .fa {

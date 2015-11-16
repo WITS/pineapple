@@ -8,7 +8,9 @@
 Config = function() {
 	this.preferences = {
 		fraction: true,
-		radical: true
+		radical: true,
+		pi: true,
+		e: true
 	};
 	this.constants = new Object();
 	this.functions = new Object();
@@ -167,7 +169,9 @@ Config = new Config();
 ConfigUsed = function() {
 	this.preferences = {
 		fraction: false,
-		radical: false
+		radical: false,
+		pi: false,
+		e: false
 	};
 	this.constants = new Array();
 	this.functions = new Array();
@@ -215,6 +219,40 @@ ConfigPreferences = {
 				value: false
 			}
 		]
+	},
+	pi: {
+		title: "Pi Precision",
+		description: "Indicates whether to keep pi in calculations (exact) " +
+			"or to convert it to decimal (approximate)",
+			options: [
+				{
+					title: "Exact",
+					example: "2pi",
+					value: true
+				},
+				{
+					title: "Approximate",
+					example: "6.2832",
+					value: false
+				}
+			]
+	},
+	e: {
+		title: "E Precision",
+		description: "Indicates whether to keep e in calculations (exact) " +
+			"or to convert it to decimal (approximate)",
+			options: [
+				{
+					title: "Exact",
+					example: "2e",
+					value: true
+				},
+				{
+					title: "Approximate",
+					example: "5.4366",
+					value: false
+				}
+			]
 	}
 };
 

@@ -414,10 +414,20 @@ function handle_query(f, e) {
 	if (v_info.max_degree == 0 &&
 		equation.left == null &&
 		query_info.type == "factor") {
-		// console.log(get_factors(equation.right));
-		equation.result = new BracketGroup({
-			text: (get_factors(equation.right)).join(",")
-		});
+		var e_str = equation.right.toString();
+		if (/^\(*\d+\)*$/.test(e_str)) {
+			equation.result = new BracketGroup({
+				text: (get_factors(equation.right)).join(",")
+			});
+		} else {
+			var error = "a fraction";
+			if (e_str.indexOf(".") !== -1) error = "a decimal";
+			if (/[e\u03C0]/.test(e_str)) error = "an irrational number";
+			equation.result = new ResultText({
+				text: "Cannot factor " + error,
+				icon: "exclamation-triangle"
+			});
+		}
 	}
 	// TEMP: Limit the degree to 2 for factoring
 	if (v_info.max_degree == 2) {
@@ -482,7 +492,7 @@ function handle_query(f, e) {
 		equation.left == null) {
 		var n = equation.right.toString();
 		if (query_info.type != "factor" &&
-			!/[\/.]/.test(n)) {
+			/^\(*\d+\)*$/.test(n)) {
 			suggestions.push({
 				title: "Find the factors of " + n,
 				icon: "search-plus",
