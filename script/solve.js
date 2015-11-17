@@ -1833,6 +1833,7 @@ MultiplyGroup.prototype.fixLinks = function() {
 MultiplyGroup.prototype.simplify = function() {
 	// Constants / Simplify groups
 	var expression_groups = new Array();
+	var radicals = new Object();
 	var constants = new Array();
 	var strings = new Array();
 	var denominators = new Object();
@@ -1847,6 +1848,15 @@ MultiplyGroup.prototype.simplify = function() {
 		}
 		group.valueOf().parent = group.parent;
 		group = this.groups[x] = group.valueOf();
+
+		// Radicals
+		var r_index = group.toString().match(new RegExp(
+			"\\^\\(?(?=" + FLOAT_NUM_REGEX + "\\/)(" +
+			NEG_FRACTION_REGEX + ")\\)?", "g"));
+		if (r_index != null) {
+			console.log(r_index);
+			// TODO: Combine radicals
+		}
 
 		if (group instanceof ExpressionGroup) {
 			expression_groups.push(group);
@@ -2989,6 +2999,7 @@ ExponentGroup.prototype.simplify = function() {
 			var imaginary = "";
 			if (b < 0) {
 				b = -b;
+				b_val.multiply(new Fraction(-1));
 				imaginary = "i";
 			}
 			var factor = 1;
@@ -3086,7 +3097,14 @@ ExponentGroup.prototype.simplify = function() {
 				b_val.denominator = Math.round(b_root_d);
 				this.value = b_val;
 			} else { // Still update the value
-				this.value = this;
+				if (imaginary) {
+					var m_group = this.multiplyGroup();
+					m_group.insertBefore(this, new ConstantGroup({
+						text: "i"
+					}));
+				} else {
+					this.value = this;
+				}
 			}
 		} else { // Exponent
 			// ModuleStep (Exponent)
@@ -3141,15 +3159,26 @@ ExponentGroup.prototype.simplify = function() {
 		if (e_val.denominator != 1 &&
 			b_val.coefficient.toNumber() < 0) { // Imaginary?
 			imaginary = true;
-			b_val.multiply(new ConstantGroup({
-				text: "-i"
-			}));
+			b_val.multiply(new Fraction(-1));
 		}
 		var e_num = e_val.toNumber();
-		b_val.coefficient.numerator = Math.pow(
+		var new_num = Math.pow(
 			b_val.coefficient.numerator, e_num);
-		b_val.coefficient.denominator = Math.pow(
+		var new_dom = Math.pow(
 			b_val.coefficient.denominator, e_num);
+		if (Math.min(new_num % 1, 1 - new_num % 1) < 2e-8 &&
+			Math.min(new_dom % 1, 1 - new_dom % 1) < 2e-8) {
+			b_val.coefficient.numerator = new_num;
+			b_val.coefficient.denominator = new_dom;
+		} else {
+			var m_group = this.multiplyGroup();
+			m_group.insertBefore(this, new ExponentGroup({
+				base: b_val.coefficient.toString(),
+				exponent: e_val.toString()
+			}));
+			b_val.coefficient.numerator = 1;
+			b_val.coefficient.denominator = 1;
+		}
 		// Variables / Constants
 		for (var name in b_val[o_name]) {
 			var exp = b_val[o_name][name];
@@ -3164,6 +3193,12 @@ ExponentGroup.prototype.simplify = function() {
 		} else {
 			b_val.parent = this.parent.valueOf();
 			this.parent.replace(this, b_val);
+		}
+		// Imaginary?
+		if (imaginary) {
+			b_val.multiply(new ConstantGroup({
+				text: "i"
+			}));
 		}
 	}
 }
