@@ -3141,9 +3141,10 @@ ExponentGroup.prototype.simplify = function() {
 			o_name = "constant";
 		}
 		// Multiply exponents
+		var module_step_info;
 		if (/(?:[2-9]|\d{2})/.test(b_val.toString())) {
 			this.highlighted = true;
-			push_module_step({
+			module_step_info = {
 				type: "simplify",
 				title: describe_operation({
 					operation: "^",
@@ -3151,7 +3152,7 @@ ExponentGroup.prototype.simplify = function() {
 					n2: e_val
 				}),
 				visual: this.equation.element()
-			});
+			};
 			this.highlighted = false;
 		}
 		// Coefficients
@@ -3171,6 +3172,21 @@ ExponentGroup.prototype.simplify = function() {
 			b_val.coefficient.numerator = new_num;
 			b_val.coefficient.denominator = new_dom;
 		} else {
+			var worthwhile = false;
+			for (var name in b_val[o_name]) {
+				var exp = b_val[o_name][name];
+				var new_exp = exp.duplicate();
+				new_exp.multiply(e_val.duplicate());
+				if (Math.min(new_exp.toNumber() % 1,
+					1 - new_exp.toNumber() % 1) < 2e-8) {
+					worthwhile = true;
+					break;
+				}
+			}
+			if (!worthwhile) {
+				// This is not worth attempting to simplify
+				return;
+			}
 			var m_group = this.multiplyGroup();
 			m_group.insertBefore(this, new ExponentGroup({
 				base: b_val.coefficient.toString(),
@@ -3179,6 +3195,7 @@ ExponentGroup.prototype.simplify = function() {
 			b_val.coefficient.numerator = 1;
 			b_val.coefficient.denominator = 1;
 		}
+		if (module_step_info) push_module_step(module_step_info);
 		// Variables / Constants
 		for (var name in b_val[o_name]) {
 			var exp = b_val[o_name][name];
