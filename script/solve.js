@@ -3185,6 +3185,7 @@ ExponentGroup.prototype.simplify = function() {
 			}
 			if (!worthwhile) {
 				// This is not worth attempting to simplify
+				if (imaginary) b_val.multiply(new Fraction(-1));
 				return;
 			}
 			var m_group = this.multiplyGroup();
