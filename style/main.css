@@ -238,11 +238,29 @@ body.homepage #nav {
 #homepage-text code {
 	display: inline-block;
 	font-family: Roboto, Arial, sans-serif;
-	padding: 3px 3px;
-	margin-bottom: 4px;
-	background-color: rgb(252, 234, 168);
-	/*border: 1px dashed gray;*/
+	padding: 3px 5px;
+	margin: 0 1px 5px;
+	background-color: rgba(0, 0, 0, 0.9);
+	color: rgba(255, 255, 255, 0.95);
 	cursor: pointer;
+	transition: transform 0.2s;
+	-webkit-transition: -webkit-transform 0.2s;
+	-moz-transition: -moz-transform 0.2s;
+	-o-transition: -o-transform 0.2s;
+}
+
+#homepage-text code:nth-child(2n+1):hover {
+	transform: rotate(3deg) scale(1.05);
+	-webkit-transform: rotate(3deg) scale(1.05);
+	-moz-transform: rotate(3deg) scale(1.05);
+	-o-transform: rotate(3deg) scale(1.05);
+}
+
+#homepage-text code:nth-child(2n):hover {
+	transform: rotate(-3deg) scale(1.05);
+	-webkit-transform: rotate(-3deg) scale(1.05);
+	-moz-transform: rotate(-3deg) scale(1.05);
+	-o-transform: rotate(-3deg) scale(1.05);
 }
 
 body:not(.homepage) #homepage-text,
