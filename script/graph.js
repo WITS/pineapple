@@ -21,7 +21,7 @@ CartesianGraph = function(json) {
 	elem.setAttribute("preserveAspectRatio", "xMidYMid meet");
 	var g = this.group = document.createElementNS(SVG_NS, "g");
 	g.setAttribute("stroke", "black");
-	g.setAttribute("stroke-width", "4px");
+	g.setAttribute("stroke-width", "4em");
 	g.setAttribute("transform", "translate(500, 500)");
 	elem.appendChild(g);
 }

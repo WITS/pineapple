@@ -603,14 +603,18 @@ body.homepage #homepage-text h2 {
 	position: relative;
 	display: block;
 	width: 100%;
+	font-size: 1px;
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
 
 .render.graph.card[data-label]::before {
+	font-family: "Roboto", Arial, sans-serif;
+	font-size: 14px;
 	margin: 0 6px;
 	padding: 6px 4px;
 	width: calc(100% - 12px);
+	height: 29px;
 	border-bottom: 1px solid #E8E8E8;
 }
 
@@ -630,8 +634,7 @@ body.homepage #homepage-text h2 {
 }
 
 .render.graph .cartesian-graph {
-	stroke-width: 2px;
-	stroke: black;
+	
 }
 
 #output {
@@ -709,6 +712,10 @@ body.homepage #homepage-text h2 {
 #page-wrapper {
 	width: 60%;
 	left: 20%;
+}
+
+.render.graph {
+	font-size: 0.5px;
 }
 
 }
