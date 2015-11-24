@@ -199,6 +199,9 @@ ModuleStep.prototype.element = function() {
 }
 
 function push_module_type(json) {
+	// If modules are not to be shown for the current
+	// operations, stop here
+	if (!Config.showModules) return;
 	var json = json || new Object();
 	if (typeof json === 'string') {
 		var type = json;
@@ -254,6 +257,9 @@ function push_module_type(json) {
 }
 
 function push_module_step(json) {
+	// If modules are not to be shown for the current
+	// operations, stop here
+	if (!Config.showModules) return;
 	// console.log(json);
 	var current_module =
 		push_module_type(json);

@@ -598,6 +598,42 @@ body.homepage #homepage-text h2 {
 	-o-transform: skewX(15deg);
 }
 
+/* Graphs */
+.render.graph {
+	position: relative;
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+}
+
+.render.graph.card[data-label]::before {
+	margin: 0 6px;
+	padding: 6px 4px;
+	width: calc(100% - 12px);
+	border-bottom: 1px solid #E8E8E8;
+}
+
+.render.graph::after {
+	display: block;
+	padding-top: 100%;
+	content: "";
+}
+
+.render.graph > * {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	display: block;
+	width: 100%;
+	height: calc(100% - 29px);
+}
+
+.render.graph .cartesian-graph {
+	stroke-width: 2px;
+	stroke: black;
+}
+
 #output {
 	z-index: 30;
 }

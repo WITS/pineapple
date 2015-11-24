@@ -6,6 +6,7 @@
  */
 
 last_query = "";
+last_graph = null;
 new_results_timeout = null;
 
 function handle_query(f, e) {
@@ -26,7 +27,7 @@ function handle_query(f, e) {
 
 	// In case something goes wrong
 	function validate_equation_string(str) {
-		if (str.indexOf("NaN") != -1) {
+		if (/(?:NaN|Infinity)/.test(str)) {
 			return false;
 		}
 		if (/\/0\.?0*(?:[^0-9]|$)/.test(str)) {
@@ -74,9 +75,14 @@ function handle_query(f, e) {
 			if (document.activeElement == logo) {
 				logo.blur();
 			}
+			if (last_graph) {
+				last_graph.stop = true;
+				last_graph = null;
+			}
 			output_element.empty();
 			output_element.removeClass("out");
 			window.scrollTo(0, 0);
+			if (graph) last_graph = graph;
 			replace_results_action();
 		}
 		if (last_query == "") { // From homepage
@@ -110,7 +116,7 @@ function handle_query(f, e) {
 		// Convert NaN to icon representation
 		output.querySelectorAll(".card .render .number"
 			).forEach(function(elem) {
-			if (elem.innerHTML != "NaN") return;
+			if (!/(?:NaN|Infinity)/.test(elem.innerHTML)) return;
 			elem.innerHTML = "<i class='fa fa-square'></i>";
 		});
 		// Check whether division by zero
@@ -226,6 +232,14 @@ function handle_query(f, e) {
 		query_info.variable = null;
 	}
 
+	// Graphing
+	if (!result && test_query(text, "what? is? the? graph of? EQTN")) {
+		console.log("SUCCESS: what? is? the? graph of? EQTN");
+		console.log(last_query_vars);
+		equation_text = last_query_vars[0];
+		query_info.type = "graph";
+	}
+
 	// Pre-Module
 	modules.splice(0);
 
@@ -261,6 +275,10 @@ function handle_query(f, e) {
 	if (query_info.type == "factor") {
 		pre_input.push(
 			query_info.phrasing.toLowerCase());
+	}
+
+	if (query_info.type == "graph") {
+		pre_input.push("graph");
 	}
 
 	if (pre_input.length) {
@@ -440,6 +458,51 @@ function handle_query(f, e) {
 		}
 	}
 
+	// Graphing
+	var graph;
+	if (query_info.type == "graph") {
+		var e_str = equation.toString();
+		console.log(e_str);
+		var i_var = ""; // Independent variable
+		if (equation.left_degree && equation.right_degree) {
+			// Make sure the equation is solved for one var
+			if (equation.all_vars.length == 1) {
+				// Same var on both sides? Das bad
+				show_error();
+				return;
+			} else if (/^1[a-df-hj-zA-Z]\^1=(.*)$/.test(e_str)) {
+				i_var = equation.right_vars[0];
+				e_str = e_str.replace(/^1[a-df-hj-zA-Z]\^1=(.*)$/, "$1");
+			} else if (/^(.*)=1[a-df-hj-zA-Z]\^1$/.test(e_str)) {
+				i_var = equation.left_vars[0];
+				e_str = e_str.replace(/^(.*)=1[a-df-hj-zA-Z]\^1$/, "$1");
+			} else {
+				// Uh-oh
+				show_error();
+				return;
+			}
+		} else if (equation.all_vars.length == 1) {
+			if (equation.left != null) {
+				if (/^1[a-df-hj-zA-Z]\^1=(.*)$/.test(e_str)) {
+					e_str = e_str.replace(/^1[a-df-hj-zA-Z]\^1=(.*)$/, "$1");
+				} else if (/^(.*)=1[a-df-hj-zA-Z]\^1$/.test(e_str)) {
+					e_str = e_str.replace(/^(.*)=1[a-df-hj-zA-Z]\^1$/, "$1");
+				} else {
+					// Uh-oh
+					show_error();
+					return;
+				}
+			} else {
+				i_var = equation.all_vars[0];
+			}
+		}
+		console.log("We're good to graph " + e_str + " for " + i_var);
+		graph = new CartesianGraph({
+			equation: e_str,
+			independent: i_var
+		});
+	}
+
 	// Add expanding hint
 	// TODO: Add expanding hint modal
 	if (false /*modules.length*/) {
@@ -473,6 +536,18 @@ function handle_query(f, e) {
 
 	// Configuration
 	output.appendChild(config_used.element());
+
+	// Graph
+	if (graph) {
+		var graph_card = new Card({
+			label: "Graph"
+		});
+		var elem = graph_card.element();
+		elem.addClass("render graph");
+		elem.appendChild(graph.element);
+		output.appendChild(elem);
+		graph.render();
+	}
 
 	// Suggestions
 	var suggestions = new Array();
@@ -562,7 +637,8 @@ function handle_hash_query() {
 }
 
 // Keywords (Used for breaking up queries)
-KEYWORDS_STR = "simplify where when solve for with replace equals? is in factors? roots? of ; are the find";
+KEYWORDS_STR = "simplify where when solve for with replace equals? "+
+	"is in factors? roots? of ; are the find graph";
 KEYWORDS_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + ")\\b";
 QUERY_FN_REGEX = "\\b(" + KEYWORDS_STR.split(" ").join("|") + "|FACTOR|EXPR)\\b";
 
