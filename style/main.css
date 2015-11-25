@@ -631,6 +631,8 @@ body.homepage #homepage-text h2 {
 	display: block;
 	width: 100%;
 	height: calc(100% - 29px);
+	cursor: move;
+	touch-action: none;
 }
 
 .render.graph .cartesian-graph {

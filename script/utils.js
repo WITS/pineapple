@@ -100,7 +100,8 @@ Element.prototype.getStyle = function(name) {
 }
 
 HTMLCollection.prototype.forEach =
-NodeList.prototype.forEach = function(fn) {
+NodeList.prototype.forEach =
+TouchList.prototype.forEach = function(fn) {
 	for (var i = this.length; i --; ) {
 		fn(this[i]);
 	}
