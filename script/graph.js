@@ -29,8 +29,9 @@ CartesianGraph = function(json) {
 	// Events
 	var _this = this;
 	elem.addEventListener("mousedown", function() {
-		var mouseX = event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
-		var mouseY = event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+		var gScale = 1000 / this.offsetWidth;
+		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
 		_this.mouseX = mouseX;
 		_this.mouseY = mouseY;
 		_this.mouseDown = true;
@@ -44,8 +45,9 @@ CartesianGraph = function(json) {
 	elem.addEventListener("mousemove", function(event) {
 		// console.log(event);
 		if (!_this.mouseDown) return false;
-		var mouseX = event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
-		var mouseY = event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+		var gScale = 1000 / this.offsetWidth;
+		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
 		// Pan
 		_this.setPosition(_this.offsetX -
 			(mouseX - _this.mouseX) / _this.scale,
@@ -62,10 +64,11 @@ CartesianGraph = function(json) {
 	// Touch events
 	if (IS_TOUCH_DEVICE) {
 		elem.addEventListener("touchstart", function(event) {
+			var gScale = 1000 / this.offsetWidth;
 			var all = event.touches;
 			all.forEach(function(t) {
-				t.x = t.clientX * (window.devicePixelRatio || 1);
-				t.y = t.clientY * (window.devicePixelRatio || 1);
+				t.x = t.clientX * gScale;
+				t.y = t.clientY * gScale;
 			});
 			if (all.length == 1) { // One?
 				var t1 = all[0];
@@ -83,10 +86,11 @@ CartesianGraph = function(json) {
 		});
 		elem.addEventListener("touchmove", function(event) {
 			event.preventDefault();
+			var gScale = 1000 / this.offsetWidth;
 			var all = event.touches;
 			all.forEach(function(t) {
-				t.x = t.clientX * (window.devicePixelRatio || 1);
-				t.y = t.clientY * (window.devicePixelRatio || 1);
+				t.x = t.clientX * gScale;
+				t.y = t.clientY * gScale;
 			});
 			if (all.length == 1) { // One?
 				var t1 = all[0];
@@ -119,9 +123,10 @@ CartesianGraph = function(json) {
 		});
 		elem.addEventListener("touchend", function(event) {
 			var all = event.touches;
+			var gScale = 1000 / this.offsetWidth;
 			all.forEach(function(t) {
-				t.x = t.clientX * (window.devicePixelRatio || 1);
-				t.y = t.clientY * (window.devicePixelRatio || 1);
+				t.x = t.clientX * gScale;
+				t.y = t.clientY * gScale;
 			});
 			if (all.length == 1) { // One?
 				var t1 = all[0];
