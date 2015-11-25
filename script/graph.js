@@ -28,10 +28,12 @@ CartesianGraph = function(json) {
 	elem.appendChild(g);
 	// Events
 	var _this = this;
-	elem.addEventListener("mousedown", function() {
-		var gScale = 1000 / this.offsetWidth;
-		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
-		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+	elem.addEventListener("mousedown", function(event) {
+		var gScale = IS_FIREFOX || 1000 / this[GRAPH_WIDTH_VAR];
+		var mouseX = gScale * event[(event.offsetX !== undefined ?
+			"offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ?
+			"offset" : "layer") + "Y"];
 		_this.mouseX = mouseX;
 		_this.mouseY = mouseY;
 		_this.mouseDown = true;
@@ -45,9 +47,12 @@ CartesianGraph = function(json) {
 	elem.addEventListener("mousemove", function(event) {
 		// console.log(event);
 		if (!_this.mouseDown) return false;
-		var gScale = 1000 / this.offsetWidth;
-		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
-		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+		var gScale = IS_FIREFOX || 1000 / this[GRAPH_WIDTH_VAR];
+		var mouseX = gScale * event[(event.offsetX !== undefined ?
+			"offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ?
+			"offset" : "layer") + "Y"];
+		console.log(mouseX);
 		// Pan
 		_this.setPosition(_this.offsetX -
 			(mouseX - _this.mouseX) / _this.scale,
@@ -61,9 +66,11 @@ CartesianGraph = function(json) {
 	});
 	elem.addEventListener("wheel", function(event) {
 		event.preventDefault();
-		var gScale = 1000 / this.offsetWidth;
-		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
-		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+		var gScale = IS_FIREFOX || 1000 / this[GRAPH_WIDTH_VAR];
+		var mouseX = gScale * event[(event.offsetX !== undefined ?
+			"offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ?
+			"offset" : "layer") + "Y"];
 		// Update the last mouse position
 		_this.mouseX = mouseX;
 		_this.mouseY = mouseY;
@@ -81,7 +88,7 @@ CartesianGraph = function(json) {
 	// Touch events
 	if (IS_TOUCH_DEVICE) {
 		elem.addEventListener("touchstart", function(event) {
-			var gScale = 1000 / this.offsetWidth;
+			var gScale = IS_FIREFOX || 1000 / this[GRAPH_WIDTH_VAR];
 			var all = event.touches;
 			all.forEach(function(t) {
 				t.x = t.clientX * gScale;
@@ -103,7 +110,7 @@ CartesianGraph = function(json) {
 		});
 		elem.addEventListener("touchmove", function(event) {
 			event.preventDefault();
-			var gScale = 1000 / this.offsetWidth;
+			var gScale = IS_FIREFOX || 1000 / this[GRAPH_WIDTH_VAR];
 			var all = event.touches;
 			all.forEach(function(t) {
 				t.x = t.clientX * gScale;
@@ -146,7 +153,7 @@ CartesianGraph = function(json) {
 		});
 		elem.addEventListener("touchend", function(event) {
 			var all = event.touches;
-			var gScale = 1000 / this.offsetWidth;
+			var gScale = 1000 / this[GRAPH_WIDTH_VAR];
 			all.forEach(function(t) {
 				t.x = t.clientX * gScale;
 				t.y = t.clientY * gScale;
@@ -394,3 +401,7 @@ CartesianGraph.prototype.updateRegion = function() {
 	}
 	this.render();
 }
+
+window.addEventListener("load", function() {
+	GRAPH_WIDTH_VAR = document.body.clientWidth ? "clientWidth" : "offsetWidth";
+});

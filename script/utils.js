@@ -99,6 +99,9 @@ Element.prototype.getStyle = function(name) {
      getComputedStyle(this, null)[name];
 }
 
+// IE is dumb
+if (typeof window.TouchList === 'undefined') TouchList = function(){};
+
 HTMLCollection.prototype.forEach =
 NodeList.prototype.forEach =
 TouchList.prototype.forEach = function(fn) {
