@@ -133,6 +133,10 @@ body.msie .out#output .card {
 	background-color: rgb(203, 80, 39);
 }
 
+.card.grey {
+	background-color: rgb(96, 96, 96);
+}
+
 .card.suggestions {
 	padding: 0px 6px;
 }

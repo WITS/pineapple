@@ -611,11 +611,11 @@ body.homepage #homepage-text h2 {
 .render.graph.card[data-label]::before {
 	font-family: "Roboto", Arial, sans-serif;
 	font-size: 14px;
-	margin: 0 6px;
-	padding: 6px 4px;
-	width: calc(100% - 12px);
+	/*margin: 0 6px;*/
+	/*padding: 6px 4px;*/
+	/*width: calc(100% - 12px);*/
 	height: 29px;
-	border-bottom: 1px solid #E8E8E8;
+	/*border-bottom: 1px solid #E8E8E8;*/
 }
 
 .render.graph::after {

@@ -1,7 +1,7 @@
 /*
  * Graph.js - classes for visually
  * representing equations/expressions
- * on Cartesian planes
+ * on two-dimensional planes
  * Copyright (C) 2015  Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
@@ -20,7 +20,7 @@ CartesianGraph = function(json) {
 	elem.setAttribute("viewBox", "0 0 1000 1000");
 	elem.setAttribute("preserveAspectRatio", "xMidYMid meet");
 	var g = this.group = document.createElementNS(SVG_NS, "g");
-	g.setAttribute("stroke", "black");
+	g.setAttribute("stroke", "white");
 	g.setAttribute("stroke-width", "4em");
 	g.setAttribute("transform", "translate(500, 500)");
 	elem.appendChild(g);
@@ -28,12 +28,16 @@ CartesianGraph = function(json) {
 
 CartesianGraph.prototype.equation = "0";
 CartesianGraph.prototype.timeout = -1;
-CartesianGraph.prototype.scale = 40;
+CartesianGraph.prototype.scale = 25;
 CartesianGraph.prototype.offsetX = 0;
 CartesianGraph.prototype.offsetY = 0;
 
 // When this is true, the graph will stop all rendering
-CartesianGraph.prototype.stop = false;
+CartesianGraph.prototype.stop = function() {
+	this.queue.splice(0);
+	if (this.timeout != null) clearTimeout(this.timeout);
+	this.timeout = null;
+};
 
 // This variable stores the independent variable to
 // change if one exists for this graph
@@ -65,11 +69,6 @@ CartesianGraph.prototype.calculatePoint = function(n) {
 
 CartesianGraph.prototype.render = function() {
 	// Make sure this element is still on the DOM
-	if (this.stop) {
-		this.queue.splice(0);
-		this.stop = true;
-		return;
-	}
 	if (!this.queue.length) { // Begin rendering
 		// Create the first line
 		var left_val = this.calculatePoint(-20);
@@ -91,10 +90,20 @@ CartesianGraph.prototype.render = function() {
 		var line = document.createElementNS(SVG_NS, "line");
 		line.setAttribute("x1", elem.getAttribute("x1"));
 		line.setAttribute("y1", elem.getAttribute("y1"));
-		line.setAttribute("x2", new_x * 25);
-		line.setAttribute("y2", new_val * -25);
-		elem.setAttribute("x1", new_x * 25);
-		elem.setAttribute("y1", new_val * -25);
+		if (new_val != NaN) {
+			line.setAttribute("x2", new_x * 25);
+			line.setAttribute("y2", new_val * -25);
+			elem.setAttribute("x1", new_x * 25);
+			elem.setAttribute("y1", new_val * -25);
+		} else { // Improve this once derivates / asymptotes are implemented
+			var y1 = +elem.getAttribute("y1") * 0.04;
+			var y2 = +elem.getAttribute("y2") * 0.04;
+			var y_sum = y1 + y2;
+			line.setAttribute("x2", (new_x - 0.5) * 25);
+			line.setAttribute("y2", y_sum * 0.5 * -25);
+			elem.setAttribute("x1", (new_x + 0.5) * 25);
+			elem.setAttribute("y1", y_sum * 0.5 * -25);
+		}
 		this.group.insertBefore(line, elem);
 		// console.log(x1 + " + " + x2 + " -> (" + new_x + "," + new_val + ")");
 		if (x2 - x1 > 0.5) {

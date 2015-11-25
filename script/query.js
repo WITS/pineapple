@@ -76,7 +76,7 @@ function handle_query(f, e) {
 				logo.blur();
 			}
 			if (last_graph) {
-				last_graph.stop = true;
+				last_graph.stop();
 				last_graph = null;
 			}
 			output_element.empty();
@@ -540,7 +540,8 @@ function handle_query(f, e) {
 	// Graph
 	if (graph) {
 		var graph_card = new Card({
-			label: "Graph"
+			label: "Graph",
+			color: "grey"
 		});
 		var elem = graph_card.element();
 		elem.addClass("render graph");
