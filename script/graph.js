@@ -52,6 +52,9 @@ CartesianGraph = function(json) {
 		_this.setPosition(_this.offsetX -
 			(mouseX - _this.mouseX) / _this.scale,
 			_this.offsetY - (mouseY - _this.mouseY) / _this.scale);
+		// Update the grid / axes and start
+		// rendering the new region (if necessary)
+		_this.updateRegion();
 		// Update the last mouse position
 		_this.mouseX = mouseX;
 		_this.mouseY = mouseY;
@@ -71,6 +74,9 @@ CartesianGraph = function(json) {
 				_this.offsetY - (500 - mouseY) * 0.25 / _this.scale);
 		}
 		_this.setScale(_this.scale * (1 - 0.25 * change));
+		// Update the grid / axes and start
+		// rendering the new region (if necessary)
+		_this.updateRegion();
 	});
 	// Touch events
 	if (IS_TOUCH_DEVICE) {
@@ -109,6 +115,9 @@ CartesianGraph = function(json) {
 				_this.setPosition(_this.offsetX -
 					(t1.x - _this.mouseX) / _this.scale,
 					_this.offsetY - (t1.y - _this.mouseY) / _this.scale);
+				// Update the grid / axes and start
+				// rendering the new region (if necessary)
+				_this.updateRegion();
 				// Update variables
 				_this.mouseX = t1.x;
 				_this.mouseY = t1.y;
@@ -126,6 +135,9 @@ CartesianGraph = function(json) {
 					Math.pow(t2.x - t1.x, 2) +
 					Math.pow(t2.y - t1.y, 2));
 				_this.setScale(_this.scale * touchDistance / _this.touchDistance);
+				// Update the grid / axes and start
+				// rendering the new region (if necessary)
+				_this.updateRegion();
 				// Update variables
 				_this.mouseX = mouseX;
 				_this.mouseY = mouseY;
@@ -203,13 +215,14 @@ CartesianGraph.prototype.calculatePoint = function(n) {
 
 CartesianGraph.prototype.render = function(x1, x2) {
 	// Make sure this element is still on the DOM
-	if (!this.queue.length || x1 || x2) { // Begin rendering
+	if ((!this.points.length && !this.queue.length) || x1 || x2) { // Begin rendering
 		// Create the first line
 		var x1 = x1 || (-500 / this.scale + this.offsetX);
 		var left_val = this.calculatePoint(x1);
 		var x2 = x2 || (500 / this.scale + this.offsetY);
 		var right_val = this.calculatePoint(x2);
 		var line = document.createElementNS(SVG_NS, "line");
+		line.id = x1;
 		line.setAttribute("x1", x1);
 		line.setAttribute("y1", -left_val);
 		line.setAttribute("x2", x2);
@@ -217,8 +230,7 @@ CartesianGraph.prototype.render = function(x1, x2) {
 		this.group.appendChild(line);
 		this.queue.push(line);
 		this.points.push(x1);
-		this.points.push(x2);
-	} else { // Render this specific point
+	} else if (this.queue.length) { // Render this specific point
 		var elem = this.queue.splice(0, 1)[0];
 		var recursive_scale = 1 / this.scale;
 		var x1 = +elem.getAttribute("x1");
@@ -227,11 +239,14 @@ CartesianGraph.prototype.render = function(x1, x2) {
 		var new_x = (x2 + x1) * 0.5;
 		var new_val = this.calculatePoint(new_x);
 		var line = document.createElementNS(SVG_NS, "line");
+		line.id = x1;
 		line.setAttribute("x1", elem.getAttribute("x1"));
 		line.setAttribute("y1", elem.getAttribute("y1"));
 		if (new_val != NaN) {
 			line.setAttribute("x2", new_x);
 			line.setAttribute("y2", -new_val);
+			elem.id = new_x;
+			this.points.push(new_x);
 			elem.setAttribute("x1", new_x);
 			elem.setAttribute("y1", -new_val);
 		} else { // Improve this once derivates / asymptotes are implemented
@@ -240,13 +255,15 @@ CartesianGraph.prototype.render = function(x1, x2) {
 			var y_sum = y1 + y2;
 			line.setAttribute("x2", new_x - 0.5);
 			line.setAttribute("y2", y_sum * -0.5);
+			elem.id = new_x + 0.5;
+			this.points.push(new_x + 0.5);
 			elem.setAttribute("x1", new_x + 0.5);
 			elem.setAttribute("y1", y_sum * -0.5);
 		}
 		this.group.insertBefore(line, elem);
-		this.points.push(new_x);
-		// console.log(x1 + " + " + x2 + " -> (" + new_x + "," + new_val + ")");
-		if (x2 - x1 > 12.5 * recursive_scale) {
+		// Limit the smoothness of curves (until components are faster)
+		// at calculating values
+		if (x2 - x1 > Math.max(12.5 * recursive_scale, 2e-4)) {
 			this.queue.push(line);
 			this.queue.push(elem);
 		}
@@ -267,8 +284,6 @@ CartesianGraph.prototype.setPosition = function(x, y) {
 	var cy = 500 - y * this.scale;
 	g.setAttribute("transform", "translate(" + cx + "," +
 		cy + ") scale(" + this.scale + ")");
-	// Update the grid / axes
-	// Start rendering the new region (if necessary)
 }
 
 // Update the scale
@@ -281,6 +296,101 @@ CartesianGraph.prototype.setScale = function(n) {
 	var cy = 500 - this.offsetY * this.scale;
 	g.setAttribute("transform", "translate(" + cx + "," +
 		cy + ") scale(" + this.scale + ")");
-	// Update the grid / axes
-	// Start rendering the new region (if necessary)
+}
+
+// Get a line by its left position / x1 value
+CartesianGraph.prototype.getLine = function(x1) {
+	return this.element.getElementById(x1);
+}
+
+// Update the rendering queue and free up memory
+CartesianGraph.prototype.updateRegion = function() {
+	// Determine what lines should be rejoined
+	// Which should be broken down further
+	// And where new lines should be created
+	// *TODO: Update the axes
+	this.stop();
+	this.queue.splice(0);
+	var l_bound = this.offsetX - 500 / this.scale - 0.5;
+	var r_bound = this.offsetX + 500 / this.scale + 0.5;
+	var min_x = Infinity;
+	var max_x = -Infinity;
+	var recursive_scale = 1 / this.scale;
+	this.points.sort(function(a,b) {
+		return a - b;
+	});
+	console.log("Optimizing " + this.points.length + " points");
+	for (var i = this.points.length; i --; ) {
+		var line = this.getLine(this.points[i]);
+		// If some error happens here, get over it
+		if (!line) continue;
+		var in_region = (line.x2.baseVal.value > l_bound || line.x1.baseVal.value < r_bound);
+		// Does this have more detail than necessary
+		if (!in_region) {
+			this.points.splice(i, 1);
+			this.group.removeChild(line);
+			continue;
+		}
+		min_x = Math.min(line.x1.baseVal.value, min_x);
+		max_x = Math.max(line.x2.baseVal.value, max_x);
+		while (line.x2.baseVal.value - line.x1.baseVal.value <= 15 * recursive_scale) {
+			if (i == 0) break;
+			var line2 = this.getLine(this.points[i - 1]);
+			if (!line2) break;
+			console.log("Removing P#" + line2.id);
+			line.id = line2.id;
+			line.setAttribute("x1", line2.x1.baseVal.value);
+			line.setAttribute("y1", line2.y1.baseVal.value);
+			this.group.removeChild(line2);
+			this.points.splice(i, 1);
+			-- i;
+		}
+		// If the x is in the region at least partly
+		if (line.x2.baseVal.value - line.x1.baseVal.value > 12.5 * recursive_scale) {
+			this.queue.push(line);
+		}
+	}
+	console.log("Resulting points: " + this.points.length);
+	// If the newline is neccesary, create it
+	if (l_bound < min_x) {
+		var x1 = l_bound;
+		var x2 = min_x;
+		console.log("From " + x1 + " to " + x2);
+		if (Math.abs(x2 - x1) > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
+			var left_val = this.calculatePoint(x1);
+			var right_val = this.calculatePoint(x2);
+			var line = document.createElementNS(SVG_NS, "line");
+			line.id = x1;
+			line.setAttribute("x1", x1);
+			line.setAttribute("y1", -left_val);
+			line.setAttribute("x2", x2);
+			line.setAttribute("y2", -right_val);
+			console.log("--- (" + x1 + "," + (-left_val) + ")  to (" +
+				x2 + "," + (-right_val) + ")");
+			this.group.appendChild(line);
+			this.queue.push(line);
+			this.points.push(x1);
+		}
+	}
+	if (r_bound > max_x) {
+		var x1 = max_x;
+		var x2 = r_bound;
+		console.log("From " + x1 + " to " + x2);
+		if (Math.abs(x2 - x1) > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
+			var left_val = this.calculatePoint(x1);
+			var right_val = this.calculatePoint(x2);
+			var line = document.createElementNS(SVG_NS, "line");
+			line.id = x1;
+			line.setAttribute("x1", x1);
+			line.setAttribute("y1", -left_val);
+			line.setAttribute("x2", x2);
+			line.setAttribute("y2", -right_val);
+			console.log("--- (" + x1 + "," + (-left_val) + ")  to (" +
+				x2 + "," + (-right_val) + ")");
+			this.group.appendChild(line);
+			this.queue.push(line);
+			this.points.push(x1);
+		}
+	}
+	this.render();
 }
