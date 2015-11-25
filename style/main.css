@@ -603,7 +603,7 @@ body.homepage #homepage-text h2 {
 	position: relative;
 	display: block;
 	width: 100%;
-	font-size: 1px;
+	font-size: 0.75px;
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
@@ -859,6 +859,10 @@ body.homepage #nav button {
 #footer {
 	margin-top: 6px;
 	text-align: center;
+}
+
+.render.graph {
+	font-size: 1px;
 }
 
 }
