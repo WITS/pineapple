@@ -58,7 +58,18 @@ CartesianGraph = function(json) {
 	});
 	elem.addEventListener("wheel", function(event) {
 		event.preventDefault();
+		var gScale = 1000 / this.offsetWidth;
+		var mouseX = gScale * event[(event.offsetX !== undefined ? "offset" : "layer") + "X"];
+		var mouseY = gScale * event[(event.offsetY !== undefined ? "offset" : "layer") + "Y"];
+		// Update the last mouse position
+		_this.mouseX = mouseX;
+		_this.mouseY = mouseY;
 		var change = Math.abs(event.deltaY) / event.deltaY;
+		if (change < 0) {
+			_this.setPosition(_this.offsetX -
+				(500 - mouseX) * 0.25 / _this.scale,
+				_this.offsetY - (500 - mouseY) * 0.25 / _this.scale);
+		}
 		_this.setScale(_this.scale * (1 - 0.25 * change));
 	});
 	// Touch events
@@ -262,7 +273,7 @@ CartesianGraph.prototype.setPosition = function(x, y) {
 
 // Update the scale
 CartesianGraph.prototype.setScale = function(n) {
-	this.scale = Math.max(n, 5);
+	this.scale = Math.max(5, Math.min(n, 8e6));
 	// console.log("Scaled to " + this.scale);
 	var g = this.group;
 	g.setAttribute("stroke-width", (4/this.scale) + "em");
