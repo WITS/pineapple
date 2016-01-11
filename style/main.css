@@ -329,6 +329,7 @@ body.homepage #homepage-text h2 {
 .render .plus-minus-group,
 .render .operation,
 .render .brackets,
+.render .function,
 .render .number {
 	display: inline-block;
 }
@@ -506,6 +507,24 @@ body.homepage #homepage-text h2 {
 .render .operation[data-operation='-'
 		]:first-child {
 	padding-right: 0px;
+}
+
+/* Functions */
+.render .function {
+	/*font-weight: 400;*/
+}
+
+.render *:not(.operation) ~ .function {
+	padding-left: 6px;
+}
+
+.render .function .arguments {
+	/*font-weight: 300;*/
+}
+
+.render .function .arguments::before,
+.render .function .arguments::after {
+	opacity: 0.5;
 }
 
 .render .comma {

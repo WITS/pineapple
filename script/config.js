@@ -1,7 +1,7 @@
 /*
  * Config.js - stores and manges user preferences
  * and memory (constants/functions)
- * Copyright (C) 2015  Ian Jones
+ * Copyright (C) 2015 - 2016 Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
 
@@ -257,6 +257,26 @@ ConfigPreferences = {
 			]
 	}
 };
+
+DefaultFunctions = {
+	sin: function(n) {
+		
+	},
+	cos: function(n) {
+		
+	},
+	tan: function(n) {
+		
+	}
+};
+
+{
+	var default_funcs = new Array();
+	for (var name in DefaultFunctions) {
+		default_funcs.push(name);
+	}
+}
+DEFAULT_FUNCTIONS_REGEX = "(" + default_funcs.join("|") + ")$";
 
 window.addEventListener("focus", function() {
 	Config.loadLocalStorage();

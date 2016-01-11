@@ -1,7 +1,7 @@
 /*
  * Utils.js - adds new methods to Elements
  * and defines some useful "constants"
- * Copyright (C) 2015  Ian Jones
+ * Copyright (C) 2015 - 2016 Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
 

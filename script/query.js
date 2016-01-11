@@ -1,7 +1,7 @@
 /*
  * Query.js - interprets instructions from
  * queries and determines what actions to take
- * Copyright (C) 2015  Ian Jones
+ * Copyright (C) 2015 - 2016 Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
 

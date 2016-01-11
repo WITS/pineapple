@@ -1,7 +1,7 @@
 /*
  * Module.js - handles creating, storing,
  * and displaying steps for solutions
- * Copyright (C) 2015  Ian Jones
+ * Copyright (C) 2015 - 2016 Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
 

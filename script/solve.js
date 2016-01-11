@@ -1,7 +1,7 @@
 /*
  * Solve.js - classes for interpeting
  * and solving equations/expressions
- * Copyright (C) 2015  Ian Jones
+ * Copyright (C) 2015 - 2016 Ian Jones
  * http://pineapple.pub/LICENSE.txt
  */
 
@@ -933,14 +933,14 @@ ExpressionGroup = function(json) {
 	var json = json || {};
 	this.text = json.text || "";
 	// Pre-processing for expression
-	this.text = this.text.replace(/(?:\s|,)/g, "");
+	this.text = this.text.replace(/(?:\s)/g, "");
 	this.text = this.text.replace(/\+{2,}/g, "+");
 	this.text = this.text.replace(
 		/(^|[^\+\*\/\^\(])(-|\u00B1)/g, "$1+$2");
 	this.text = this.text.replace(
 		/\*\u00B1([-+]|\u00B1)/g, "*+\u00B1$1");
-	this.text = this.text.replace(new RegExp("(^|[^\\/0-9])\\((" +
-		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
+	// this.text = this.text.replace(new RegExp("(^|[^\\/0-9])\\((" +
+	// 	FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
 	this.text = this.text.replace(/pi/gi, "\u03C0");
 	this.text = this.text.replace(/([a-z\u03C0])\^([a-z\u03C0])/gi, "$1^($2)");
 	this.highlighted = json.highlighted || false;
@@ -1518,21 +1518,21 @@ MultiplyGroup = function(json) {
 	var p_start = 0;
 	var p_level = 0;
 
-	var temp_text = this.text.replace(
+	var temp_text = this.text/*.replace(
 		new RegExp("(?!^)([^0-9\\.\\^\\*\\/\\+\\-\\(" +
 			"\u00B1])(" + NEG_FRACTION_REGEX +
-			")", "gi"), "$1*$2");
+			")", "gi"), "$1*$2")*/;
 	temp_text = temp_text.replace(new RegExp(
 		"([a-z]\\^)(\\()", "gi"), "*$1$2");
 	temp_text = temp_text.replace(new RegExp(
 		"-(" + NEG_FRACTION_REGEX + ")\\^"), "-1*$1^");
 	// temp_text = temp_text.replace(new RegExp("\\((" +
 	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
-	temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9])\\((" +
-		FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
-	// console.log(temp_text);
-	
-	// console.log(temp_text);
+	// temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9]|)\\((" +
+	// 	FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
+	console.log(temp_text);
+
+	var function_group = null;
 	var prev_character = "";
 	var character = "";
 	var next_character = temp_text[0];
@@ -1560,7 +1560,37 @@ MultiplyGroup = function(json) {
 				continue;
 			}
 
-			this.groups.push(group_text);
+			// Check if this is a function
+			var func = new RegExp(DEFAULT_FUNCTIONS_REGEX).exec(
+				group_text);
+			if (func) {
+				func = func[0];
+				group_text = group_text.replace(new RegExp(
+					DEFAULT_FUNCTIONS_REGEX), "");
+			}
+			if (group_text) {
+				this.groups.push(group_text);
+			}
+			if (func) {
+				var function_group = new FunctionGroup({
+					name: func,
+					parent: this
+				});
+				this.groups.push(function_group);
+			}
+		} else if (character == "," && p_level == 1 && function_group) {
+			var group_text =
+				temp_text.substr(p_start, x - p_start);
+			p_start = x + 1;
+
+			if (!group_text.length) {
+				continue;
+			}
+
+			function_group.arguments.push(new ExpressionGroup({
+				text: group_text,
+				parent: function_group
+			}));
 		} else if (character == ")") {
 			-- p_level;
 
@@ -1573,13 +1603,22 @@ MultiplyGroup = function(json) {
 			p_start = x + 1;
 
 			if (!group_text.length) {
+				function_group = null;
 				continue;
 			}
 
-			this.groups.push(new ExpressionGroup({
-				text: group_text,
-				parent: this
-			}));
+			if (function_group != null) {
+				function_group.arguments.push(new ExpressionGroup({
+					text: group_text,
+					parent: function_group
+				}));
+				function_group = null;
+			} else {
+				this.groups.push(new ExpressionGroup({
+					text: group_text,
+					parent: this
+				}));
+			}
 		}
 
 		if (p_level || character != "*") {
@@ -1750,12 +1789,16 @@ MultiplyGroup = function(json) {
 			++ replace_len;
 			var d = this.groups[x + 1];
 		}
-		this.groups[x + replace_pos] =
-			new FractionGroup({
-				numerator: n,
-				denominator: d,
-				parent: this
-			});
+		var f = new FractionGroup({
+			numerator: n,
+			denominator: d,
+			parent: this
+		});
+		this.groups[x + replace_pos] = f;
+		f.numerator.parent = this;
+		f.denominator.parent = this;
+
+		console.log(this.groups[x + replace_pos]);
 		this.groups.splice(x + replace_pos + 1,
 			replace_len);
 		x += replace_pos;
@@ -2071,6 +2114,16 @@ MultiplyGroup.prototype.factorOut = function(factor, showSteps) {
 				factor = factor.substr(constant.length);
 				constant = "";
 			}
+		} else if (/\w[a-z0-9_\-]*\(.*\)/.test(factor)) {
+			if (group.factors().indexOf(factor) != -1) {
+				group.factorOut(factor);
+				if (group.valueOf() instanceof Fraction) {
+					if (group.valueOf().toString() == "1" &&
+						this.groups.length > 1) {
+						this.remove(group);
+					}
+				}
+			}
 		}
 	}
 }
@@ -2189,7 +2242,8 @@ MultiplyGroup.prototype.element = function() {
 			!((prev_elem.hasClass("parentheses") &&
 				!group_elem.hasClass("negative")) ||
 			group_elem.hasClass("parentheses") ||
-			group_elem.hasClass("radical-wrapper"))) {
+			group_elem.hasClass("radical-wrapper") ||
+			group_elem.hasClass("function"))) {
 			var times = document.createElement(
 				"span");
 			times.addClass("operation");
@@ -2381,10 +2435,13 @@ FractionGroup.prototype.factorOut = function(factor, showSteps, both) {
 	this.numerator.valueOf().factorOut(factor);
 	if (!both) return;
 	this.denominator.valueOf().factorOut(factor);
-	if (this.denominator.toString() == "1") {
-		this.value = this.numerator;
+	if (this.denominator.valueOf().toString() == "1") {
+		this.value = this.numerator.valueOf();
 		this.value.parent = this.parent;
-		if (!this.parent) this.value.top_parent = this.value;
+		if (!this.parent) {
+			this.equation[this.side] = this.value;
+			this.value.top_parent = this.value;
+		}
 	}
 }
 
@@ -3902,6 +3959,90 @@ AlgebraGroup.prototype.element = function() {
 	return elem;
 }
 
+FunctionGroup = function(json) {
+	var json = json || {};
+	this.name = json.name || "";
+	this.arguments = json.arguments || new Array();
+	this.highlighted = json.highlighted || false;
+	this.top_parent = this;
+	this.parent = json.parent || null;
+	if (this.parent != null) {
+		this.top_parent = this.parent.top_parent;
+	}
+	this.equation = json.equation ||
+		this.top_parent.equation || null;
+	this.side = json.side ||
+		this.top_parent.side || null;
+	this.value = null;
+}
+
+FunctionGroup.prototype.factors = function() {
+	return [this.toString()];
+}
+
+FunctionGroup.prototype.factorOut = function(factor) {
+	if (factor == this.toString()) {
+		this.value = new Fraction({
+			numerator: 1,
+			parent: this.parent
+		});
+	}
+}
+
+FunctionGroup.prototype.replaceFactor = function() {
+	// TODO
+}
+
+FunctionGroup.prototype.fixLinks = function() {
+	for (var x = 0, y = this.arguments.length; x < y; ++ x) {
+		this.arguments[x].parent = this;
+		this.arguments[x].equation = this.equation;
+		this.arguments[x].side = this.side;
+		this.arguments[x].fixLinks();
+	}
+}
+
+FunctionGroup.prototype.valueOf = function() {
+	if (this.value) return this.value;
+	return this;
+}
+
+FunctionGroup.prototype.toString = function() {
+	return this.name + "(" + this.arguments.join(",") + ")";
+}
+
+FunctionGroup.prototype.simplify = function() {
+	// Simplify arguments
+	for (var x = 0, y = this.arguments.length; x < y; ++ x) {
+		this.arguments[x].simplify();
+		this.arguments[x] = this.arguments[x].valueOf();
+	}
+	this.fixLinks();
+	// If appropriate, simplify the function
+	if (this.name in DefaultFunctions) {
+		this.value = DefaultFunctions[this.name](this);
+	}
+}
+
+FunctionGroup.prototype.element = function() {
+	var elem = document.createElement("div");
+	elem.addClass("function");
+	elem.appendTextNode(this.name);
+	var args = document.createElement("span");
+	args.addClass("arguments parentheses");
+	elem.appendChild(args);
+	for (var x = 0, y = this.arguments.length; x < y; ++ x) {
+		if (x) {
+			var comma = document.createElement("span");
+			comma.addClass("comma");
+			comma.appendTextNode(",");
+			args.appendChild(comma);
+		}
+		args.appendChild(this.arguments[x].element());
+	}
+	return elem;
+}
+
 Fraction = function(json) {
 	if (json === 0) json = '0';
 	var json = json || {};
@@ -4617,7 +4758,6 @@ ConstantGroup.prototype.replaceFactor = function(json) {
 		if (!exp) continue;
 		// If the factor was only partially replaced, correct exp
 		if (partial) {
-			console.log("Hello");
 			exp = new Fraction(exp);
 			exp.add(new Fraction(-1));
 			exp.add(partial);
