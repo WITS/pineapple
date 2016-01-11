@@ -233,12 +233,12 @@ function handle_query(f, e) {
 	}
 
 	// Graphing
-	if (!result && test_query(text, "what? is? the? graph of? EQTN")) {
-		console.log("SUCCESS: what? is? the? graph of? EQTN");
-		console.log(last_query_vars);
-		equation_text = last_query_vars[0];
-		query_info.type = "graph";
-	}
+	// if (!result && test_query(text, "what? is? the? graph of? EQTN")) {
+	// 	console.log("SUCCESS: what? is? the? graph of? EQTN");
+	// 	console.log(last_query_vars);
+	// 	equation_text = last_query_vars[0];
+	// 	query_info.type = "graph";
+	// }
 
 	// Pre-Module
 	modules.splice(0);

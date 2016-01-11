@@ -204,6 +204,7 @@ CartesianGraph.prototype.calculatePoint = function(n) {
 		Config.preferences[key] = false;
 	}
 	Config.showModules = false;
+	++ Config.renderInstances;
 	// Calculate the approximate value
 	var expr = new Equation({
 		text: this.equation_str
@@ -215,8 +216,10 @@ CartesianGraph.prototype.calculatePoint = function(n) {
 		value = expr.right.valueOf().toNumber();
 	}
 	// Revert to the user's original preferences
-	Config.showModules = true;
-	Config.loadLocalStorage();
+	if (-- Config.renderInstances == 0) {
+		Config.showModules = true;
+		Config.loadLocalStorage();
+	}
 	return value;
 }
 
@@ -242,6 +245,10 @@ CartesianGraph.prototype.render = function(x1, x2) {
 		var recursive_scale = 1 / this.scale;
 		var x1 = +elem.getAttribute("x1");
 		var x2 = +elem.getAttribute("x2");
+		// Make sure this line needs to be broken down
+		if (x2 - x1 <= Math.max(12.5 * recursive_scale, 2e-4)) {
+			return this.render();
+		}
 		// Find the new point and build around it
 		var new_x = (x2 + x1) * 0.5;
 		var new_val = this.calculatePoint(new_x);
@@ -318,52 +325,60 @@ CartesianGraph.prototype.updateRegion = function() {
 	// *TODO: Update the axes
 	this.stop();
 	this.queue.splice(0);
-	var l_bound = this.offsetX - 500 / this.scale - 0.5;
-	var r_bound = this.offsetX + 500 / this.scale + 0.5;
+	var queue = new Array();
+	var l_bound = this.offsetX - 500 / this.scale;
+	var r_bound = this.offsetX + 500 / this.scale;
 	var min_x = Infinity;
 	var max_x = -Infinity;
 	var recursive_scale = 1 / this.scale;
 	this.points.sort(function(a,b) {
 		return a - b;
 	});
-	console.log("Optimizing " + this.points.length + " points");
+	var removed_str = "Bounds [" + l_bound + "," + r_bound + "]\nOptimizing " +
+		this.points.length + " points\nRemoving:\n"; // For logging what's happening
 	for (var i = this.points.length; i --; ) {
 		var line = this.getLine(this.points[i]);
 		// If some error happens here, get over it
 		if (!line) continue;
-		var in_region = (line.x2.baseVal.value > l_bound || line.x1.baseVal.value < r_bound);
+		x1 = line.x1.baseVal.value
+		x2 = line.x2.baseVal.value
+		var in_region = (x2 >= l_bound && (x1 <= r_bound || x2 <= r_bound));
 		// Does this have more detail than necessary
 		if (!in_region) {
+			removed_str += "\tP#" + line.id + " [OUT OF REGION]\n";
 			this.points.splice(i, 1);
 			this.group.removeChild(line);
 			continue;
 		}
 		min_x = Math.min(line.x1.baseVal.value, min_x);
 		max_x = Math.max(line.x2.baseVal.value, max_x);
-		while (line.x2.baseVal.value - line.x1.baseVal.value <= 15 * recursive_scale) {
+		while (x2 - x1 <= 12.5 * recursive_scale && x2 - x1 > 1e-5) {
 			if (i == 0) break;
 			var line2 = this.getLine(this.points[i - 1]);
 			if (!line2) break;
-			console.log("Removing P#" + line2.id);
+			removed_str += "\tP#" + line2.id + " [REDUCING]\n";
 			line.id = line2.id;
-			line.setAttribute("x1", line2.x1.baseVal.value);
+			x1 = line2.x1.baseVal.value;
+			line.setAttribute("x1", x1);
+			min_x = Math.min(x1, min_x);
 			line.setAttribute("y1", line2.y1.baseVal.value);
 			this.group.removeChild(line2);
 			this.points.splice(i, 1);
 			-- i;
 		}
 		// If the x is in the region at least partly
-		if (line.x2.baseVal.value - line.x1.baseVal.value > 12.5 * recursive_scale) {
-			this.queue.push(line);
+		var diff = line.x2.baseVal.value - line.x1.baseVal.value;
+		if (diff > 1e-5 && diff >= 12.5 * recursive_scale) {
+			queue.push(line);
 		}
 	}
-	console.log("Resulting points: " + this.points.length);
+	console.log(removed_str + "Resulting points: " + this.points.length);
 	// If the newline is neccesary, create it
 	if (l_bound < min_x) {
 		var x1 = l_bound;
 		var x2 = min_x;
 		console.log("From " + x1 + " to " + x2);
-		if (Math.abs(x2 - x1) > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
+		if (x2 - x1 > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
 			var left_val = this.calculatePoint(x1);
 			var right_val = this.calculatePoint(x2);
 			var line = document.createElementNS(SVG_NS, "line");
@@ -375,7 +390,7 @@ CartesianGraph.prototype.updateRegion = function() {
 			console.log("--- (" + x1 + "," + (-left_val) + ")  to (" +
 				x2 + "," + (-right_val) + ")");
 			this.group.appendChild(line);
-			this.queue.push(line);
+			queue.push(line);
 			this.points.push(x1);
 		}
 	}
@@ -383,7 +398,7 @@ CartesianGraph.prototype.updateRegion = function() {
 		var x1 = max_x;
 		var x2 = r_bound;
 		console.log("From " + x1 + " to " + x2);
-		if (Math.abs(x2 - x1) > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
+		if (x2 - x1 > 1e-5 && x2 - x1 > 12.5 * recursive_scale) {
 			var left_val = this.calculatePoint(x1);
 			var right_val = this.calculatePoint(x2);
 			var line = document.createElementNS(SVG_NS, "line");
@@ -395,10 +410,11 @@ CartesianGraph.prototype.updateRegion = function() {
 			console.log("--- (" + x1 + "," + (-left_val) + ")  to (" +
 				x2 + "," + (-right_val) + ")");
 			this.group.appendChild(line);
-			this.queue.push(line);
+			queue.push(line);
 			this.points.push(x1);
 		}
 	}
+	this.queue.concat(queue);
 	this.render();
 }
 

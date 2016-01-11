@@ -20,6 +20,7 @@ Config.prototype = new Card();
 
 Config.prototype.joined = "both";
 Config.prototype.showModules = true;
+Config.prototype.renderInstances = 0;
 
 Config.prototype.setPreference = function(key, value) {
 	if (value == "true") value = true;
