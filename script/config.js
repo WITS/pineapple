@@ -10,7 +10,8 @@ Config = function() {
 		fraction: true,
 		radical: true,
 		pi: true,
-		e: true
+		e: true,
+		trig: true
 	};
 	this.constants = new Object();
 	this.functions = new Object();
@@ -166,25 +167,6 @@ Config.prototype.element = function(json) {
 
 Config = new Config();
 
-// Used to keep track of what config info is relevant to
-// the current query
-ConfigUsed = function() {
-	this.preferences = {
-		fraction: false,
-		radical: false,
-		pi: false,
-		e: false
-	};
-	this.constants = new Array();
-	this.functions = new Array();
-}
-
-ConfigUsed.prototype.element = function() {
-	return Config.element(this);
-}
-
-config_used = new ConfigUsed();
-
 // A manifest of information that helps explain what each
 // preference does
 ConfigPreferences = {
@@ -226,47 +208,82 @@ ConfigPreferences = {
 		title: "Pi Precision",
 		description: "Indicates whether to keep pi in calculations (exact) " +
 			"or to convert it to decimal (approximate)",
-			options: [
-				{
-					title: "Exact",
-					example: "2pi",
-					value: true
-				},
-				{
-					title: "Approximate",
-					example: "6.2832",
-					value: false
-				}
-			]
+		options: [
+			{
+				title: "Exact",
+				example: "2pi",
+				value: true
+			},
+			{
+				title: "Approximate",
+				example: "6.2832",
+				value: false
+			}
+		]
 	},
 	e: {
 		title: "E Precision",
 		description: "Indicates whether to keep e in calculations (exact) " +
 			"or to convert it to decimal (approximate)",
-			options: [
-				{
-					title: "Exact",
-					example: "2e",
-					value: true
-				},
-				{
-					title: "Approximate",
-					example: "5.4366",
-					value: false
-				}
-			]
+		options: [
+			{
+				title: "Exact",
+				example: "2e",
+				value: true
+			},
+			{
+				title: "Approximate",
+				example: "5.4366",
+				value: false
+			}
+		]
+	},
+	trig: {
+		title: "Trigonometry Precision",
+		description: "Indicates whether to only evaluate trig functions for " +
+			"unit-circle values (exact) or to always evaluate them (approximate)",
+		options: [
+			{
+				title: "Exact",
+				example: "cos(pi)",
+				value: true
+			},
+			{
+				title: "Approximate",
+				example: "-1",
+				value: false
+			}
+		]
 	}
 };
 
 DefaultFunctions = {
 	sin: function(n) {
-		
+		// Is n constant?
+		if (n instanceof Fraction) {
+			var val = n.toNumber();
+			var result = Math.sin(val);
+			result = Math.round(1000000 * result) * 0.000001;
+			return new Fraction(result);
+		}
 	},
 	cos: function(n) {
-		
+		// Is n constant?
+		if (n instanceof Fraction) {
+			var val = n.toNumber();
+			var result = Math.cos(val);
+			result = Math.round(1000000 * result) * 0.000001;
+			return new Fraction(result);
+		}
 	},
 	tan: function(n) {
-		
+		// Is n constant?
+		if (n instanceof Fraction) {
+			var val = n.toNumber();
+			var result = Math.tan(val);
+			result = Math.round(1000000 * result) * 0.000001;
+			return new Fraction(result);
+		}
 	}
 };
 
@@ -277,6 +294,23 @@ DefaultFunctions = {
 	}
 }
 DEFAULT_FUNCTIONS_REGEX = "(" + default_funcs.join("|") + ")$";
+
+// Used to keep track of what config info is relevant to
+// the current query
+ConfigUsed = function() {
+	this.preferences = new Object();
+	for (var pref in ConfigPreferences) {
+		this.preferences[pref] = false;
+	}
+	this.constants = new Array();
+	this.functions = new Array();
+}
+
+ConfigUsed.prototype.element = function() {
+	return Config.element(this);
+}
+
+config_used = new ConfigUsed();
 
 window.addEventListener("focus", function() {
 	Config.loadLocalStorage();

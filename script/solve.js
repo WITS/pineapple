@@ -3974,6 +3974,32 @@ FunctionGroup = function(json) {
 	this.side = json.side ||
 		this.top_parent.side || null;
 	this.value = null;
+	// Update config_used
+	if (this.name in DefaultFunctions) {
+		// Trig?
+		if (/^(?:sin|cos|tan)$/.test(this.name)) {
+			config_used.preferences.trig = true;
+		}
+	}
+}
+
+FunctionGroup.prototype.replace = function(g1, g2) {
+	// g1 = The old group
+	// g2 = The new group
+
+	var index = this.arguments.indexOf(g1);
+	if (index == -1) {
+		for (var i = this.arguments.length; i --; ) {
+			if (this.arguments[i].valueOf() != g1) continue;
+			index = i;
+			break;
+		}
+	}
+	this.arguments[index] = g2;
+	g2.parent = this;
+	g2.top_parent = this.top_parent;
+	g2.side = this.side;
+	g2.equation = this.equation;
 }
 
 FunctionGroup.prototype.factors = function() {
@@ -3989,8 +4015,12 @@ FunctionGroup.prototype.factorOut = function(factor) {
 	}
 }
 
-FunctionGroup.prototype.replaceFactor = function() {
-	// TODO
+FunctionGroup.prototype.replaceFactor = function(json) {
+	var json = replace_factor_json(arguments);
+	for (var x = 0, y = this.arguments.length; x < y; ++ x) {
+		this.arguments[x].valueOf().replaceFactor(json);
+		this.arguments[x] = this.arguments[x].valueOf();
+	}
 }
 
 FunctionGroup.prototype.fixLinks = function() {
@@ -4020,13 +4050,36 @@ FunctionGroup.prototype.simplify = function() {
 	this.fixLinks();
 	// If appropriate, simplify the function
 	if (this.name in DefaultFunctions) {
-		this.value = DefaultFunctions[this.name](this);
+		var value = DefaultFunctions[this.name].apply(
+			this, this.arguments);
+		if (value) {
+			// ModuleStep: Evaluate function
+			this.highlighted = true;
+			push_module_step({
+				type: "simplify",
+				title: "Evaluate " + truncate_number(this),
+				visual: (this.equation || this).element()
+			});
+			this.highlighted = false;
+			this.value = value;
+			this.value.equation = this.equation;
+			this.value.side = this.side;
+			if (this.parent == null) {
+				this.equation[this.side] = this.value;
+			} else {
+				this.value.parent = this.parent;
+				this.value.top_parent = this.top_parent;
+			}
+		}
 	}
 }
 
 FunctionGroup.prototype.element = function() {
 	var elem = document.createElement("div");
 	elem.addClass("function");
+	if (this.highlighted) {
+		elem.addClass("highlighted");
+	}
 	elem.appendTextNode(this.name);
 	var args = document.createElement("span");
 	args.addClass("arguments parentheses");
