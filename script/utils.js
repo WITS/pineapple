@@ -139,6 +139,11 @@ window.addEventListener("load", function() {
 	}
 });
 
+// Add more math constants
+THIRD = 1 / 3;
+SIXTH = 1 / 6;
+
+// Some regex constants
 FLOAT_NUM_REGEX = "(?:\\d+\\.?\\d*|\\d*\\.\\d+)";
 FRACTION_REGEX = FLOAT_NUM_REGEX + "(?:/" +
 	FLOAT_NUM_REGEX + ")?";

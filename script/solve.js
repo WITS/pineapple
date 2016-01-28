@@ -1530,7 +1530,7 @@ MultiplyGroup = function(json) {
 	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
 	// temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9]|)\\((" +
 	// 	FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
-	console.log(temp_text);
+	// console.log(temp_text);
 
 	var function_group = null;
 	var prev_character = "";
@@ -3979,6 +3979,7 @@ FunctionGroup = function(json) {
 		// Trig?
 		if (/^(?:sin|cos|tan)$/.test(this.name)) {
 			config_used.preferences.trig = true;
+			config_used.preferences.angle = true;
 		}
 	}
 }
@@ -4050,8 +4051,15 @@ FunctionGroup.prototype.simplify = function() {
 	this.fixLinks();
 	// If appropriate, simplify the function
 	if (this.name in DefaultFunctions) {
-		var value = DefaultFunctions[this.name].apply(
-			this, this.arguments);
+		var value;
+		// Trig?
+		if (/^(?:sin|cos|tan)$/.test(this.name)) {
+			value = trig_function.call(this,
+				this.name, this.arguments[0]);
+		} else {
+			value = DefaultFunctions[this.name].apply(
+				this, this.arguments);
+		}
 		if (value) {
 			// ModuleStep: Evaluate function
 			this.highlighted = true;
