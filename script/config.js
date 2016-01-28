@@ -443,10 +443,7 @@ function trig_function(name, n) {
 ConfigUsed = function() {
 	this.preferences = new Object();
 	for (var pref in ConfigPreferences) {
-		switch(pref) {
-			case "angle": this.preferences[pref] = "deg"; break;
-			default: this.preferences[pref] = false; break;
-		}
+		this.preferences[pref] = false;
 	}
 	this.constants = new Array();
 	this.functions = new Array();
