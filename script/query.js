@@ -5,6 +5,9 @@
  * http://pineapple.pub/LICENSE.txt
  */
 
+
+if (location.protocol === "http:" && location.host === "wits.github.io") location.assign("https://wits.github.io" + location.pathname + location.hash);
+
 last_query = "";
 new_results_timeout = null;
 
