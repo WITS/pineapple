@@ -7,12 +7,12 @@
 
 Config = function() {
 	this.preferences = {
-		fraction: true,
-		radical: true,
 		angle: "deg",
 		trig: true,
+		e: true,
 		pi: true,
-		e: true
+		radical: true,
+		fraction: true
 	};
 	this.constants = new Object();
 	this.functions = new Object();
@@ -171,6 +171,39 @@ Config = new Config();
 // A manifest of information that helps explain what each
 // preference does
 ConfigPreferences = {
+	angle: {
+		title: "Angle Unit",
+		description: "Indicates what units to use to evaluate trig functions",
+		options: [
+			{
+				title: "Degrees",
+				example: "180",
+				value: "deg"
+			},
+			{
+				title: "Radians",
+				example: "pi",
+				value: "rad"
+			}
+		]
+	},
+	trig: {
+		title: "Trigonometry Precision",
+		description: "Indicates whether to only evaluate trig functions for " +
+			"unit-circle values (exact) or to always evaluate them (approximate)",
+		options: [
+			{
+				title: "Exact",
+				example: "cos(pi)",
+				value: true
+			},
+			{
+				title: "Approximate",
+				example: "-1",
+				value: false
+			}
+		]
+	},
 	fraction: {
 		title: "Division Precision",
 		description: "Indicates whether to use fractions (exact) or " +
@@ -201,39 +234,6 @@ ConfigPreferences = {
 			{
 				title: "Approximate",
 				example: "1.7321",
-				value: false
-			}
-		]
-	},
-	angle: {
-		title: "Angle Unit",
-		description: "Indicates which units to use for angles",
-		options: [
-			{
-				title: "Degrees",
-				example: "360",
-				value: "deg"
-			},
-			{
-				title: "Radians",
-				example: "2pi",
-				value: "rad"
-			}
-		]
-	},
-	trig: {
-		title: "Trigonometry Precision",
-		description: "Indicates whether to only evaluate trig functions for " +
-			"unit-circle values (exact) or to always evaluate them (approximate)",
-		options: [
-			{
-				title: "Exact",
-				example: "cos(pi)",
-				value: true
-			},
-			{
-				title: "Approximate",
-				example: "-1",
 				value: false
 			}
 		]
@@ -275,16 +275,160 @@ ConfigPreferences = {
 };
 
 DefaultFunctions = {
-	sin: function(n) {
-		return handle_trig_function.call(this, "sin", n);
-	},
-	cos: function(n) {
-		return handle_trig_function.call(this, "cos", n);
-	},
-	tan: function(n) {
-		return handle_trig_function.call(this, "tan", n);
-	}
+	"sin": null,
+	"cos": null,
+	"tan": null
 };
+
+function trig_function(name, n) {
+	// Is n constant?
+	var val;
+	var PI = Math.PI;
+	if (n instanceof Fraction) {
+		val = n.toNumber();
+	} else if (n instanceof FractionGroup &&
+		n.numerator instanceof Fraction &&
+		n.denominator instanceof Fraction) {
+		val = n.numerator.toNumber() / n.denominator.toNumber();
+	}
+	if (val == null) return;
+	// Convert to Radians
+	if (Config.preferences.angle == "deg") val *= PI / 180;
+	var result;
+	// If approximate just evaluate it
+	if (!Config.preferences.trig) {
+		// Sanitize (make sure it's between 0 and 2pi)
+		// val %= 2 * PI;
+		result = Math[name](val);
+		result = Math.round(1000000 * result) * 0.000001;
+		result = new Fraction(result);
+	} else { // Unit value numbers only
+		var b_name = name; // The common function name
+		var b_val = val; // The value converted for this function
+		var b_rec = false; // Take the reciprocal after eval?
+		switch (name) {
+			case "cos": b_name = "sin"; b_val = PI / 2 - val;
+			default: break;
+		}
+		// Returns whether b_val is near to n
+		function near_to(n) {
+			return Math.abs(b_val - n) <= 2e-8;
+		}
+		if (b_name == "sin") {
+			// Correct the period
+			while (b_val < 0) {
+				b_val += 2 * PI;
+			}
+			b_val %= 2 * PI;
+			if (near_to(0)) { // 0 deg
+				result = new Fraction(0);	
+			} else if (near_to(PI * SIXTH)) { // 30 deg
+				result = new Fraction("1/2");
+			} else if (near_to(PI * 0.25)) { // 45 deg
+				result = new MultiplyGroup({
+					text: "(2^0.5)/2"
+				});
+			} else if (near_to(PI * THIRD)) { // 60 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)/2"
+				});
+			} else if (near_to(PI * 0.5)) { // 90 deg
+				result = new Fraction(1);
+			} else if (near_to(PI * 2 * THIRD)) { // 120 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)/2"
+				});
+			} else if (near_to(PI * 0.75)) { // 135 deg
+				result = new MultiplyGroup({
+					text: "(2^0.5)/2"
+				});
+			} else if (near_to(PI * 5 * SIXTH)) { // 150 deg
+				result = new Fraction("1/2");
+			} else if (near_to(PI)) { // 180 deg
+				result = new Fraction(0);
+			} else if (near_to(PI * 7 * SIXTH)) { // 210 deg
+				result = new Fraction("-1/2");
+			} else if (near_to(PI * 1.25)) { // 225 deg
+				result = new MultiplyGroup({
+					text: "-(2^0.5)/2"
+				});
+			} else if (near_to(PI * 4 * THIRD)) { // 240 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)/2"
+				});
+			} else if (near_to(PI * 1.5)) { // 270 deg
+				result = new Fraction(-1);
+			} else if (near_to(PI * 5 * THIRD)) { // 300 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)/2"
+				});
+			} else if (near_to(PI * 1.75)) { // 315 deg
+				result = new MultiplyGroup({
+					text: "-(2^0.5)/2"
+				});
+			} else if (near_to(PI * 11 * SIXTH)) { // 330 deg
+				result = new Fraction("-1/2");
+			}
+		} else if (b_name == "tan") {
+			// Correct the period
+			while (b_val < 0) {
+				b_val += 2 * PI;
+			}
+			b_val %= 2 * PI;
+			if (near_to(0)) { // 0 deg
+				result = new Fraction(0);	
+			} else if (near_to(PI * SIXTH)) { // 30 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)/3"
+				});
+			} else if (near_to(PI * 0.25)) { // 45 deg
+				result = new Fraction(1);
+			} else if (near_to(PI * THIRD)) { // 60 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)"
+				});
+			} else if (near_to(PI * 0.5)) { // 90 deg
+				result = new Fraction("1/0");
+			} else if (near_to(PI * 2 * THIRD)) { // 120 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)"
+				});
+			} else if (near_to(PI * 0.75)) { // 135 deg
+				result = new Fraction(-1);
+			} else if (near_to(PI * 5 * SIXTH)) { // 150 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)/3"
+				});
+			} else if (near_to(PI)) { // 180 deg
+				result = new Fraction(0);
+			} else if (near_to(PI * 7 * SIXTH)) { // 210 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)/3"
+				});
+			} else if (near_to(PI * 1.25)) { // 225 deg
+				result = new Fraction(1);
+			} else if (near_to(PI * 4 * THIRD)) { // 240 deg
+				result = new MultiplyGroup({
+					text: "(3^0.5)"
+				});
+			} else if (near_to(PI * 1.5)) { // 270 deg
+				result = new Fraction("-1/0");
+			} else if (near_to(PI * 5 * THIRD)) { // 300 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)"
+				});
+			} else if (near_to(PI * 1.75)) { // 315 deg
+				result = new Fraction(-1);
+			} else if (near_to(PI * 11 * SIXTH)) { // 330 deg
+				result = new MultiplyGroup({
+					text: "-(3^0.5)/3"
+				});
+			}
+		}
+	}
+	if (result == null) return;
+	return result;
+}
 
 function handle_trig_function(name, n) {
 	// Is n constant?
@@ -314,8 +458,8 @@ function handle_trig_function(name, n) {
 	for (var name in DefaultFunctions) {
 		default_funcs.push(name);
 	}
+	DEFAULT_FUNCTIONS_REGEX = "(" + default_funcs.join("|") + ")$";
 }
-DEFAULT_FUNCTIONS_REGEX = "(" + default_funcs.join("|") + ")$";
 
 // Used to keep track of what config info is relevant to
 // the current query
