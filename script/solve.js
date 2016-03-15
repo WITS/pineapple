@@ -3979,6 +3979,7 @@ FunctionGroup = function(json) {
 		if (/^(?:sin|cos|tan)$/.test(this.name)) {
 			config_used.preferences.angle = true;
 			config_used.preferences.trig = true;
+			config_used.preferences.angle = true;
 		}
 	}
 }
@@ -4050,8 +4051,15 @@ FunctionGroup.prototype.simplify = function() {
 	this.fixLinks();
 	// If appropriate, simplify the function
 	if (this.name in DefaultFunctions) {
-		var value = DefaultFunctions[this.name].apply(
-			this, this.arguments);
+		var value;
+		// Trig?
+		if (/^(?:sin|cos|tan)$/.test(this.name)) {
+			value = trig_function.call(this,
+				this.name, this.arguments[0]);
+		} else {
+			value = DefaultFunctions[this.name].apply(
+				this, this.arguments);
+		}
 		if (value) {
 			// ModuleStep: Evaluate function
 			this.highlighted = true;
