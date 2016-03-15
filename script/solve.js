@@ -1530,7 +1530,7 @@ MultiplyGroup = function(json) {
 	// 	FRACTION_REGEX + ")\\)", "g"), "$1");
 	// temp_text = temp_text.replace(new RegExp("(^|[^\\/0-9]|)\\((" +
 	// 	FRACTION_REGEX + ")\\)(?![\\/0-9a-zA-Z])", "g"), "$1$2");
-	console.log(temp_text);
+	// console.log(temp_text);
 
 	var function_group = null;
 	var prev_character = "";
@@ -1798,7 +1798,6 @@ MultiplyGroup = function(json) {
 		f.numerator.parent = this;
 		f.denominator.parent = this;
 
-		console.log(this.groups[x + replace_pos]);
 		this.groups.splice(x + replace_pos + 1,
 			replace_len);
 		x += replace_pos;
@@ -3448,7 +3447,7 @@ AlgebraGroup.prototype.updateFromText = function(text) {
 	}
 	// No variables ?
 	if (!this.temp_variables.length) {
-		console.log("No variables!");
+		// console.log("No variables!");
 		this.value = this.coefficient;
 		if (this.parent != null) {
 			this.parent.replace(this, this.value);
@@ -3978,6 +3977,7 @@ FunctionGroup = function(json) {
 	if (this.name in DefaultFunctions) {
 		// Trig?
 		if (/^(?:sin|cos|tan)$/.test(this.name)) {
+			config_used.preferences.angle = true;
 			config_used.preferences.trig = true;
 		}
 	}

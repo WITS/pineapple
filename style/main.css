@@ -514,7 +514,7 @@ body.homepage #homepage-text h2 {
 	/*font-weight: 400;*/
 }
 
-.render *:not(.operation) ~ .function {
+.render *:not(.operation) + .function {
 	padding-left: 6px;
 }
 

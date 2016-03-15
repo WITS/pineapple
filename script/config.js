@@ -9,9 +9,10 @@ Config = function() {
 	this.preferences = {
 		fraction: true,
 		radical: true,
+		angle: "deg",
+		trig: true,
 		pi: true,
-		e: true,
-		trig: true
+		e: true
 	};
 	this.constants = new Object();
 	this.functions = new Object();
@@ -204,6 +205,39 @@ ConfigPreferences = {
 			}
 		]
 	},
+	angle: {
+		title: "Angle Unit",
+		description: "Indicates which units to use for angles",
+		options: [
+			{
+				title: "Degrees",
+				example: "360",
+				value: "deg"
+			},
+			{
+				title: "Radians",
+				example: "2pi",
+				value: "rad"
+			}
+		]
+	},
+	trig: {
+		title: "Trigonometry Precision",
+		description: "Indicates whether to only evaluate trig functions for " +
+			"unit-circle values (exact) or to always evaluate them (approximate)",
+		options: [
+			{
+				title: "Exact",
+				example: "cos(pi)",
+				value: true
+			},
+			{
+				title: "Approximate",
+				example: "-1",
+				value: false
+			}
+		]
+	},
 	pi: {
 		title: "Pi Precision",
 		description: "Indicates whether to keep pi in calculations (exact) " +
@@ -237,55 +271,43 @@ ConfigPreferences = {
 				value: false
 			}
 		]
-	},
-	trig: {
-		title: "Trigonometry Precision",
-		description: "Indicates whether to only evaluate trig functions for " +
-			"unit-circle values (exact) or to always evaluate them (approximate)",
-		options: [
-			{
-				title: "Exact",
-				example: "cos(pi)",
-				value: true
-			},
-			{
-				title: "Approximate",
-				example: "-1",
-				value: false
-			}
-		]
 	}
 };
 
 DefaultFunctions = {
 	sin: function(n) {
-		// Is n constant?
-		if (n instanceof Fraction) {
-			var val = n.toNumber();
-			var result = Math.sin(val);
-			result = Math.round(1000000 * result) * 0.000001;
-			return new Fraction(result);
-		}
+		return handle_trig_function.call(this, "sin", n);
 	},
 	cos: function(n) {
-		// Is n constant?
-		if (n instanceof Fraction) {
-			var val = n.toNumber();
-			var result = Math.cos(val);
-			result = Math.round(1000000 * result) * 0.000001;
-			return new Fraction(result);
-		}
+		return handle_trig_function.call(this, "cos", n);
 	},
 	tan: function(n) {
-		// Is n constant?
-		if (n instanceof Fraction) {
-			var val = n.toNumber();
-			var result = Math.tan(val);
-			result = Math.round(1000000 * result) * 0.000001;
-			return new Fraction(result);
-		}
+		return handle_trig_function.call(this, "tan", n);
 	}
 };
+
+function handle_trig_function(name, n) {
+	// Is n constant?
+	if (n instanceof Fraction) {
+		var val = n.toNumber();
+	} else if (n instanceof FractionGroup &&
+		n.numerator.valueOf() instanceof Fraction &&
+		n.denominator.valueOf() instanceof Fraction) {
+		var val = n.numerator.valueOf().toNumber() /
+			n.denominator.valueOf().toNumber();
+	} else {
+		return; // Not a constant
+	}
+	// Convert to radians if necessary
+	switch(Config.preferences.angle) {
+		case "deg": val = val / 180 * Math.PI; break;
+		default: break;
+	}
+	console.log(name + "( " + val + " rad )");
+	var result = Math[name](val);
+	result = Math.round(1000000 * result) * 0.000001;
+	return new Fraction(result);
+}
 
 {
 	var default_funcs = new Array();
